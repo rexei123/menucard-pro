@@ -1,9 +1,29 @@
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
-import { formatPrice } from '@/lib/utils';
+import LanguageSwitcher from '@/components/language-switcher';
+import MenuContent from '@/components/menu-content';
 
-export default async function MenuPage({ params }: { params: { tenant: string; location: string; menu: string } }) {
+const ui: Record<string, Record<string, string>> = {
+  prices: { de: 'Alle Preise in Euro inkl. MwSt.', en: 'All prices in EUR incl. taxes.' },
+  powered: { de: 'Powered by MenuCard Pro', en: 'Powered by MenuCard Pro' },
+};
+
+export default async function MenuPage({
+  params,
+  searchParams,
+}: {
+  params: { tenant: string; location: string; menu: string };
+  searchParams: { lang?: string };
+}) {
+  const lang = searchParams.lang === 'en' ? 'en' : 'de';
+  const t = (translations: any[], field: string = 'name') => {
+    const found = translations.find((tr: any) => tr.languageCode === lang);
+    const fb = translations.find((tr: any) => tr.languageCode === 'de');
+    return (found?.[field] || fb?.[field]) ?? '';
+  };
+
   const tenant = await prisma.tenant.findUnique({ where: { slug: params.tenant, isActive: true } });
   if (!tenant) return notFound();
   const location = await prisma.location.findUnique({ where: { tenantId_slug: { tenantId: tenant.id, slug: params.location } } });
@@ -26,90 +46,60 @@ export default async function MenuPage({ params }: { params: { tenant: string; l
   });
   if (!menu) return notFound();
   const theme = await prisma.theme.findFirst({ where: { tenantId: tenant.id, isActive: true } });
-  const menuName = menu.translations.find(t => t.languageCode === 'de')?.name || menu.slug;
-  const hl: Record<string, string> = { RECOMMENDATION: 'Empfehlung', NEW: 'Neu', POPULAR: 'Beliebt', PREMIUM: 'Premium', SEASONAL: 'Saison', CHEFS_CHOICE: "Chef's Choice" };
+  const menuName = t(menu.translations);
+  const langParam = lang === 'en' ? '?lang=en' : '';
+  const priceLocale = lang === 'en' ? 'en-GB' : 'de-AT';
+  const accentColor = theme?.accentColor || '#8B6914';
+  const isWineMenu = menu.type === 'WINE';
+
+  // Serialize sections for client component (convert Decimal to number)
+  const serializedSections = menu.sections.map(s => ({
+    id: s.id,
+    slug: s.slug,
+    icon: s.icon,
+    translations: s.translations.map(st => ({ languageCode: st.languageCode, name: st.name, description: st.description })),
+    items: s.items.map(item => ({
+      id: item.id,
+      isHighlight: item.isHighlight,
+      highlightType: item.highlightType,
+      isSoldOut: item.isSoldOut,
+      translations: item.translations.map(it => ({ languageCode: it.languageCode, name: it.name, shortDescription: it.shortDescription, longDescription: it.longDescription })),
+      priceVariants: item.priceVariants.map(pv => ({ id: pv.id, label: pv.label, price: Number(pv.price), volume: pv.volume, isDefault: pv.isDefault })),
+      allergens: item.allergens.map(a => ({ allergen: { id: a.allergen.id, icon: a.allergen.icon, translations: a.allergen.translations.map(at => ({ languageCode: at.languageCode, name: at.name })) } })),
+      tags: item.tags.map(tg => ({ tag: { id: tg.tag.id, icon: tg.tag.icon, color: tg.tag.color, translations: tg.tag.translations.map(tt => ({ languageCode: tt.languageCode, name: tt.name })) } })),
+      wineProfile: item.wineProfile ? { winery: item.wineProfile.winery, vintage: item.wineProfile.vintage, grapeVarieties: item.wineProfile.grapeVarieties, region: item.wineProfile.region, country: item.wineProfile.country, appellation: item.wineProfile.appellation, style: item.wineProfile.style, body: item.wineProfile.body, sweetness: item.wineProfile.sweetness } : null,
+    })),
+  }));
 
   return (
     <div className="min-h-screen pb-16" style={{ background: theme?.backgroundColor || '#FAFAF8', color: theme?.textColor || '#1a1a1a' }}>
       <header className="border-b px-6 py-6 text-center">
-        <Link href={`/${tenant.slug}/${location.slug}`} className="text-xs uppercase tracking-widest opacity-40">{tenant.name}</Link>
+        <Link href={`/${tenant.slug}/${location.slug}${langParam}`} className="text-xs uppercase tracking-widest opacity-40">{tenant.name}</Link>
         <h1 className="mt-2 text-3xl font-bold tracking-tight" style={{fontFamily: "'Playfair Display', serif"}}>{menuName}</h1>
       </header>
-      {menu.sections.length > 1 && (
-        <nav className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur-md">
-          <div className="flex overflow-x-auto px-4 py-2 gap-1">
-            {menu.sections.map(s => (
-              <a key={s.id} href={`#${s.slug}`} className="flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium hover:bg-black/5" style={{whiteSpace:'nowrap'}}>
-                {s.icon && <span className="mr-1">{s.icon}</span>}{s.translations.find(t => t.languageCode === 'de')?.name || s.slug}
-              </a>
-            ))}
-          </div>
-        </nav>
-      )}
-      <main className="mx-auto max-w-2xl px-4">
-        {menu.sections.map(section => {
-          const sName = section.translations.find(t => t.languageCode === 'de')?.name || section.slug;
-          return (
-            <section key={section.id} id={section.slug} className="scroll-mt-16 py-8">
-              <div className="mb-6 text-center">
-                {section.icon && <span className="text-2xl">{section.icon}</span>}
-                <h2 className="text-xl font-bold tracking-tight" style={{fontFamily: "'Playfair Display', serif"}}>{sName}</h2>
-                <div className="mx-auto mt-3 h-px w-16" style={{backgroundColor: (theme?.accentColor || '#8B6914') + '40'}} />
-              </div>
-              <div className="space-y-2">
-                {section.items.map(item => {
-                  const iName = item.translations.find(t => t.languageCode === 'de')?.name || '';
-                  const iDesc = item.translations.find(t => t.languageCode === 'de')?.shortDescription;
-                  const defPrice = item.priceVariants.find(p => p.isDefault) || item.priceVariants[0];
-                  const multiPrice = item.priceVariants.length > 1;
-                  return (
-                    <div key={item.id} className={`rounded-xl border bg-white p-4 shadow-sm ${item.isSoldOut ? 'opacity-50' : ''}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-base font-semibold" style={{fontFamily: "'Playfair Display', serif"}}>{iName}</h3>
-                            {item.isHighlight && item.highlightType && (
-                              <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{backgroundColor: theme?.accentColor || '#8B6914'}}>{hl[item.highlightType] || ''}</span>
-                            )}
-                            {item.isSoldOut && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-600">Ausverkauft</span>}
-                          </div>
-                          {iDesc && <p className="mt-1 text-sm opacity-60">{iDesc}</p>}
-                          {item.wineProfile && (
-                            <div className="mt-2 flex flex-wrap gap-x-3 text-xs opacity-50">
-                              {item.wineProfile.winery && <span>{item.wineProfile.winery}</span>}
-                              {item.wineProfile.vintage && <span>{item.wineProfile.vintage}</span>}
-                              {item.wineProfile.region && <span>{item.wineProfile.region}</span>}
-                            </div>
-                          )}
-                          {item.tags.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {item.tags.map(t => (
-                                <span key={t.tag.id} className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium">{t.tag.icon} {t.tag.translations.find(tr => tr.languageCode === 'de')?.name}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-baseline gap-3">
-                        {multiPrice ? item.priceVariants.map(pv => (
-                          <div key={pv.id} className="text-sm">
-                            <span className="font-semibold tabular-nums">{formatPrice(Number(pv.price))}</span>
-                            {(pv.label || pv.volume) && <span className="ml-1 text-xs opacity-40">{pv.label || pv.volume}</span>}
-                          </div>
-                        )) : defPrice && <span className="text-sm font-semibold tabular-nums">{formatPrice(Number(defPrice.price))}</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+
+      <MenuContent
+        sections={serializedSections}
+        lang={lang}
+        langParam={langParam}
+        priceLocale={priceLocale}
+        accentColor={accentColor}
+        tenantSlug={tenant.slug}
+        locationSlug={location.slug}
+        menuSlug={menu.slug}
+        isWineMenu={isWineMenu}
+      />
+
+      <div className="mx-auto max-w-2xl px-4">
         <div className="border-t py-8 text-center">
-          <p className="text-xs opacity-30">Alle Preise in Euro inkl. MwSt.</p>
-          <p className="mt-1 text-xs opacity-20">Powered by MenuCard Pro</p>
+          <p className="text-xs opacity-30">{ui.prices[lang]}</p>
+          <p className="mt-1 text-xs opacity-20">{ui.powered[lang]}</p>
         </div>
-      </main>
+      </div>
+
+      <Suspense fallback={null}>
+        <LanguageSwitcher />
+      </Suspense>
     </div>
   );
 }
