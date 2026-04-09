@@ -34,12 +34,14 @@ export default async function MenuPage({
       translations: true,
       sections: { where: { isActive: true }, orderBy: { sortOrder: 'asc' }, include: {
         translations: true,
-        items: { where: { isActive: true }, orderBy: { sortOrder: 'asc' }, include: {
-          translations: true,
-          priceVariants: { orderBy: { sortOrder: 'asc' } },
-          allergens: { include: { allergen: { include: { translations: true } } } },
-          tags: { include: { tag: { include: { translations: true } } } },
-          wineProfile: true,
+        placements: { where: { isVisible: true }, orderBy: { sortOrder: 'asc' }, include: {
+          product: { include: {
+            translations: true,
+            prices: { include: { fillQuantity: true }, orderBy: { sortOrder: 'asc' } },
+            productAllergens: { include: { allergen: { include: { translations: true } } } },
+            productTags: { include: { tag: { include: { translations: true } } } },
+            productWineProfile: true,
+          } },
         } },
       } },
     },
@@ -52,23 +54,60 @@ export default async function MenuPage({
   const accentColor = theme?.accentColor || '#8B6914';
   const isWineMenu = menu.type === 'WINE';
 
-  // Serialize sections for client component (convert Decimal to number)
+  // Serialize placements into same shape MenuContent expects
   const serializedSections = menu.sections.map(s => ({
     id: s.id,
     slug: s.slug,
     icon: s.icon,
     translations: s.translations.map(st => ({ languageCode: st.languageCode, name: st.name, description: st.description })),
-    items: s.items.map(item => ({
-      id: item.id,
-      isHighlight: item.isHighlight,
-      highlightType: item.highlightType,
-      isSoldOut: item.isSoldOut,
-      translations: item.translations.map(it => ({ languageCode: it.languageCode, name: it.name, shortDescription: it.shortDescription, longDescription: it.longDescription })),
-      priceVariants: item.priceVariants.map(pv => ({ id: pv.id, label: pv.label, price: Number(pv.price), volume: pv.volume, isDefault: pv.isDefault })),
-      allergens: item.allergens.map(a => ({ allergen: { id: a.allergen.id, icon: a.allergen.icon, translations: a.allergen.translations.map(at => ({ languageCode: at.languageCode, name: at.name })) } })),
-      tags: item.tags.map(tg => ({ tag: { id: tg.tag.id, icon: tg.tag.icon, color: tg.tag.color, translations: tg.tag.translations.map(tt => ({ languageCode: tt.languageCode, name: tt.name })) } })),
-      wineProfile: item.wineProfile ? { winery: item.wineProfile.winery, vintage: item.wineProfile.vintage, grapeVarieties: item.wineProfile.grapeVarieties, region: item.wineProfile.region, country: item.wineProfile.country, appellation: item.wineProfile.appellation, style: item.wineProfile.style, body: item.wineProfile.body, sweetness: item.wineProfile.sweetness } : null,
-    })),
+    items: s.placements.map(pl => {
+      const p = pl.product;
+      return {
+        id: p.id, // Product ID for detail link
+        isHighlight: p.isHighlight || !!pl.highlightType,
+        highlightType: pl.highlightType || p.highlightType,
+        isSoldOut: p.status === 'SOLD_OUT',
+        translations: p.translations.map(pt => ({
+          languageCode: pt.languageCode,
+          name: pt.name,
+          shortDescription: pt.shortDescription,
+          longDescription: pt.longDescription,
+        })),
+        priceVariants: p.prices.map(pp => ({
+          id: pp.id,
+          label: pp.fillQuantity.label,
+          price: pl.priceOverride ? Number(pl.priceOverride) : Number(pp.price),
+          volume: pp.fillQuantity.volume,
+          isDefault: pp.isDefault,
+        })),
+        allergens: p.productAllergens.map(a => ({
+          allergen: {
+            id: a.allergen.id,
+            icon: a.allergen.icon,
+            translations: a.allergen.translations.map(at => ({ languageCode: at.languageCode, name: at.name })),
+          },
+        })),
+        tags: p.productTags.map(tg => ({
+          tag: {
+            id: tg.tag.id,
+            icon: tg.tag.icon,
+            color: tg.tag.color,
+            translations: tg.tag.translations.map(tt => ({ languageCode: tt.languageCode, name: tt.name })),
+          },
+        })),
+        wineProfile: p.productWineProfile ? {
+          winery: p.productWineProfile.winery,
+          vintage: p.productWineProfile.vintage,
+          grapeVarieties: p.productWineProfile.grapeVarieties,
+          region: p.productWineProfile.region,
+          country: p.productWineProfile.country,
+          appellation: p.productWineProfile.appellation,
+          style: p.productWineProfile.style,
+          body: p.productWineProfile.body,
+          sweetness: p.productWineProfile.sweetness,
+        } : null,
+      };
+    }),
   }));
 
   return (

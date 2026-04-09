@@ -79,7 +79,7 @@ export default function MenuContent({ sections, lang, langParam, priceLocale, ac
     return { wineStyles: Array.from(styles).sort(), countries: Array.from(ctries).sort() };
   }, [sections]);
 
-  const hasDetail = (item: Item) => {
+  const hasDetail = (item: Item) => { return true; // all items clickable
     const longDesc = t(item.translations, 'longDescription');
     return !!(longDesc || item.wineProfile || item.allergens.length > 0);
   };
