@@ -1,9 +1,10 @@
-export default function Page() {
+export default function MenusIndexPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>menus</h1>
-      <div className="rounded-xl border border-dashed bg-gray-50 px-6 py-12 text-center">
-        <p className="text-sm text-gray-400">Wird implementiert</p>
+    <div className="flex h-full items-center justify-center">
+      <div className="text-center">
+        <p className="text-5xl mb-4">📋</p>
+        <h2 className="text-lg font-semibold text-gray-400">Karte auswählen</h2>
+        <p className="text-sm text-gray-300 mt-1">Wähle eine Karte aus der Liste links</p>
       </div>
     </div>
   );

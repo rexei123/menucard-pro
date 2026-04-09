@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 
 type Translation = { languageCode: string; name: string; shortDescription: string | null; longDescription: string | null; servingSuggestion: string | null };
-type Price = { id: string | null; fillQuantityId: string; fillLabel: string; priceLevelId: string; levelName: string; price: number; purchasePrice: number | null; isDefault: boolean; sortOrder: number };
+type Price = { id: string | null; fillQuantityId: string; fillLabel: string; priceLevelId: string; levelName: string; price: number; purchasePrice: number | null; fixedMarkup: number | null; percentMarkup: number | null; isDefault: boolean; sortOrder: number };
 type WineProfile = { winery: string | null; vintage: number | null; grapeVarieties: string[]; region: string | null; country: string | null; appellation: string | null; style: string | null; body: string | null; sweetness: string | null; bottleSize: string | null; alcoholContent: number | null; servingTemp: string | null; tastingNotes: string | null; foodPairing: string | null };
 type BevDetail = { brand: string | null; producer: string | null; category: string | null; alcoholContent: number | null; servingTemp: string | null; carbonated: boolean; origin: string | null };
 type Placement = { menuName: string; sectionName: string; isVisible: boolean };
@@ -14,7 +14,7 @@ type ProductData = {
   isHighlight: boolean; highlightType: string | null; productGroupId: string | null;
   translations: Translation[]; prices: Price[];
   wineProfile: WineProfile | null; bevDetail: BevDetail | null;
-  placements: Placement[]; tags: { name: string; icon: string | null }[]; createdAt: string;
+  internalNotes: string | null; placements: Placement[]; tags: { name: string; icon: string | null }[]; createdAt: string;
 };
 
 type Options = {
@@ -84,6 +84,8 @@ export default function ProductEditor({ product: initial, options }: { product: 
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [deChanged, setDeChanged] = useState<Set<string>>(new Set());
+  const [enSynced, setEnSynced] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const unload = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
@@ -119,7 +121,33 @@ export default function ProductEditor({ product: initial, options }: { product: 
       }
       return { ...p, translations: [...p.translations, { languageCode: lang, name: '', shortDescription: null, longDescription: null, servingSuggestion: null, [field]: value || null }] };
     });
+    if (lang === 'de') { setDeChanged(prev => new Set(prev).add(field)); setEnSynced(prev => { const n = new Set(prev); n.delete(field); return n; }); }
+    if (lang === 'en') { setDeChanged(prev => { const n = new Set(prev); n.delete(field); return n; }); setEnSynced(prev => new Set(prev).add(field)); }
     setDirty(true);
+  };
+
+  const [translating, setTranslating] = useState<Set<string>>(new Set());
+
+  const translateDeToEn = async (field: string) => {
+    const deVal = (data.translations.find(t => t.languageCode === 'de') as any)?.[field] || '';
+    if (!deVal.trim()) return;
+    setTranslating(prev => new Set(prev).add(field));
+    try {
+      const res = await fetch('/api/v1/translate', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: deVal, from: 'de', to: 'en' }),
+      });
+      if (res.ok) {
+        const { translated } = await res.json();
+        setTrans('en', field, translated);
+        setDeChanged(prev => { const n = new Set(prev); n.delete(field); return n; });
+        setEnSynced(prev => new Set(prev).add(field));
+      }
+    } catch { /* fallback: copy as-is */
+      setTrans('en', field, deVal);
+    }
+    setTranslating(prev => { const n = new Set(prev); n.delete(field); return n; });
   };
 
   const setWP = (field: string, value: any) => {
@@ -138,7 +166,7 @@ export default function ProductEditor({ product: initial, options }: { product: 
   };
 
   const addPrice = () => {
-    setData(p => ({ ...p, prices: [...p.prices, { id: null, fillQuantityId: options.fillQuantities[0]?.id || '', fillLabel: options.fillQuantities[0]?.label || '', priceLevelId: options.priceLevels[0]?.id || '', levelName: options.priceLevels[0]?.name || '', price: 0, purchasePrice: null, isDefault: false, sortOrder: p.prices.length }] }));
+    setData(p => ({ ...p, prices: [...p.prices, { id: null, fillQuantityId: options.fillQuantities[0]?.id || '', fillLabel: options.fillQuantities[0]?.label || '', priceLevelId: options.priceLevels[0]?.id || '', levelName: options.priceLevels[0]?.name || '', price: 0, purchasePrice: null, fixedMarkup: null, percentMarkup: null, isDefault: false, sortOrder: p.prices.length }] }));
     setDirty(true);
   };
 
@@ -155,17 +183,28 @@ export default function ProductEditor({ product: initial, options }: { product: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: data.status, type: data.type, productGroupId: data.productGroupId,
-          isHighlight: data.isHighlight, highlightType: data.highlightType,
+          isHighlight: data.isHighlight, highlightType: data.highlightType, internalNotes: data.internalNotes || null,
           translations: data.translations,
-          prices: data.prices.map(p => ({ id: p.id, fillQuantityId: p.fillQuantityId, priceLevelId: p.priceLevelId, price: p.price, purchasePrice: p.purchasePrice, isDefault: p.isDefault, sortOrder: p.sortOrder })),
+          prices: data.prices.map(p => ({ id: p.id, fillQuantityId: p.fillQuantityId, priceLevelId: p.priceLevelId, price: p.price, purchasePrice: p.purchasePrice, fixedMarkup: p.fixedMarkup, percentMarkup: p.percentMarkup, isDefault: p.isDefault, sortOrder: p.sortOrder })),
           wineProfile: data.wineProfile,
           beverageDetail: data.bevDetail,
         }),
       });
-      if (res.ok) { setSaved(true); setDirty(false); setTimeout(() => setSaved(false), 2000); }
+      if (res.ok) { setSaved(true); setDirty(false); setDeChanged(new Set()); setEnSynced(new Set()); setTimeout(() => setSaved(false), 2000); }
       else { const d = await res.json(); setError(d.error || 'Fehler'); }
     } catch { setError('Netzwerkfehler'); }
     finally { setSaving(false); }
+  };
+
+  const deleteProduct = async () => {
+    const name = (data.translations.find(t => t.languageCode === 'de') as any)?.name || 'Produkt';
+    if (!confirm(`Produkt "${name}" wirklich dauerhaft löschen?\n\nAlle Daten (Preise, Übersetzungen, Kartenplatzierungen) werden unwiderruflich gelöscht.`)) return;
+    if (!confirm('ENDGÜLTIG LÖSCHEN?\n\nDiese Aktion kann NICHT rückgängig gemacht werden!')) return;
+    try {
+      const res = await fetch(`/api/v1/products/${data.id}`, { method: 'DELETE', credentials: 'include' });
+      if (res.ok) window.location.href = '/admin/items';
+      else { const d = await res.json(); setError(d.error || 'Löschen fehlgeschlagen'); }
+    } catch { setError('Netzwerkfehler'); }
   };
 
   return (
@@ -227,13 +266,13 @@ export default function ProductEditor({ product: initial, options }: { product: 
         <section className="rounded-xl border bg-white p-5 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-gray-500">🇬🇧 English</h2>
           <div className="space-y-3">
-            <div><label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Name</label>
+            <div><div className="flex items-center justify-between mb-1"><label className="text-[10px] uppercase tracking-wider text-gray-400">Name</label><div className="flex items-center gap-1">{deChanged.has('name') && <span className="text-[10px] text-amber-600">⚠️ DE geändert</span>}<button type="button" onClick={() => translateDeToEn('name')} disabled={translating.has('name')} className={`rounded-md px-2 py-0.5 text-[11px] font-medium border transition-colors disabled:opacity-50 ${enSynced.has('name') && !deChanged.has('name') ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100' : deChanged.has('name') ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100' : 'border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100'}`}>{translating.has('name') ? '⏳ Übersetze...' : enSynced.has('name') && !deChanged.has('name') ? '✅ Übersetzt' : '🔄 DE → EN'}</button></div></div>
               <input value={en.name} onChange={e => setTrans('en', 'name', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Short Description</label>
+            <div><div className="flex items-center justify-between mb-1"><label className="text-[10px] uppercase tracking-wider text-gray-400">Short Description</label><div className="flex items-center gap-1">{deChanged.has('shortDescription') && <span className="text-[10px] text-amber-600">⚠️ DE geändert</span>}<button type="button" onClick={() => translateDeToEn('shortDescription')} disabled={translating.has('shortDescription')} className={`rounded-md px-2 py-0.5 text-[11px] font-medium border transition-colors disabled:opacity-50 ${enSynced.has('shortDescription') && !deChanged.has('shortDescription') ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100' : deChanged.has('shortDescription') ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100' : 'border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100'}`}>{translating.has('shortDescription') ? '⏳ Übersetze...' : enSynced.has('shortDescription') && !deChanged.has('shortDescription') ? '✅ Übersetzt' : '🔄 DE → EN'}</button></div></div>
               <input value={en.shortDescription || ''} onChange={e => setTrans('en', 'shortDescription', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Long Description</label>
+            <div><div className="flex items-center justify-between mb-1"><label className="text-[10px] uppercase tracking-wider text-gray-400">Long Description</label><div className="flex items-center gap-1">{deChanged.has('longDescription') && <span className="text-[10px] text-amber-600">⚠️ DE geändert</span>}<button type="button" onClick={() => translateDeToEn('longDescription')} disabled={translating.has('longDescription')} className={`rounded-md px-2 py-0.5 text-[11px] font-medium border transition-colors disabled:opacity-50 ${enSynced.has('longDescription') && !deChanged.has('longDescription') ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100' : deChanged.has('longDescription') ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100' : 'border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100'}`}>{translating.has('longDescription') ? '⏳ Übersetze...' : enSynced.has('longDescription') && !deChanged.has('longDescription') ? '✅ Übersetzt' : '🔄 DE → EN'}</button></div></div>
               <textarea value={en.longDescription || ''} onChange={e => setTrans('en', 'longDescription', e.target.value)} rows={4} className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-gray-400 resize-y" /></div>
-            <div><label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Serving Suggestion</label>
+            <div><div className="flex items-center justify-between mb-1"><label className="text-[10px] uppercase tracking-wider text-gray-400">Serving Suggestion</label><div className="flex items-center gap-1">{deChanged.has('servingSuggestion') && <span className="text-[10px] text-amber-600">⚠️ DE geändert</span>}<button type="button" onClick={() => translateDeToEn('servingSuggestion')} disabled={translating.has('servingSuggestion')} className={`rounded-md px-2 py-0.5 text-[11px] font-medium border transition-colors disabled:opacity-50 ${enSynced.has('servingSuggestion') && !deChanged.has('servingSuggestion') ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100' : deChanged.has('servingSuggestion') ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100' : 'border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100'}`}>{translating.has('servingSuggestion') ? '⏳ Übersetze...' : enSynced.has('servingSuggestion') && !deChanged.has('servingSuggestion') ? '✅ Übersetzt' : '🔄 DE → EN'}</button></div></div>
               <input value={en.servingSuggestion || ''} onChange={e => setTrans('en', 'servingSuggestion', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-gray-400" /></div>
           </div>
         </section>
@@ -242,35 +281,85 @@ export default function ProductEditor({ product: initial, options }: { product: 
       {/* Prices */}
       <section className="rounded-xl border bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-500">Preise</h2>
+          <h2 className="text-sm font-semibold text-gray-500">Preise & Kalkulation</h2>
           <button onClick={addPrice} className="text-xs font-medium px-3 py-1.5 rounded-lg text-white" style={{backgroundColor:'#8B6914'}}>+ Preis hinzufügen</button>
         </div>
-        <div className="space-y-2">
-          {data.prices.map((p, i) => (
-            <div key={`price-${i}`} className="flex items-end gap-2 rounded-lg bg-gray-50 p-3">
-              <div className="flex-1">
-                <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Füllmenge</label>
-                <select value={p.fillQuantityId} onChange={e => { const fq = options.fillQuantities.find(f => f.id === e.target.value); setPrice(i, 'fillQuantityId', e.target.value); if (fq) setPrice(i, 'fillLabel', fq.label); }} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none">
-                  {options.fillQuantities.map(fq => <option key={fq.id} value={fq.id}>{fq.label}</option>)}
-                </select>
+        <div className="space-y-3">
+          {data.prices.map((p, i) => {
+            const ek = p.purchasePrice ?? 0;
+            const fix = p.fixedMarkup ?? 0;
+            const pct = p.percentMarkup ?? 0;
+            const hasCalc = ek > 0 && (fix > 0 || pct > 0);
+            const calcVK = hasCalc ? (ek + fix) * (1 + pct / 100) : null;
+            const marge = ek > 0 && p.price > 0 ? ((p.price - ek) / p.price * 100) : null;
+            return (
+            <div key={`price-${i}`} className="rounded-lg border bg-gray-50 p-3">
+              <div className="flex items-end gap-2 mb-2">
+                <div className="flex-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Füllmenge</label>
+                  <select value={p.fillQuantityId} onChange={e => { const fq = options.fillQuantities.find(f => f.id === e.target.value); setPrice(i, 'fillQuantityId', e.target.value); if (fq) setPrice(i, 'fillLabel', fq.label); }} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none bg-white">
+                    {options.fillQuantities.map(fq => <option key={fq.id} value={fq.id}>{fq.label}</option>)}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Preisebene</label>
+                  <select value={p.priceLevelId} onChange={e => { const pl = options.priceLevels.find(l => l.id === e.target.value); setPrice(i, 'priceLevelId', e.target.value); if (pl) setPrice(i, 'levelName', pl.name); }} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none bg-white">
+                    {options.priceLevels.map(pl => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
+                  </select>
+                </div>
+                <button onClick={() => removePrice(i)} className="text-red-400 hover:text-red-600 p-1.5 mb-0.5" title="Preis entfernen">✕</button>
               </div>
-              <div className="flex-1">
-                <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Preisebene</label>
-                <select value={p.priceLevelId} onChange={e => { const pl = options.priceLevels.find(l => l.id === e.target.value); setPrice(i, 'priceLevelId', e.target.value); if (pl) setPrice(i, 'levelName', pl.name); }} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none">
-                  {options.priceLevels.map(pl => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
-                </select>
+              <div className="flex items-end gap-2">
+                <div className="w-[88px]">
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">EK €</label>
+                  <input type="number" step="0.01" value={p.purchasePrice ?? ''} onChange={e => {
+                    const newEK = e.target.value ? Number(e.target.value) : null;
+                    setPrice(i, 'purchasePrice', newEK);
+                    if (newEK && (p.fixedMarkup || p.percentMarkup)) {
+                      const newVK = (newEK + (p.fixedMarkup ?? 0)) * (1 + (p.percentMarkup ?? 0) / 100);
+                      setPrice(i, 'price', Math.round(newVK * 10) / 10);
+                    }
+                  }} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none text-right bg-white" placeholder="0.00" />
+                </div>
+                <div className="w-[72px]">
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">+ Fix €</label>
+                  <input type="number" step="0.01" value={p.fixedMarkup ?? ''} onChange={e => {
+                    const val = e.target.value ? Number(e.target.value) : null;
+                    setPrice(i, 'fixedMarkup', val);
+                    if (p.purchasePrice && val !== null) {
+                      const newVK = (p.purchasePrice + val) * (1 + (p.percentMarkup ?? 0) / 100);
+                      setPrice(i, 'price', Math.round(newVK * 10) / 10);
+                    }
+                  }} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none text-right bg-white" placeholder="0" />
+                </div>
+                <div className="w-[72px]">
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">× Aufschlag %</label>
+                  <input type="number" step="1" value={p.percentMarkup ?? ''} onChange={e => {
+                    const val = e.target.value ? Number(e.target.value) : null;
+                    setPrice(i, 'percentMarkup', val);
+                    if (p.purchasePrice && val !== null) {
+                      const newVK = (p.purchasePrice + (p.fixedMarkup ?? 0)) * (1 + val / 100);
+                      setPrice(i, 'price', Math.round(newVK * 10) / 10);
+                    }
+                  }} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none text-right bg-white" placeholder="0" />
+                </div>
+                <div className="text-center px-1 pb-1.5 text-gray-400">=</div>
+                <div className="w-[96px]">
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">VK €</label>
+                  <input type="number" step="0.01" value={p.price} onChange={e => setPrice(i, 'price', Number(e.target.value))} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none text-right font-bold bg-white" />
+                </div>
+                {marge !== null && (
+                  <div className="pb-1.5 pl-1 w-[60px] text-right">
+                    <span className={`text-xs font-semibold ${marge >= 65 ? 'text-green-600' : marge >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
+                      {marge.toFixed(0)}%
+                    </span>
+                    <p className="text-[9px] text-gray-400">Marge</p>
+                  </div>
+                )}
               </div>
-              <div className="w-24">
-                <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">VK €</label>
-                <input type="number" step="0.01" value={p.price} onChange={e => setPrice(i, 'price', Number(e.target.value))} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none text-right font-semibold" />
-              </div>
-              <div className="w-24">
-                <label className="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">EK €</label>
-                <input type="number" step="0.01" value={p.purchasePrice ?? ''} onChange={e => setPrice(i, 'purchasePrice', e.target.value ? Number(e.target.value) : null)} className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none text-right" />
-              </div>
-              <button onClick={() => removePrice(i)} className="text-red-400 hover:text-red-600 p-1.5 mb-0.5">✕</button>
             </div>
-          ))}
+            );
+          })}
           {data.prices.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Keine Preise definiert</p>}
         </div>
       </section>
@@ -347,6 +436,19 @@ export default function ProductEditor({ product: initial, options }: { product: 
         </section>
       )}
 
+      {/* Rezeptur */}
+      <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-gray-500">📝 Rezeptur / Interne Notizen</h2>
+        <textarea
+          value={data.internalNotes || ''}
+          onChange={e => { set('internalNotes', e.target.value || null); }}
+          rows={6}
+          placeholder={"Zutaten, Mengen, Zubereitung...\n\nBeispiel Cocktail:\n4cl Gin\n2cl Zitronensaft\n1,5cl Zuckersirup\n→ Shaken, auf Eis, Zitronenzeste"}
+          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-gray-400 resize-y font-mono"
+        />
+        <p className="mt-1.5 text-[10px] text-gray-400">Nur intern sichtbar – wird nicht an Gäste angezeigt</p>
+      </section>
+
       {/* Placements (read-only) */}
       {data.placements.length > 0 && (
         <section className="rounded-xl border bg-white p-5 shadow-sm">
@@ -362,7 +464,10 @@ export default function ProductEditor({ product: initial, options }: { product: 
         </section>
       )}
 
-      <div className="text-xs text-gray-300">ID: {data.id} · Erstellt: {new Date(data.createdAt).toLocaleDateString('de-AT')}</div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-300">ID: {data.id} · Erstellt: {new Date(data.createdAt).toLocaleDateString('de-AT')}</span>
+        <button onClick={deleteProduct} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors">🗑️ Produkt löschen</button>
+      </div>
 
       {/* Sticky Save Bar */}
       {(dirty || saved || error) && <div className="fixed bottom-0 left-0 right-0 border-t bg-white/95 backdrop-blur-md px-6 py-3 flex items-center justify-between z-50 animate-in slide-in-from-bottom">

@@ -36,7 +36,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     isHighlight: product.isHighlight, highlightType: product.highlightType,
     productGroupId: product.productGroupId,
     translations: product.translations.map(t => ({ languageCode: t.languageCode, name: t.name, shortDescription: t.shortDescription, longDescription: t.longDescription, servingSuggestion: t.servingSuggestion })),
-    prices: product.prices.map(p => ({ id: p.id, fillQuantityId: p.fillQuantityId, fillLabel: p.fillQuantity.label, priceLevelId: p.priceLevelId, levelName: p.priceLevel.name, price: Number(p.price), purchasePrice: p.purchasePrice ? Number(p.purchasePrice) : null, isDefault: p.isDefault, sortOrder: p.sortOrder })),
+    prices: product.prices.map(p => ({ id: p.id, fillQuantityId: p.fillQuantityId, fillLabel: p.fillQuantity.label, priceLevelId: p.priceLevelId, levelName: p.priceLevel.name, price: Number(p.price), purchasePrice: p.purchasePrice ? Number(p.purchasePrice) : null, fixedMarkup: p.fixedMarkup ? Number(p.fixedMarkup) : null, percentMarkup: p.percentMarkup, isDefault: p.isDefault, sortOrder: p.sortOrder })),
     wineProfile: product.productWineProfile ? {
       winery: product.productWineProfile.winery, vintage: product.productWineProfile.vintage,
       grapeVarieties: product.productWineProfile.grapeVarieties,
@@ -59,6 +59,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
       isVisible: pl.isVisible,
     })),
     tags: product.productTags.map(t => ({ name: t.tag.translations.find(tr => tr.languageCode === 'de')?.name || '', icon: t.tag.icon })),
+    internalNotes: product.internalNotes,
     createdAt: product.createdAt.toISOString(),
   };
 

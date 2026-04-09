@@ -5,23 +5,36 @@ import Link from 'next/link';
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  const tenantId = session!.user.tenantId;
-  const [menuCount, itemCount] = await Promise.all([
-    prisma.menu.count({ where: { location: { tenantId }, isArchived: false } }),
-    prisma.menuItem.count({ where: { section: { menu: { location: { tenantId } } } } }),
+  if (!session) return null;
+  const tid = session.user.tenantId;
+
+  const [menuCount, productCount, qrCount] = await Promise.all([
+    prisma.menu.count({ where: { location: { tenantId: tid } } }),
+    prisma.product.count({ where: { tenantId: tid } }),
+    prisma.qRCode.count({ where: { location: { tenantId: tid } } }),
   ]);
 
   return (
-    <div className="space-y-8">
-      <div>
+    <main className="flex-1 overflow-y-auto p-6">
+      <div className="max-w-4xl">
         <h1 className="text-2xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">Willkommen, {session!.user.firstName}</p>
+        <p className="text-sm text-gray-400 mt-1">Willkommen, {session.user.firstName}</p>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <Link href="/admin/menus" className="rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+            <p className="text-3xl font-bold">{menuCount}</p>
+            <p className="text-sm text-gray-400 mt-1">Karten</p>
+          </Link>
+          <Link href="/admin/items" className="rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+            <p className="text-3xl font-bold">{productCount}</p>
+            <p className="text-sm text-gray-400 mt-1">Produkte</p>
+          </Link>
+          <Link href="/admin/qr-codes" className="rounded-xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+            <p className="text-3xl font-bold">{qrCount}</p>
+            <p className="text-sm text-gray-400 mt-1">QR-Codes</p>
+          </Link>
+        </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border bg-white p-5"><p className="text-2xl font-bold">{menuCount}</p><p className="text-sm text-gray-500">Karten</p></div>
-        <div className="rounded-xl border bg-white p-5"><p className="text-2xl font-bold">{itemCount}</p><p className="text-sm text-gray-500">Artikel</p></div>
-        <Link href="/admin/menus" className="rounded-xl border bg-white p-5 hover:shadow-md"><p className="text-sm font-medium">Karten verwalten &rarr;</p></Link>
-      </div>
-    </div>
+    </main>
   );
 }

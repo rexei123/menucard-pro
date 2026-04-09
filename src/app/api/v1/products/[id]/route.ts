@@ -69,15 +69,41 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       if (p.id) {
         await prisma.productPrice.update({
           where: { id: p.id },
-          data: { price: p.price, purchasePrice: p.purchasePrice || null, fillQuantityId: p.fillQuantityId, priceLevelId: p.priceLevelId, isDefault: p.isDefault || false, sortOrder: p.sortOrder || 0 },
+          data: { price: p.price, purchasePrice: p.purchasePrice || null, fixedMarkup: p.fixedMarkup || null, percentMarkup: p.percentMarkup || null, fillQuantityId: p.fillQuantityId, priceLevelId: p.priceLevelId, isDefault: p.isDefault || false, sortOrder: p.sortOrder || 0 },
         });
       } else {
         await prisma.productPrice.create({
-          data: { productId: params.id, price: p.price, purchasePrice: p.purchasePrice || null, fillQuantityId: p.fillQuantityId, priceLevelId: p.priceLevelId, isDefault: p.isDefault || false, sortOrder: p.sortOrder || 0 },
+          data: { productId: params.id, price: p.price, purchasePrice: p.purchasePrice || null, fixedMarkup: p.fixedMarkup || null, percentMarkup: p.percentMarkup || null, fillQuantityId: p.fillQuantityId, priceLevelId: p.priceLevelId, isDefault: p.isDefault || false, sortOrder: p.sortOrder || 0 },
         });
       }
     }
   }
+
+  return NextResponse.json({ success: true });
+}
+
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const product = await prisma.product.findFirst({
+    where: { id: params.id, tenantId: session.user.tenantId },
+  });
+  if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Delete all related data
+  await prisma.menuPlacement.deleteMany({ where: { productId: params.id } });
+  await prisma.productTranslation.deleteMany({ where: { productId: params.id } });
+  await prisma.productPrice.deleteMany({ where: { productId: params.id } });
+  await prisma.productWineProfile.deleteMany({ where: { productId: params.id } });
+  await prisma.productBeverageDetail.deleteMany({ where: { productId: params.id } });
+  await prisma.productAllergen.deleteMany({ where: { productId: params.id } });
+  await prisma.productTag.deleteMany({ where: { productId: params.id } });
+  await prisma.productMedia.deleteMany({ where: { productId: params.id } });
+  await prisma.productCustomFieldValue.deleteMany({ where: { productId: params.id } });
+  await prisma.productPairing.deleteMany({ where: { OR: [{ sourceId: params.id }, { targetId: params.id }] } });
+  await prisma.product.delete({ where: { id: params.id } });
 
   return NextResponse.json({ success: true });
 }
