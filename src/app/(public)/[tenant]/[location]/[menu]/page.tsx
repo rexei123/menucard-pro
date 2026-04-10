@@ -34,7 +34,7 @@ export default async function MenuPage({
       translations: true,
       sections: { where: { isActive: true }, orderBy: { sortOrder: 'asc' }, include: {
         translations: true,
-        placements: { where: { isVisible: true }, orderBy: { sortOrder: 'asc' }, include: {
+        placements: { orderBy: { sortOrder: 'asc' }, include: {
           product: { include: {
             translations: true,
             prices: { include: { fillQuantity: true }, orderBy: { sortOrder: 'asc' } },
@@ -66,7 +66,7 @@ export default async function MenuPage({
         id: p.id, // Product ID for detail link
         isHighlight: p.isHighlight || !!pl.highlightType,
         highlightType: pl.highlightType || p.highlightType,
-        isSoldOut: p.status === 'SOLD_OUT',
+        isSoldOut: p.status === 'SOLD_OUT' || !pl.isVisible,
         translations: p.translations.map(pt => ({
           languageCode: pt.languageCode,
           name: pt.name,

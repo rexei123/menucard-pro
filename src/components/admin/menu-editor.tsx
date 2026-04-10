@@ -233,9 +233,9 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
                       {pl.price !== null && <span className="text-base font-semibold text-gray-600 tabular-nums mr-1">{fmtEur(pl.price)}</span>}
-                      <button onClick={() => toggleVisible(pl.id, sec.id, pl.isVisible)} title={pl.isVisible ? 'Ausgetrunken' : 'Wieder verfügbar'}
-                        className={`rounded p-1 text-sm transition-colors ${pl.isVisible ? 'text-gray-400 hover:text-orange-600 hover:bg-orange-50' : 'text-green-600 bg-green-50 hover:bg-green-100'}`}>
-                        {pl.isVisible ? '🚫' : '✅'}
+                      <button onClick={() => toggleVisible(pl.id, sec.id, pl.isVisible)} title={pl.isVisible ? 'Als ausgetrunken markieren' : 'Wieder verfügbar'}
+                        className={`rounded-full w-6 h-6 flex items-center justify-center text-sm transition-all ${pl.isVisible ? 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-500' : 'bg-red-100 text-red-600 hover:bg-green-100 hover:text-green-600'}`}>
+                        {pl.isVisible ? '●' : '🚫'}
                       </button>
                       <button onClick={() => remove(pl.id, sec.id)} title="Entfernen" className="rounded p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors text-sm">✕</button>
                     </div>
