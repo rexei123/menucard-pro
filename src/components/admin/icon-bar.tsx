@@ -55,6 +55,7 @@ export default function IconBar({ userName, userRole }: { userName: string; user
           <div>
             <p className="text-sm font-medium text-gray-700 truncate">{userName}</p>
             <p className="text-sm text-gray-400">{userRole}</p>
+            <button onClick={() => { window.location.reload(); }} title="Seite neu laden" className="w-full rounded-lg border px-3 py-1.5 text-sm text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors mb-1">🔄 Neu laden</button>
             <button onClick={() => { if(confirm('Abmelden?')) window.location.href='/api/auth/signout'; }} className="mt-2 w-full rounded-lg border px-3 py-1.5 text-sm text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors">Abmelden</button>
           </div>
         ) : (
@@ -62,6 +63,7 @@ export default function IconBar({ userName, userRole }: { userName: string; user
             <div title={`${userName} (${userRole})`} className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
               {userName.charAt(0).toUpperCase()}
             </div>
+            <button onClick={() => { window.location.reload(); }} title="Seite neu laden" className="w-full rounded-lg border px-3 py-1.5 text-sm text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors mb-1">🔄 Neu laden</button>
             <button onClick={() => { if(confirm('Abmelden?')) window.location.href='/api/auth/signout'; }} title="Abmelden" className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">⏻</button>
           </>
         )}

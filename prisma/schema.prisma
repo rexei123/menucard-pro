@@ -430,6 +430,7 @@ model Media {
   alt          String?
   createdAt    DateTime @default(now())
   menuItems    MenuItemMedia[]
+  productMedia ProductMedia[]
   productMedia     ProductMedia[]
 }
 

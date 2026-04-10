@@ -19,6 +19,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
       productTags: { include: { tag: { include: { translations: true } } } },
       productWineProfile: true,
       productBevDetail: true,
+      productMedia: { include: { media: true }, orderBy: { sortOrder: 'asc' } },
       placements: { include: { menuSection: { include: { translations: true, menu: { include: { translations: true } } } } } },
     },
   });
@@ -60,6 +61,15 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     })),
     tags: product.productTags.map(t => ({ name: t.tag.translations.find(tr => tr.languageCode === 'de')?.name || '', icon: t.tag.icon })),
     internalNotes: product.internalNotes,
+    images: (product.productMedia || []).map((pm: any) => ({
+      id: pm.id,
+      mediaId: pm.mediaId,
+      url: pm.url || pm.media?.url || '',
+      thumbUrl: pm.media?.thumbnailUrl || pm.url || '',
+      mediaType: pm.mediaType,
+      isPrimary: pm.isPrimary,
+      sortOrder: pm.sortOrder,
+    })),
     createdAt: product.createdAt.toISOString(),
   };
 
@@ -69,5 +79,5 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     fillQuantities: fillQuantities.map(fq => ({ id: fq.id, label: fq.label, volume: fq.volume })),
   };
 
-  return <ProductEditor product={data} options={opts} />;
+  return <ProductEditor product={data} options={opts} images={data.images || []} />;
 }

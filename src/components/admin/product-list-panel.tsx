@@ -120,7 +120,7 @@ export default function ProductListPanel({ products, groups }: { products: Produ
           />
         </div>
         {/* Filters */}
-        <div className="mt-2 flex gap-1.5">
+        <div className="mt-2 grid grid-cols-3 gap-1">
           <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setGroupFilter(''); }} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-sm outline-none">
             <option value="">Alle Typen</option>
             <option value="WINE">Wein</option>

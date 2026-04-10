@@ -1,4 +1,5 @@
 'use client';
+import ProductImages from '@/components/admin/product-images';
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
@@ -78,7 +79,7 @@ const bevCatOpts = [
 const emptyWP: WineProfile = { winery: null, vintage: null, grapeVarieties: [], region: null, country: null, appellation: null, style: null, body: null, sweetness: null, bottleSize: null, alcoholContent: null, servingTemp: null, tastingNotes: null, foodPairing: null };
 const emptyBev: BevDetail = { brand: null, producer: null, category: null, alcoholContent: null, servingTemp: null, carbonated: false, origin: null };
 
-export default function ProductEditor({ product: initial, options }: { product: ProductData; options: Options }) {
+export default function ProductEditor({ product: initial, options, images }: { product: ProductData; options: Options; images?: any[] }) {
   const [data, setData] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -463,6 +464,9 @@ export default function ProductEditor({ product: initial, options }: { product: 
           </div>
         </section>
       )}
+
+      {/* Bilder */}
+      {images && <ProductImages productId={data.id} initialImages={images} />}
 
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-300">ID: {data.id} · Erstellt: {new Date(data.createdAt).toLocaleDateString('de-AT')}</span>
