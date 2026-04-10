@@ -52,32 +52,32 @@ export default function ProductList({ products, groups, typeCounts }: { products
           {/* Search */}
           <div className="relative flex-1 min-w-[200px]">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Suche nach Name, SKU, Weingut, Region..." className="w-full rounded-lg border bg-gray-50 py-2 pl-10 pr-3 text-sm outline-none focus:border-gray-400 focus:bg-white" />
+            <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Suche nach Name, SKU, Weingut, Region..." className="w-full rounded-lg border bg-gray-50 py-2 pl-10 pr-3 text-base outline-none focus:border-gray-400 focus:bg-white" />
           </div>
           {/* Type */}
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border bg-gray-50 px-3 py-2 text-sm outline-none">
+          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border bg-gray-50 px-3 py-2 text-base outline-none">
             <option value="">Alle Typen ({products.length})</option>
             {Object.entries(typeLabels).map(([k, v]) => (
               <option key={k} value={k}>{v} ({typeCounts[k] || 0})</option>
             ))}
           </select>
           {/* Group */}
-          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} className="rounded-lg border bg-gray-50 px-3 py-2 text-sm outline-none">
+          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} className="rounded-lg border bg-gray-50 px-3 py-2 text-base outline-none">
             <option value="">Alle Gruppen</option>
             {groups.filter(g => !g.hasChildren || g.parentName).map(g => (
               <option key={g.slug} value={g.slug}>{g.parentName ? `${g.parentName} → ${g.name}` : g.name}</option>
             ))}
           </select>
           {/* Status */}
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="rounded-lg border bg-gray-50 px-3 py-2 text-sm outline-none">
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="rounded-lg border bg-gray-50 px-3 py-2 text-base outline-none">
             <option value="">Alle Status</option>
             {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
         {isActive && (
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-xs text-gray-400">{filtered.length} / {products.length} Produkte</span>
-            <button onClick={() => { setQuery(''); setTypeFilter(''); setGroupFilter(''); setStatusFilter(''); }} className="text-xs font-medium text-gray-500 hover:text-gray-800">Filter zurücksetzen</button>
+            <span className="text-sm text-gray-400">{filtered.length} / {products.length} Produkte</span>
+            <button onClick={() => { setQuery(''); setTypeFilter(''); setGroupFilter(''); setStatusFilter(''); }} className="text-sm font-medium text-gray-500 hover:text-gray-800">Filter zurücksetzen</button>
           </div>
         )}
       </div>
@@ -85,15 +85,15 @@ export default function ProductList({ products, groups, typeCounts }: { products
       {/* Product Table */}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead>
               <tr className="border-b bg-gray-50/50 text-left">
-                <th className="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider">Produkt</th>
-                <th className="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden lg:table-cell">Gruppe</th>
-                <th className="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden md:table-cell">Details</th>
-                <th className="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider text-right">Preis</th>
-                <th className="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider text-center">Status</th>
-                <th className="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider w-10"></th>
+                <th className="px-4 py-3 font-medium text-gray-500 text-sm uppercase tracking-wider">Produkt</th>
+                <th className="px-4 py-3 font-medium text-gray-500 text-sm uppercase tracking-wider hidden lg:table-cell">Gruppe</th>
+                <th className="px-4 py-3 font-medium text-gray-500 text-sm uppercase tracking-wider hidden md:table-cell">Details</th>
+                <th className="px-4 py-3 font-medium text-gray-500 text-sm uppercase tracking-wider text-right">Preis</th>
+                <th className="px-4 py-3 font-medium text-gray-500 text-sm uppercase tracking-wider text-center">Status</th>
+                <th className="px-4 py-3 font-medium text-gray-500 text-sm uppercase tracking-wider w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -102,7 +102,7 @@ export default function ProductList({ products, groups, typeCounts }: { products
                   {/* Name + Type */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                      <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-sm font-bold ${
                         p.type === 'WINE' ? 'bg-purple-100 text-purple-700' :
                         p.type === 'DRINK' ? 'bg-blue-100 text-blue-700' :
                         p.type === 'FOOD' ? 'bg-orange-100 text-orange-700' :
@@ -110,17 +110,17 @@ export default function ProductList({ products, groups, typeCounts }: { products
                       }`}>{typeLabels[p.type]?.[0] || '?'}</span>
                       <div className="min-w-0">
                         <Link href={`/admin/items/${p.id}`} className="font-medium text-gray-900 hover:text-[#8B6914] truncate block">{p.name}</Link>
-                        {p.sku && <p className="text-[10px] text-gray-300 font-mono">{p.sku}</p>}
+                        {p.sku && <p className="text-sm text-gray-300 font-mono">{p.sku}</p>}
                       </div>
                     </div>
                   </td>
                   {/* Group */}
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-xs text-gray-500">{p.parentGroupName ? `${p.parentGroupName} → ` : ''}{p.groupName}</span>
+                    <span className="text-sm text-gray-500">{p.parentGroupName ? `${p.parentGroupName} → ` : ''}{p.groupName}</span>
                   </td>
                   {/* Details */}
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <div className="text-xs text-gray-400">
+                    <div className="text-sm text-gray-400">
                       {p.winery && <span>{p.winery}{p.vintage ? ` ${p.vintage}` : ''}</span>}
                       {p.brand && <span>{p.brand}</span>}
                       {p.region && <span className="ml-1">· {p.region}</span>}
@@ -133,13 +133,13 @@ export default function ProductList({ products, groups, typeCounts }: { products
                     {p.mainPrice !== null && (
                       <div>
                         <span className="font-semibold tabular-nums">{formatEur(p.mainPrice)}</span>
-                        {p.priceCount > 1 && <span className="text-[10px] text-gray-400 ml-1">+{p.priceCount - 1}</span>}
+                        {p.priceCount > 1 && <span className="text-sm text-gray-400 ml-1">+{p.priceCount - 1}</span>}
                       </div>
                     )}
                   </td>
                   {/* Status */}
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[p.status] || 'bg-gray-100'}`}>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-sm font-medium ${statusColors[p.status] || 'bg-gray-100'}`}>
                       {statusLabels[p.status] || p.status}
                     </span>
                   </td>
@@ -156,7 +156,7 @@ export default function ProductList({ products, groups, typeCounts }: { products
         </div>
         {filtered.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-gray-400">Keine Produkte gefunden</p>
+            <p className="text-base text-gray-400">Keine Produkte gefunden</p>
           </div>
         )}
       </div>

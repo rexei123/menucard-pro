@@ -15,16 +15,16 @@ const navItems = [
 
 export default function IconBar({ userName, userRole }: { userName: string; userRole: string }) {
   const pathname = usePathname();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   return (
     <div className={`flex h-full flex-col border-r bg-white py-3 transition-all duration-200 ${expanded ? 'w-48' : 'w-14'}`}>
       {/* Logo + Toggle */}
       <div className={`mb-4 flex items-center ${expanded ? 'px-3 gap-2' : 'justify-center'}`}>
-        <button onClick={() => setExpanded(!expanded)} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ backgroundColor: '#8B6914' }}>
+        <button onClick={() => setExpanded(!expanded)} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white" style={{ backgroundColor: '#8B6914' }}>
           M
         </button>
-        {expanded && <span className="text-sm font-semibold truncate" style={{fontFamily: "'Playfair Display', serif"}}>MenuCard Pro</span>}
+        {expanded && <span className="text-base font-semibold truncate" style={{fontFamily: "'Playfair Display', serif"}}>MenuCard Pro</span>}
       </div>
       <button onClick={() => setExpanded(!expanded)} className="mx-auto mb-3 flex h-6 w-6 items-center justify-center rounded-md hover:bg-gray-100 text-gray-400 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{expanded ? <path d="m11 17-5-5 5-5M18 17l-5-5 5-5"/> : <path d="m13 17 5-5-5-5M6 17l5-5-5-5"/>}</svg>
@@ -39,10 +39,10 @@ export default function IconBar({ userName, userRole }: { userName: string; user
               key={item.href}
               href={item.href}
               title={expanded ? undefined : item.label}
-              className={`flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors ${active ? 'bg-amber-50 font-medium' : 'hover:bg-gray-100 text-gray-600'}`}
+              className={`flex items-center gap-2.5 rounded-lg px-2 py-2 text-base transition-colors ${active ? 'bg-amber-50 font-medium' : 'hover:bg-gray-100 text-gray-600'}`}
               style={active ? { boxShadow: 'inset 3px 0 0 #8B6914' } : {}}
             >
-              <span className="text-lg flex-shrink-0 w-6 text-center">{item.icon}</span>
+              <span className="text-xl flex-shrink-0 w-6 text-center">{item.icon}</span>
               {expanded && <span className="truncate">{item.label}</span>}
             </Link>
           );
@@ -53,11 +53,11 @@ export default function IconBar({ userName, userRole }: { userName: string; user
       <div className={`mt-auto border-t pt-3 ${expanded ? 'px-3' : 'flex justify-center'}`}>
         {expanded ? (
           <div>
-            <p className="text-xs font-medium text-gray-700 truncate">{userName}</p>
-            <p className="text-[10px] text-gray-400">{userRole}</p>
+            <p className="text-sm font-medium text-gray-700 truncate">{userName}</p>
+            <p className="text-sm text-gray-400">{userRole}</p>
           </div>
         ) : (
-          <div title={`${userName} (${userRole})`} className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">
+          <div title={`${userName} (${userRole})`} className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
             {userName.charAt(0).toUpperCase()}
           </div>
         )}

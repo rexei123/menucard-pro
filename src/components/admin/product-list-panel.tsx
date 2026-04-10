@@ -104,10 +104,10 @@ export default function ProductListPanel({ products, groups }: { products: Produ
       {/* Header */}
       <div className="border-b px-3 py-3">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-gray-700">Produkte</h2>
+          <h2 className="text-base font-semibold text-gray-700">Produkte</h2>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-400">{filtered.length}/{products.length}</span>
-            <button onClick={() => createProduct()} disabled={creating} className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-white hover:opacity-80 disabled:opacity-50 bg-green-600">{creating ? "..." : "+ Artikel"}</button>
+            <span className="text-sm text-gray-400">{filtered.length}/{products.length}</span>
+            <button onClick={() => createProduct()} disabled={creating} className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold text-white hover:opacity-80 disabled:opacity-50 bg-green-600">{creating ? "..." : "+ Artikel"}</button>
           </div>
         </div>
         {/* Search */}
@@ -116,24 +116,24 @@ export default function ProductListPanel({ products, groups }: { products: Produ
           <input
             type="text" value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Suchen..."
-            className="w-full rounded-lg border bg-gray-50 py-1.5 pl-8 pr-2 text-xs outline-none focus:border-gray-400 focus:bg-white"
+            className="w-full rounded-lg border bg-gray-50 py-1.5 pl-8 pr-2 text-sm outline-none focus:border-gray-400 focus:bg-white"
           />
         </div>
         {/* Filters */}
         <div className="mt-2 flex gap-1.5">
-          <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setGroupFilter(''); }} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-[10px] outline-none">
+          <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setGroupFilter(''); }} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-sm outline-none">
             <option value="">Alle Typen</option>
             <option value="WINE">Wein</option>
             <option value="DRINK">Getränk</option>
             <option value="FOOD">Speise</option>
           </select>
-          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-[10px] outline-none">
+          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-sm outline-none">
             <option value="">Alle Gruppen</option>
             {filteredGroups.map(g => (
               <option key={g.slug} value={g.slug}>{g.parentName ? `${g.parentName} → ${g.name}` : g.name}</option>
             ))}
           </select>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-[10px] outline-none">
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-sm outline-none">
             <option value="">Status</option>
             <option value="ACTIVE">Aktiv</option>
             <option value="DRAFT">Entwurf</option>
@@ -156,25 +156,25 @@ export default function ProductListPanel({ products, groups }: { products: Produ
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${badge.cls}`}>{badge.letter}</span>
-                  <p className={`text-[15px] leading-snug ${active ? 'font-semibold text-gray-900' : 'text-gray-800'}`}>{p.name}</p>
+                  <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-sm font-bold ${badge.cls}`}>{badge.letter}</span>
+                  <p className={`text-base leading-snug ${active ? 'font-semibold text-gray-900' : 'text-gray-800'}`}>{p.name}</p>
                 </div>
                 <span className={`flex-shrink-0 h-2 w-2 mt-1.5 rounded-full ${statusDot[p.status] || 'bg-gray-300'}`} />
               </div>
               <div className="mt-1.5 pl-7 flex items-center gap-2">
-                <span className="text-[13px] text-gray-400">{p.groupName}</span>
+                <span className="text-base text-gray-400">{p.groupName}</span>
               </div>
               <div className="mt-1 pl-7 flex items-center justify-between">
-                <span className="text-[12px] text-gray-400">{p.menuNames.length > 0 ? p.menuNames.join(', ') : ''}{p.winery && p.menuNames.length > 0 ? ' · ' : ''}{p.winery ? `${p.winery}${p.vintage ? ` ${p.vintage}` : ''}` : ''}</span>
+                <span className="text-sm text-gray-400">{p.menuNames.length > 0 ? p.menuNames.join(', ') : ''}{p.winery && p.menuNames.length > 0 ? ' · ' : ''}{p.winery ? `${p.winery}${p.vintage ? ` ${p.vintage}` : ''}` : ''}</span>
                 {p.mainPrice !== null && (
-                  <span className="text-[13px] font-semibold text-gray-600 tabular-nums">{formatEur(p.mainPrice)}</span>
+                  <span className="text-base font-semibold text-gray-600 tabular-nums">{formatEur(p.mainPrice)}</span>
                 )}
               </div>
             </Link>
           );
         })}
         {filtered.length === 0 && (
-          <div className="px-4 py-8 text-center text-xs text-gray-400">Keine Produkte</div>
+          <div className="px-4 py-8 text-center text-sm text-gray-400">Keine Produkte</div>
         )}
       </div>
       {/* Drag handle */}

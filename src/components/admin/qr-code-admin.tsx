@@ -107,10 +107,10 @@ export default function QRCodeAdmin({ initialData, locations, menus, baseUrl }: 
     <div>
       {/* Actions */}
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-gray-500">{qrCodes.length} QR-Codes</p>
+        <p className="text-base text-gray-500">{qrCodes.length} QR-Codes</p>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+          className="rounded-lg px-4 py-2 text-base font-medium text-white transition-colors"
           style={{ backgroundColor: '#8B6914' }}
         >
           + Neuer QR-Code
@@ -120,34 +120,34 @@ export default function QRCodeAdmin({ initialData, locations, menus, baseUrl }: 
       {/* Create Form */}
       {showCreate && (
         <div className="mb-6 rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold">Neuer QR-Code</h2>
+          <h2 className="mb-4 text-xl font-semibold">Neuer QR-Code</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">Label</label>
+              <label className="mb-1 block text-sm font-medium text-gray-500">Label</label>
               <input
                 type="text"
                 value={newLabel}
                 onChange={e => setNewLabel(e.target.value)}
                 placeholder="z.B. Tisch 5, Lobby, Bar..."
-                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-gray-400"
+                className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">Standort</label>
+              <label className="mb-1 block text-sm font-medium text-gray-500">Standort</label>
               <select
                 value={newLocationId}
                 onChange={e => { setNewLocationId(e.target.value); setNewMenuId(''); }}
-                className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+                className="w-full rounded-lg border px-3 py-2 text-base outline-none"
               >
                 {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">Karte (optional)</label>
+              <label className="mb-1 block text-sm font-medium text-gray-500">Karte (optional)</label>
               <select
                 value={newMenuId}
                 onChange={e => setNewMenuId(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+                className="w-full rounded-lg border px-3 py-2 text-base outline-none"
               >
                 <option value="">Alle Karten zeigen</option>
                 {filteredMenus.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -155,11 +155,11 @@ export default function QRCodeAdmin({ initialData, locations, menus, baseUrl }: 
             </div>
             <div className="flex gap-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">QR-Farbe</label>
+                <label className="mb-1 block text-sm font-medium text-gray-500">QR-Farbe</label>
                 <input type="color" value={newFg} onChange={e => setNewFg(e.target.value)} className="h-10 w-14 cursor-pointer rounded border" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">Hintergrund</label>
+                <label className="mb-1 block text-sm font-medium text-gray-500">Hintergrund</label>
                 <input type="color" value={newBg} onChange={e => setNewBg(e.target.value)} className="h-10 w-14 cursor-pointer rounded border" />
               </div>
             </div>
@@ -168,12 +168,12 @@ export default function QRCodeAdmin({ initialData, locations, menus, baseUrl }: 
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-lg px-4 py-2 text-base font-medium text-white disabled:opacity-50"
               style={{ backgroundColor: '#8B6914' }}
             >
               {creating ? 'Erstelle...' : 'Erstellen'}
             </button>
-            <button onClick={() => setShowCreate(false)} className="rounded-lg border px-4 py-2 text-sm font-medium">
+            <button onClick={() => setShowCreate(false)} className="rounded-lg border px-4 py-2 text-base font-medium">
               Abbrechen
             </button>
           </div>
@@ -199,18 +199,18 @@ export default function QRCodeAdmin({ initialData, locations, menus, baseUrl }: 
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold">{qr.label || qr.shortCode}</h3>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${qr.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  <h3 className="text-base font-semibold">{qr.label || qr.shortCode}</h3>
+                  <span className={`rounded-full px-2 py-0.5 text-sm font-medium ${qr.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                     {qr.isActive ? 'Aktiv' : 'Inaktiv'}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-sm text-gray-400">
                   {qr.locationName}{qr.menuName ? ` → ${qr.menuName}` : ' → Alle Karten'}
                 </p>
-                <p className="mt-0.5 text-xs font-mono text-gray-300">/q/{qr.shortCode}</p>
+                <p className="mt-0.5 text-sm font-mono text-gray-300">/q/{qr.shortCode}</p>
                 <div className="mt-2 flex items-center gap-1">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40"><path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5-.3.3-.5.7-.5 1.1v16.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h12.8c.4 0 .8-.2 1.1-.5.3-.3.5-.7.5-1.1V7.5L15.5 2z"/><polyline points="14,2 14,8 20,8"/></svg>
-                  <span className="text-xs text-gray-400">{qr.scans} Scans</span>
+                  <span className="text-sm text-gray-400">{qr.scans} Scans</span>
                 </div>
               </div>
 
@@ -218,25 +218,25 @@ export default function QRCodeAdmin({ initialData, locations, menus, baseUrl }: 
               <div className="flex flex-col gap-1">
                 <button
                   onClick={() => downloadQR(qr.url, qr.shortCode, 'png')}
-                  className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+                  className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
                 >
                   PNG
                 </button>
                 <button
                   onClick={() => downloadQR(qr.url, qr.shortCode, 'svg')}
-                  className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+                  className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
                 >
                   SVG
                 </button>
                 <button
                   onClick={() => toggleActive(qr.id, qr.isActive)}
-                  className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+                  className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
                 >
                   {qr.isActive ? 'Deaktivieren' : 'Aktivieren'}
                 </button>
                 <button
                   onClick={() => handleDelete(qr.id)}
-                  className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                  className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
                 >
                   Löschen
                 </button>
@@ -248,7 +248,7 @@ export default function QRCodeAdmin({ initialData, locations, menus, baseUrl }: 
 
       {qrCodes.length === 0 && (
         <div className="rounded-xl border border-dashed bg-gray-50 px-6 py-12 text-center">
-          <p className="text-sm text-gray-400">Noch keine QR-Codes erstellt</p>
+          <p className="text-base text-gray-400">Noch keine QR-Codes erstellt</p>
         </div>
       )}
     </div>

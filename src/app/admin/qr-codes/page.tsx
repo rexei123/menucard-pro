@@ -51,7 +51,7 @@ export default async function QRCodesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>QR-Codes</h1>
+      <h1 className="text-3xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>QR-Codes</h1>
       <QRCodeAdmin
         initialData={data}
         locations={locationOptions}

@@ -44,10 +44,10 @@ export function AdminSidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-sidebar-border px-6">
         <Link href="/admin" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B6914] text-xs font-bold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B6914] text-sm font-bold text-white">
             M
           </div>
-          <span className="font-heading text-lg font-semibold">MenuCard Pro</span>
+          <span className="font-heading text-xl font-semibold">MenuCard Pro</span>
         </Link>
       </div>
 
@@ -61,7 +61,7 @@ export function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors',
                   isActive
                     ? 'bg-accent/10 text-accent'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-border/50 hover:text-sidebar-foreground'
@@ -77,7 +77,7 @@ export function AdminSidebar() {
         <div className="my-4 border-t border-sidebar-border" />
 
         <div className="space-y-1">
-          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="px-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
             Verwaltung
           </p>
           {settingsNav.map((item) => {
@@ -87,7 +87,7 @@ export function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors',
                   isActive
                     ? 'bg-accent/10 text-accent'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-border/50 hover:text-sidebar-foreground'
@@ -103,7 +103,7 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="border-t border-sidebar-border px-4 py-3">
-        <p className="text-xs text-muted-foreground">MenuCard Pro v0.1.0</p>
+        <p className="text-sm text-muted-foreground">MenuCard Pro v0.1.0</p>
       </div>
     </aside>
   );
