@@ -8,7 +8,7 @@ type Translation = { languageCode: string; name: string; shortDescription?: stri
 type AllergenData = { allergen: { id: string; icon?: string | null; translations: { languageCode: string; name: string }[] } };
 type TagData = { tag: { id: string; icon?: string | null; color?: string | null; translations: { languageCode: string; name: string }[] } };
 type WineProfile = { winery?: string | null; vintage?: number | null; grapeVarieties?: string[]; region?: string | null; country?: string | null; appellation?: string | null; style?: string | null; body?: string | null; sweetness?: string | null };
-type Item = { id: string; isHighlight: boolean; highlightType?: string | null; isSoldOut: boolean; translations: Translation[]; priceVariants: PriceVariant[]; allergens: AllergenData[]; tags: TagData[]; wineProfile?: WineProfile | null };
+type Item = { id: string; isHighlight: boolean; highlightType?: string | null; isSoldOut: boolean; image?: string | null; translations: Translation[]; priceVariants: PriceVariant[]; allergens: AllergenData[]; tags: TagData[]; wineProfile?: WineProfile | null };
 type Section = { id: string; slug: string; icon?: string | null; translations: Translation[]; items: Item[] };
 
 type MenuContentProps = {
@@ -249,7 +249,15 @@ export default function MenuContent({ sections, lang, langParam, priceLocale, ac
                               </div>
                             )}
                           </div>
-                          {clickable && (
+                          {item.image && (
+                            <img
+                              src={item.image}
+                              alt=""
+                              className="h-20 w-auto max-w-[3rem] flex-shrink-0 rounded-lg object-contain"
+                              loading="lazy"
+                            />
+                          )}
+                          {clickable && !item.image && (
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0 opacity-20"><path d="m9 18 6-6-6-6"/></svg>
                           )}
                         </div>

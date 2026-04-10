@@ -4,7 +4,6 @@ import React from 'react';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 
-// Register fonts
 Font.register({
   family: 'PlayfairDisplay',
   fonts: [
@@ -12,7 +11,6 @@ Font.register({
     { src: 'https://cdn.jsdelivr.net/fontsource/fonts/playfair-display@latest/latin-700-normal.ttf', fontWeight: 700 },
   ],
 });
-
 Font.register({
   family: 'SourceSans',
   fonts: [
@@ -72,7 +70,6 @@ function MenuPDF({ tenant, menu, lang }: { tenant: any; menu: any; lang: string 
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        {/* Header */}
         <View style={s.header}>
           <Text style={s.tenantName}>{tenant.name}</Text>
           <Text style={s.menuTitle}>{t(menu.translations)}</Text>
@@ -80,45 +77,55 @@ function MenuPDF({ tenant, menu, lang }: { tenant: any; menu: any; lang: string 
           <View style={s.divider} />
         </View>
 
-        {/* Sections */}
         {menu.sections.map((section: any) => (
           <View key={section.id} style={s.section} wrap={false}>
             <Text style={s.sectionTitle}>{t(section.translations)}</Text>
             {t(section.translations, 'description') ? <Text style={s.sectionDesc}>{t(section.translations, 'description')}</Text> : null}
             <View style={s.sectionDivider} />
 
-            {section.items.map((item: any) => {
-              const name = t(item.translations);
-              const desc = t(item.translations, 'shortDescription');
-              const defPrice = item.priceVariants.find((p: any) => p.isDefault) || item.priceVariants[0];
-              const multiPrice = item.priceVariants.length > 1;
+            {section.placements.map((placement: any) => {
+              const product = placement.product;
+              const name = t(product.translations);
+              const desc = t(product.translations, 'shortDescription');
+              const highlight = placement.highlightType || (product.isHighlight ? product.highlightType : null);
+              const isSoldOut = !placement.isVisible;
+              const wineProfile = product.productWineProfile;
+
+              // Preise: priceOverride oder Produktpreise
+              const prices = product.prices || [];
+              const hasOverride = placement.priceOverride !== null;
+              const multiPrice = !hasOverride && prices.length > 1;
 
               return (
-                <View key={item.id} style={s.item} wrap={false}>
+                <View key={placement.id} style={s.item} wrap={false}>
                   <View style={s.itemLeft}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <Text style={s.itemName}>{name}</Text>
-                      {item.isHighlight && item.highlightType && (
-                        <Text style={s.badge}>{hlMap[item.highlightType]?.[lang] || ''}</Text>
+                      {highlight && (
+                        <Text style={s.badge}>{hlMap[highlight]?.[lang] || ''}</Text>
                       )}
-                      {item.isSoldOut && <Text style={s.soldOut}> (Ausverkauft)</Text>}
+                      {isSoldOut && <Text style={s.soldOut}>{lang === 'en' ? ' (Sold out)' : ' (Ausverkauft)'}</Text>}
                     </View>
                     {desc ? <Text style={s.itemDesc}>{desc}</Text> : null}
-                    {item.wineProfile && (
+                    {wineProfile && (
                       <Text style={s.itemWine}>
-                        {[item.wineProfile.winery, item.wineProfile.vintage, item.wineProfile.region, item.wineProfile.country].filter(Boolean).join(' | ')}
-                        {item.wineProfile.grapeVarieties?.length > 0 ? ` | ${item.wineProfile.grapeVarieties.join(', ')}` : ''}
+                        {[wineProfile.winery, wineProfile.vintage, wineProfile.region, wineProfile.country].filter(Boolean).join(' | ')}
+                        {wineProfile.grapeVarieties?.length > 0 ? ` | ${wineProfile.grapeVarieties.join(', ')}` : ''}
                       </Text>
                     )}
                   </View>
                   <View style={s.itemRight}>
-                    {multiPrice ? item.priceVariants.map((pv: any) => (
-                      <View key={pv.id} style={s.multiPrice}>
-                        <Text style={s.price}>{formatEur(Number(pv.price), lang)}</Text>
-                        <Text style={s.priceLabel}>{pv.label || pv.volume || ''}</Text>
-                      </View>
-                    )) : defPrice ? (
-                      <Text style={s.price}>{formatEur(Number(defPrice.price), lang)}</Text>
+                    {hasOverride ? (
+                      <Text style={s.price}>{formatEur(Number(placement.priceOverride), lang)}</Text>
+                    ) : multiPrice ? (
+                      prices.map((pp: any) => (
+                        <View key={pp.id} style={s.multiPrice}>
+                          <Text style={s.price}>{formatEur(Number(pp.price), lang)}</Text>
+                          <Text style={s.priceLabel}>{pp.fillQuantity?.name || ''}</Text>
+                        </View>
+                      ))
+                    ) : prices[0] ? (
+                      <Text style={s.price}>{formatEur(Number(prices[0].price), lang)}</Text>
                     ) : null}
                   </View>
                 </View>
@@ -127,7 +134,6 @@ function MenuPDF({ tenant, menu, lang }: { tenant: any; menu: any; lang: string 
           </View>
         ))}
 
-        {/* Footer */}
         <View style={s.footer} fixed>
           <Text style={s.footerText}>{lang === 'en' ? 'All prices in EUR incl. taxes' : 'Alle Preise in Euro inkl. MwSt.'}</Text>
           <Text style={s.pageNum} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
@@ -155,16 +161,31 @@ export async function GET(req: NextRequest) {
     where: { locationId_slug: { locationId: location.id, slug: menuSlug } },
     include: {
       translations: true,
-      sections: { where: { isActive: true }, orderBy: { sortOrder: 'asc' }, include: {
-        translations: true,
-        items: { where: { isActive: true }, orderBy: { sortOrder: 'asc' }, include: {
+      sections: {
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        include: {
           translations: true,
-          priceVariants: { orderBy: { sortOrder: 'asc' } },
-          wineProfile: true,
-        } },
-      } },
+          placements: {
+            orderBy: { sortOrder: 'asc' },
+            include: {
+              product: {
+                include: {
+                  translations: true,
+                  prices: {
+                    orderBy: { sortOrder: 'asc' },
+                    include: { fillQuantity: true },
+                  },
+                  productWineProfile: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
+
   if (!menu) return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
 
   try {

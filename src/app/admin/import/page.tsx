@@ -1,10 +1,9 @@
-export default function Page() {
+import CsvImport from '@/components/admin/csv-import';
+
+export default function ImportPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>import</h1>
-      <div className="rounded-xl border border-dashed bg-gray-50 px-6 py-12 text-center">
-        <p className="text-base text-gray-400">Wird implementiert</p>
-      </div>
+    <div className="flex-1 overflow-y-auto p-6">
+      <CsvImport />
     </div>
   );
 }

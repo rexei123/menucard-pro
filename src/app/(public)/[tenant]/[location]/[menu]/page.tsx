@@ -41,6 +41,7 @@ export default async function MenuPage({
             productAllergens: { include: { allergen: { include: { translations: true } } } },
             productTags: { include: { tag: { include: { translations: true } } } },
             productWineProfile: true,
+            productMedia: { where: { isPrimary: true }, take: 1, orderBy: { sortOrder: 'asc' } },
           } },
         } },
       } },
@@ -95,6 +96,12 @@ export default async function MenuPage({
             translations: tg.tag.translations.map(tt => ({ languageCode: tt.languageCode, name: tt.name })),
           },
         })),
+        image: (() => {
+          const pm = (p as any).productMedia?.[0];
+          if (!pm) return null;
+          const url = pm.url || '';
+          return url.replace('/uploads/large/', '/uploads/medium/');
+        })(),
         wineProfile: p.productWineProfile ? {
           winery: p.productWineProfile.winery,
           vintage: p.productWineProfile.vintage,

@@ -145,7 +145,6 @@ model MenuSection {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   translations MenuSectionTranslation[]
-  items        MenuItem[]
   placements       MenuPlacement[]
   @@unique([menuId, slug])
 }
@@ -158,32 +157,6 @@ model MenuSectionTranslation {
   name         String
   description  String?
   @@unique([sectionId, languageCode])
-}
-
-model MenuItem {
-  id            String         @id @default(cuid())
-  sectionId     String
-  section       MenuSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  type          ItemType
-  sku           String?
-  sortOrder     Int            @default(0)
-  isActive      Boolean        @default(true)
-  isSoldOut     Boolean        @default(false)
-  isHighlight   Boolean        @default(false)
-  highlightType HighlightType?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  translations   MenuItemTranslation[]
-  priceVariants  PriceVariant[]
-  allergens      MenuItemAllergen[]
-  additives      MenuItemAdditive[]
-  tags           MenuItemTag[]
-  media          MenuItemMedia[]
-  wineProfile    WineProfile?
-  beverageDetail BeverageDetail?
-  inventory      Inventory?
-  pairings       Pairing[] @relation("PairingSource")
-  pairedWith     Pairing[] @relation("PairingTarget")
 }
 
 enum ItemType {
@@ -202,41 +175,6 @@ enum HighlightType {
   CHEFS_CHOICE
 }
 
-model MenuItemTranslation {
-  id                String   @id @default(cuid())
-  menuItemId        String
-  menuItem          MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  languageCode      String
-  name              String
-  shortDescription  String?
-  longDescription   String?
-  servingSuggestion String?
-  internalNotes     String?
-  @@unique([menuItemId, languageCode])
-}
-
-model PriceVariant {
-  id         String   @id @default(cuid())
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  label      String?
-  price      Decimal  @db.Decimal(10, 2)
-  currency   String   @default("EUR")
-  volume     String?
-  sortOrder  Int      @default(0)
-  isDefault  Boolean  @default(false)
-  translations PriceVariantTranslation[]
-}
-
-model PriceVariantTranslation {
-  id             String       @id @default(cuid())
-  priceVariantId String
-  priceVariant   PriceVariant @relation(fields: [priceVariantId], references: [id], onDelete: Cascade)
-  languageCode   String
-  label          String
-  @@unique([priceVariantId, languageCode])
-}
-
 model Allergen {
   id        String @id @default(cuid())
   tenantId  String
@@ -245,7 +183,6 @@ model Allergen {
   icon      String?
   sortOrder Int    @default(0)
   translations AllergenTranslation[]
-  menuItems    MenuItemAllergen[]
   productAllergens ProductAllergen[]
   @@unique([tenantId, code])
 }
@@ -267,7 +204,6 @@ model Additive {
   code      String
   sortOrder Int    @default(0)
   translations AdditiveTranslation[]
-  menuItems    MenuItemAdditive[]
   @@unique([tenantId, code])
 }
 
@@ -288,7 +224,6 @@ model Tag {
   color     String?
   icon      String?
   translations TagTranslation[]
-  menuItems    MenuItemTag[]
   productTags      ProductTag[]
   @@unique([tenantId, slug])
 }
@@ -300,52 +235,6 @@ model TagTranslation {
   languageCode String
   name         String
   @@unique([tagId, languageCode])
-}
-
-model MenuItemAllergen {
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  allergenId String
-  allergen   Allergen @relation(fields: [allergenId], references: [id], onDelete: Cascade)
-  @@id([menuItemId, allergenId])
-}
-
-model MenuItemAdditive {
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  additiveId String
-  additive   Additive @relation(fields: [additiveId], references: [id], onDelete: Cascade)
-  @@id([menuItemId, additiveId])
-}
-
-model MenuItemTag {
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  tagId      String
-  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  @@id([menuItemId, tagId])
-}
-
-model WineProfile {
-  id             String    @id @default(cuid())
-  menuItemId     String    @unique
-  menuItem       MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  winery         String?
-  vintage        Int?
-  grapeVarieties String[]
-  region         String?
-  country        String?
-  appellation    String?
-  style          WineStyle?
-  body           WineBody?
-  sweetness      WineSweetness?
-  bottleSize     String?   @default("0.75l")
-  alcoholContent Float?
-  servingTemp    String?
-  tastingNotes   String?
-  foodPairing    String?
-  stockQuantity  Int?
-  internalNotes  String?
 }
 
 enum WineStyle {
@@ -375,19 +264,6 @@ enum WineSweetness {
   SWEET
 }
 
-model BeverageDetail {
-  id             String            @id @default(cuid())
-  menuItemId     String            @unique
-  menuItem       MenuItem          @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  brand          String?
-  producer       String?
-  category       BeverageCategory?
-  alcoholContent Float?
-  servingTemp    String?
-  carbonated     Boolean           @default(false)
-  origin         String?
-}
-
 enum BeverageCategory {
   BEER
   SPIRIT
@@ -398,16 +274,6 @@ enum BeverageCategory {
   HOT_DRINK
   SMOOTHIE
   OTHER
-}
-
-model Pairing {
-  id           String      @id @default(cuid())
-  sourceItemId String
-  sourceItem   MenuItem    @relation("PairingSource", fields: [sourceItemId], references: [id], onDelete: Cascade)
-  targetItemId String
-  targetItem   MenuItem    @relation("PairingTarget", fields: [targetItemId], references: [id], onDelete: Cascade)
-  type         PairingType @default(GOES_WELL)
-  @@unique([sourceItemId, targetItemId])
 }
 
 enum PairingType {
@@ -429,19 +295,7 @@ model Media {
   sizeBytes    Int?
   alt          String?
   createdAt    DateTime @default(now())
-  menuItems    MenuItemMedia[]
   productMedia ProductMedia[]
-  productMedia     ProductMedia[]
-}
-
-model MenuItemMedia {
-  id         String   @id @default(cuid())
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  mediaId    String
-  media      Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  sortOrder  Int      @default(0)
-  isPrimary  Boolean  @default(false)
 }
 
 model QRCode {
@@ -509,18 +363,6 @@ model TimeRule {
   endTime    String
   daysOfWeek Int[]
   isActive   Boolean  @default(true)
-}
-
-model Inventory {
-  id            String   @id @default(cuid())
-  menuItemId    String   @unique
-  menuItem      MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  quantity      Int      @default(0)
-  minQuantity   Int      @default(0)
-  purchasePrice Decimal? @db.Decimal(10, 2)
-  unit          String?  @default("Stueck")
-  autoSoldOut   Boolean  @default(true)
-  updatedAt     DateTime @updatedAt
 }
 
 model AnalyticsEvent {

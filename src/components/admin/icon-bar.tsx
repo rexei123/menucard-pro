@@ -9,6 +9,7 @@ const navItems = [
   { href: '/admin/items', icon: '📦', label: 'Produkte', match: /^\/admin\/items/ },
   { href: '/admin/menus', icon: '📋', label: 'Karten', match: /^\/admin\/menus/ },
   { href: '/admin/qr-codes', icon: '📱', label: 'QR-Codes', match: /^\/admin\/qr-codes/ },
+  { href: '/admin/import', icon: '📥', label: 'CSV-Import', match: /^\/admin\/import/ },
   { href: '/admin/analytics', icon: '📈', label: 'Analytics', match: /^\/admin\/analytics/ },
   { href: '/admin/settings', icon: '⚙️', label: 'Einstellungen', match: /^\/admin\/settings/ },
 ];

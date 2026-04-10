@@ -150,6 +150,18 @@ export default async function ItemDetailPage({
           {pShort && <p className="mt-2 text-base opacity-70">{pShort}</p>}
         </div>
 
+        {/* Product Image */}
+        {product.productMedia && product.productMedia.length > 0 && (
+          <div className="mb-6 flex justify-center">
+            <img
+              src={product.productMedia[0].url?.replace('/uploads/large/', '/uploads/medium/') || product.productMedia[0].url || ''}
+              alt={pName}
+              className="max-h-80 rounded-xl object-contain"
+              loading="lazy"
+            />
+          </div>
+        )}
+
         {/* Long Description */}
         {pLong && (
           <div className="mb-6 rounded-xl border bg-white p-5 shadow-sm">
