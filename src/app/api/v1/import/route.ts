@@ -111,6 +111,10 @@ export async function POST(req: NextRequest) {
     pg.translations.forEach(t => pgMap.set(t.name.toLowerCase(), pg.id));
   });
 
+  // Track items that need to be auto-created
+  const newFillQuantities = new Set<string>();
+  const newProductGroups = new Set<string>();
+
   // Group rows by SKU (multiple prices per product)
   const skuGroups = new Map<string, CsvRow[]>();
   parsed.data.forEach((row, i) => {
@@ -135,13 +139,14 @@ export async function POST(req: NextRequest) {
     const errors: string[] = [];
     if (!nameDe) errors.push('Name (DE) fehlt');
     if (!['WINE', 'DRINK', 'FOOD'].includes(type)) errors.push(`Typ "${type}" ungueltig (WINE/DRINK/FOOD)`);
+    if (group && !pgMap.has(group.toLowerCase())) newProductGroups.add(group);
 
     // Check prices
     rows.forEach(r => {
       const fq = normalize(r.fill_quantity || r.fuellmenge || r.menge || '');
       const pl = normalize(r.price_level || r.preisebene || r.preislevel || 'Restaurant');
       const price = normalize(r.price || r.preis || r.vk || '');
-      if (fq && !fqMap.has(fq.toLowerCase())) errors.push(`Fuellmenge "${fq}" nicht gefunden`);
+      if (fq && !fqMap.has(fq.toLowerCase())) newFillQuantities.add(fq);
       if (pl && !plMap.has(pl.toLowerCase())) errors.push(`Preisebene "${pl}" nicht gefunden`);
       if (!price || isNaN(parseFloat(price.replace(',', '.')))) errors.push(`Preis ungueltig: "${price}"`);
     });
@@ -200,11 +205,44 @@ export async function POST(req: NextRequest) {
       update: products.filter(p => p.status === 'update').length,
       error: products.filter(p => p.status === 'error').length,
     };
-    return NextResponse.json({ products, summary });
+    const autoCreate = {
+      fillQuantities: Array.from(newFillQuantities),
+      productGroups: Array.from(newProductGroups),
+    };
+    return NextResponse.json({ products, summary, autoCreate });
   }
 
   // Execute mode: import products
   if (action === 'execute') {
+    // Auto-create missing fill quantities
+    for (const label of Array.from(newFillQuantities)) {
+      const newFq = await prisma.fillQuantity.create({
+        data: { tenantId, label, sortOrder: fillQuantities.length + 1 },
+      });
+      fqMap.set(label.toLowerCase(), newFq.id);
+      console.log('Auto-created fill quantity:', label);
+    }
+
+    // Auto-create missing product groups
+    for (const groupName of Array.from(newProductGroups)) {
+      const slug = groupName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const newPg = await prisma.productGroup.create({
+        data: {
+          tenantId,
+          slug,
+          sortOrder: productGroups.length + 1,
+          translations: {
+            create: [
+              { languageCode: 'de', name: groupName },
+              { languageCode: 'en', name: groupName },
+            ],
+          },
+        },
+      });
+      pgMap.set(groupName.toLowerCase(), newPg.id);
+      console.log('Auto-created product group:', groupName);
+    }
+
     let created = 0;
     let updated = 0;
     let errors = 0;

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 type ParsedProduct = {
   row: number;
@@ -21,6 +21,7 @@ type ParsedProduct = {
 
 type Summary = { total: number; new: number; update: number; error: number };
 type ImportResult = { created: number; updated: number; errors: number; total: number };
+type AutoCreate = { fillQuantities: string[]; productGroups: string[] };
 
 const statusColors = {
   new: 'bg-green-100 text-green-700',
@@ -29,14 +30,103 @@ const statusColors = {
 };
 const statusLabels = { new: 'Neu', update: 'Update', error: 'Fehler' };
 
+const fieldToCsvCol: Record<string, string[]> = {
+  type: ['type', 'typ'],
+  nameDe: ['name_de', 'name', 'bezeichnung'],
+  nameEn: ['name_en', 'name_english'],
+  fillQuantity: ['fill_quantity', 'fuellmenge', 'menge'],
+  price: ['price', 'preis', 'vk'],
+  group: ['group', 'gruppe', 'produktgruppe', 'kategorie'],
+};
+
+function applyCsvEdits(rawText: string, edits: Record<string, Record<string, string>>): string {
+  const lines = rawText.split(/\r?\n/);
+  if (lines.length < 2) return rawText;
+
+  const headerLine = lines[0];
+  const headers = headerLine.split(/[;,]/).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+  const delimiter = headerLine.includes(';') ? ';' : ',';
+
+  const skuIdx = headers.findIndex(h => ['sku', 'artikelnr', 'artikelnummer'].includes(h));
+  if (skuIdx === -1) return rawText;
+
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = lines[i].split(delimiter);
+    const sku = cols[skuIdx]?.trim();
+    if (!sku || !edits[sku]) continue;
+
+    for (const [field, value] of Object.entries(edits[sku])) {
+      const possibleHeaders = fieldToCsvCol[field] || [field];
+      const colIdx = headers.findIndex(h => possibleHeaders.includes(h));
+      if (colIdx !== -1 && colIdx < cols.length) {
+        cols[colIdx] = value;
+      }
+    }
+    lines[i] = cols.join(delimiter);
+  }
+
+  return lines.join('\n');
+}
+
+// EditableCell as a proper top-level component to prevent focus loss
+function EditableCell({ sku, field, value, editedValue, isError, onEdit, className = '' }: {
+  sku: string; field: string; value: string; editedValue: string; isError: boolean;
+  onEdit: (sku: string, field: string, value: string) => void; className?: string;
+}) {
+  const wasEdited = editedValue !== value;
+
+  if (!isError && !wasEdited) {
+    return <span className={className}>{value}</span>;
+  }
+
+  if (field === 'type') {
+    return (
+      <select
+        value={editedValue}
+        onChange={e => onEdit(sku, field, e.target.value)}
+        className={`rounded border px-1.5 py-0.5 text-sm font-medium ${wasEdited ? 'border-amber-400 bg-amber-50' : 'border-red-300 bg-red-50'}`}
+      >
+        {!['WINE', 'DRINK', 'FOOD'].includes(value) && <option value={value}>{value} (ungueltig)</option>}
+        <option value="WINE">WINE</option>
+        <option value="DRINK">DRINK</option>
+        <option value="FOOD">FOOD</option>
+      </select>
+    );
+  }
+
+  return (
+    <input
+      type="text"
+      defaultValue={editedValue}
+      onBlur={e => {
+        if (e.target.value !== editedValue) {
+          onEdit(sku, field, e.target.value);
+        }
+      }}
+      onKeyDown={e => {
+        if (e.key === 'Enter') {
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      placeholder={field === 'nameDe' ? 'Name eingeben...' : ''}
+      className={`w-full rounded border px-1.5 py-0.5 text-sm ${wasEdited ? 'border-amber-400 bg-amber-50' : 'border-red-300 bg-red-50'} ${className}`}
+    />
+  );
+}
+
 export default function CsvImport() {
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'done'>('upload');
   const [products, setProducts] = useState<ParsedProduct[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [autoCreate, setAutoCreate] = useState<AutoCreate | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [rawText, setRawText] = useState('');
+  const [edits, setEdits] = useState<Record<string, Record<string, string>>>({});
+  const [hasEdits, setHasEdits] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
@@ -55,33 +145,49 @@ export default function CsvImport() {
     if (f) { setFile(f); setError(''); }
   };
 
-  const handlePreview = async () => {
-    if (!file) return;
+  const sendPreview = useCallback(async (csvText: string, fileName: string) => {
     setLoading(true);
     setError('');
     try {
+      const blob = new Blob([csvText], { type: 'text/csv' });
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', blob, fileName);
       const res = await fetch('/api/v1/import?action=preview', { method: 'POST', body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Fehler beim Parsen');
       setProducts(data.products);
       setSummary(data.summary);
+      setAutoCreate(data.autoCreate || null);
       setStep('preview');
+      setEdits({});
+      setHasEdits(false);
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const handlePreview = async () => {
+    if (!file) return;
+    const text = await file.text();
+    setRawText(text);
+    await sendPreview(text, file.name);
+  };
+
+  const handleRevalidate = async () => {
+    const correctedText = applyCsvEdits(rawText, edits);
+    setRawText(correctedText);
+    await sendPreview(correctedText, file?.name || 'import.csv');
   };
 
   const handleImport = async () => {
-    if (!file) return;
     setStep('importing');
     setError('');
     try {
+      const blob = new Blob([rawText], { type: 'text/csv' });
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', blob, file?.name || 'import.csv');
       const res = await fetch('/api/v1/import?action=execute', { method: 'POST', body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Fehler beim Import');
@@ -93,71 +199,66 @@ export default function CsvImport() {
     }
   };
 
+  const handleCellEdit = useCallback((sku: string, field: string, value: string) => {
+    setEdits(prev => ({
+      ...prev,
+      [sku]: { ...(prev[sku] || {}), [field]: value },
+    }));
+    setHasEdits(true);
+  }, []);
+
+  const getEditedValue = (sku: string, field: string, original: string): string => {
+    return edits[sku]?.[field] ?? original;
+  };
+
   const reset = () => {
     setStep('upload');
     setProducts([]);
     setSummary(null);
+    setAutoCreate(null);
     setResult(null);
     setError('');
     setFile(null);
+    setRawText('');
+    setEdits({});
+    setHasEdits(false);
     if (fileRef.current) fileRef.current.value = '';
   };
 
   return (
     <div className="mx-auto max-w-5xl">
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>CSV-Import</h1>
           <p className="mt-1 text-sm text-gray-400">Produkte aus CSV-Datei importieren oder aktualisieren</p>
         </div>
-        <a
-          href="/templates/import-vorlage.csv"
-          download
-          className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-        >
+        <a href="/templates/import-vorlage.csv" download
+          className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
           Vorlage herunterladen
         </a>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
-      {/* Step 1: Upload */}
       {step === 'upload' && (
-        <div
-          onDrop={handleDrop}
-          onDragOver={e => e.preventDefault()}
-          className="rounded-xl border-2 border-dashed bg-white p-12 text-center transition-colors hover:border-amber-400"
-        >
+        <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}
+          className="rounded-xl border-2 border-dashed bg-white p-12 text-center transition-colors hover:border-amber-400">
           <div className="text-4xl mb-4">📄</div>
           <p className="text-lg font-medium text-gray-700">CSV-Datei hier ablegen</p>
           <p className="mt-1 text-sm text-gray-400">oder klicken um eine Datei auszuwählen</p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,.txt"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="mt-4 rounded-lg border px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
+          <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileSelect} className="hidden" />
+          <button onClick={() => fileRef.current?.click()}
+            className="mt-4 rounded-lg border px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
             Datei auswählen
           </button>
           {file && (
             <div className="mt-4">
               <p className="text-sm font-medium text-gray-700">{file.name} ({(file.size / 1024).toFixed(1)} KB)</p>
-              <button
-                onClick={handlePreview}
-                disabled={loading}
+              <button onClick={handlePreview} disabled={loading}
                 className="mt-3 rounded-lg px-6 py-2.5 text-sm font-semibold text-white transition-colors"
-                style={{ backgroundColor: loading ? '#999' : '#8B6914' }}
-              >
+                style={{ backgroundColor: loading ? '#999' : '#8B6914' }}>
                 {loading ? 'Wird analysiert...' : 'Vorschau anzeigen'}
               </button>
             </div>
@@ -171,10 +272,8 @@ export default function CsvImport() {
         </div>
       )}
 
-      {/* Step 2: Preview */}
       {step === 'preview' && summary && (
         <div>
-          {/* Summary */}
           <div className="mb-4 grid grid-cols-4 gap-3">
             <div className="rounded-lg border bg-white p-4 text-center">
               <p className="text-2xl font-bold">{summary.total}</p>
@@ -194,7 +293,19 @@ export default function CsvImport() {
             </div>
           </div>
 
-          {/* Table */}
+          {autoCreate && (autoCreate.fillQuantities.length > 0 || autoCreate.productGroups.length > 0) && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <span className="font-medium">Wird automatisch angelegt: </span>
+              {autoCreate.fillQuantities.length > 0 && (
+                <span>Füllmengen: {autoCreate.fillQuantities.join(', ')}</span>
+              )}
+              {autoCreate.fillQuantities.length > 0 && autoCreate.productGroups.length > 0 && <span> | </span>}
+              {autoCreate.productGroups.length > 0 && (
+                <span>Produktgruppen: {autoCreate.productGroups.join(', ')}</span>
+              )}
+            </div>
+          )}
+
           <div className="rounded-xl border bg-white overflow-hidden">
             <div className="max-h-[500px] overflow-y-auto">
               <table className="w-full text-sm">
@@ -209,40 +320,67 @@ export default function CsvImport() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {products.map((p, i) => (
-                    <tr key={i} className={p.status === 'error' ? 'bg-red-50/50' : ''}>
-                      <td className="px-3 py-2">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[p.status]}`}>
-                          {statusLabels[p.status]}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs">{p.sku}</td>
-                      <td className="px-3 py-2">{p.type}</td>
-                      <td className="px-3 py-2 font-medium">{p.nameDe}</td>
-                      <td className="px-3 py-2 tabular-nums">{p.price ? `${p.price}` : '-'}</td>
-                      <td className="px-3 py-2 text-xs text-gray-500 max-w-[200px] truncate">{p.statusMsg}</td>
-                    </tr>
-                  ))}
+                  {products.map((p, i) => {
+                    const isError = p.status === 'error';
+                    return (
+                      <tr key={`${p.sku}-${i}`} className={isError ? 'bg-red-50/50' : ''}>
+                        <td className="px-3 py-2">
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[p.status]}`}>
+                            {statusLabels[p.status]}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">{p.sku}</td>
+                        <td className="px-3 py-2">
+                          <EditableCell sku={p.sku} field="type" value={p.type}
+                            editedValue={getEditedValue(p.sku, 'type', p.type)}
+                            isError={isError} onEdit={handleCellEdit} />
+                        </td>
+                        <td className="px-3 py-2">
+                          <EditableCell sku={p.sku} field="nameDe" value={p.nameDe}
+                            editedValue={getEditedValue(p.sku, 'nameDe', p.nameDe)}
+                            isError={isError} onEdit={handleCellEdit} className="font-medium" />
+                        </td>
+                        <td className="px-3 py-2 tabular-nums">
+                          <EditableCell sku={p.sku} field="price" value={p.price || '-'}
+                            editedValue={getEditedValue(p.sku, 'price', p.price || '-')}
+                            isError={isError} onEdit={handleCellEdit} />
+                        </td>
+                        <td className="px-3 py-2 text-xs max-w-[200px]">
+                          {isError ? (
+                            <span className="text-red-600">{p.statusMsg}</span>
+                          ) : (
+                            <span className="text-gray-500 truncate block">{p.statusMsg}</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Actions */}
           <div className="mt-4 flex items-center justify-between">
             <button onClick={reset} className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
               Abbrechen
             </button>
             <div className="flex items-center gap-3">
-              {summary.error > 0 && (
+              {hasEdits && (
+                <button onClick={handleRevalidate} disabled={loading}
+                  className="rounded-lg border-2 border-amber-500 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition-colors">
+                  {loading ? 'Validiere...' : 'Neu validieren'}
+                </button>
+              )}
+              {summary.error > 0 && !hasEdits && (
                 <p className="text-sm text-amber-600">{summary.error} Fehler werden übersprungen</p>
               )}
-              <button
-                onClick={handleImport}
-                disabled={summary.new + summary.update === 0}
+              {summary.error > 0 && hasEdits && (
+                <p className="text-sm text-amber-600">Bitte neu validieren</p>
+              )}
+              <button onClick={handleImport}
+                disabled={summary.new + summary.update === 0 || hasEdits}
                 className="rounded-lg px-6 py-2.5 text-sm font-semibold text-white transition-colors"
-                style={{ backgroundColor: summary.new + summary.update > 0 ? '#8B6914' : '#999' }}
-              >
+                style={{ backgroundColor: (summary.new + summary.update > 0 && !hasEdits) ? '#8B6914' : '#999' }}>
                 {summary.new + summary.update} Produkte importieren
               </button>
             </div>
@@ -250,7 +388,6 @@ export default function CsvImport() {
         </div>
       )}
 
-      {/* Step 3: Importing */}
       {step === 'importing' && (
         <div className="rounded-xl border bg-white p-12 text-center">
           <div className="text-4xl mb-4 animate-pulse">⏳</div>
@@ -259,7 +396,6 @@ export default function CsvImport() {
         </div>
       )}
 
-      {/* Step 4: Done */}
       {step === 'done' && result && (
         <div className="rounded-xl border bg-white p-12 text-center">
           <div className="text-4xl mb-4">✅</div>
