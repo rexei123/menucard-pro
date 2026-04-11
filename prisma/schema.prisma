@@ -52,6 +52,7 @@ model Location {
   translations LocationTranslation[]
   menus        Menu[]
   qrCodes      QRCode[]
+  designConfig Json?
   timeRules    TimeRule[]
   @@unique([tenantId, slug])
 }
@@ -103,6 +104,7 @@ model Menu {
   translations MenuTranslation[]
   sections     MenuSection[]
   qrCodes      QRCode[]
+  designConfig Json?
   @@unique([locationId, slug])
 }
 

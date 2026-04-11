@@ -26,6 +26,7 @@ const navigation = [
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Medien', href: '/admin/media', icon: Image },
   { name: 'Import', href: '/admin/import', icon: Upload },
+  { name: 'Karten-Design', href: '/admin/design', icon: Palette },
 ];
 
 const settingsNav = [

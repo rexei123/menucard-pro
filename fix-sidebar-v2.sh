@@ -1,3 +1,8 @@
+#!/bin/bash
+set -e
+cd /var/www/menucard-pro
+
+cat > src/components/admin/icon-bar.tsx << 'ENDOFFILE'
 'use client';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -107,3 +112,6 @@ export default function IconBar({ userName, userRole }: { userName: string; user
     </div>
   );
 }
+ENDOFFILE
+
+pm2 stop menucard-pro; rm -rf .next; npm run build 2>&1 | tail -3; pm2 start menucard-pro; echo "DONE"
