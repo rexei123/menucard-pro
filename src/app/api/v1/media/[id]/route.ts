@@ -5,42 +5,95 @@ import prisma from '@/lib/prisma';
 import { unlink } from 'fs/promises';
 import path from 'path';
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+// GET – Einzelnes Bild mit Details
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const pm = await prisma.productMedia.findUnique({ where: { id: params.id }, include: { media: true } });
-  if (!pm) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  const media = await prisma.media.findUnique({
+    where: { id: params.id },
+    include: {
+      productMedia: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              translations: { where: { languageCode: 'de' }, select: { name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
 
-  // Delete files
-  if (pm.media?.filename) {
-    const basePath = path.join(process.cwd(), 'public', 'uploads');
-    for (const dir of ['original', 'large', 'medium', 'thumb']) {
-      await unlink(path.join(basePath, dir, pm.media.filename)).catch(() => {});
-    }
-  }
-
-  // Delete DB records
-  await prisma.productMedia.delete({ where: { id: params.id } });
-  if (pm.mediaId) await prisma.media.delete({ where: { id: pm.mediaId } }).catch(() => {});
-
-  return NextResponse.json({ success: true });
+  if (!media) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json(media);
 }
 
+// PATCH – Metadaten aktualisieren
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const updated = await prisma.productMedia.update({ where: { id: params.id }, data: body });
+  const { title, alt, category, source } = body;
 
-  // If setting as primary, unset others
-  if (body.isPrimary) {
-    await prisma.productMedia.updateMany({
-      where: { productId: updated.productId, id: { not: params.id } },
-      data: { isPrimary: false },
-    });
-  }
+  const data: any = {};
+  if (title !== undefined) data.title = title;
+  if (alt !== undefined) data.alt = alt;
+  if (category !== undefined) data.category = category;
+  if (source !== undefined) data.source = source;
+
+  const updated = await prisma.media.update({
+    where: { id: params.id },
+    data,
+  });
 
   return NextResponse.json(updated);
+}
+
+// DELETE – Bild löschen
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const media = await prisma.media.findUnique({
+    where: { id: params.id },
+    include: { productMedia: true },
+  });
+
+  if (!media) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Warnung wenn zugeordnet
+  if (media.productMedia.length > 0) {
+    const force = new URL(req.url).searchParams.get('force');
+    if (force !== 'true') {
+      return NextResponse.json({
+        error: 'Bild ist noch zugeordnet',
+        productCount: media.productMedia.length,
+        hint: 'Verwende ?force=true um trotzdem zu löschen',
+      }, { status: 409 });
+    }
+    // Zuordnungen löschen
+    await prisma.productMedia.deleteMany({ where: { mediaId: params.id } });
+  }
+
+  // Dateien löschen
+  const basePath = path.join(process.cwd(), 'public');
+  const formats = (media.formats as any) || {};
+  const filesToDelete = [
+    media.url,
+    media.thumbnailUrl,
+    ...Object.values(formats).map((f: any) => f?.url).filter(Boolean),
+  ];
+
+  for (const fileUrl of filesToDelete) {
+    try {
+      if (fileUrl) await unlink(path.join(basePath, fileUrl));
+    } catch (e) { /* Datei existiert nicht mehr */ }
+  }
+
+  await prisma.media.delete({ where: { id: params.id } });
+
+  return NextResponse.json({ success: true });
 }

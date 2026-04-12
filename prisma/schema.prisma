@@ -284,6 +284,20 @@ enum PairingType {
   SOMMELIER_CHOICE
 }
 
+
+enum MediaCategory {
+  PHOTO
+  LOGO
+  DOCUMENT
+}
+
+enum MediaSource {
+  UPLOAD
+  PIXABAY
+  PEXELS
+  WEB
+}
+
 model Media {
   id           String   @id @default(cuid())
   tenantId     String
@@ -298,6 +312,14 @@ model Media {
   alt          String?
   createdAt    DateTime @default(now())
   productMedia ProductMedia[]
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
 }
 
 model QRCode {

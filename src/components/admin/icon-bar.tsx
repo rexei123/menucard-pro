@@ -16,6 +16,7 @@ const navGroups: NavGroup[] = [
   ]},
   { title: 'Tools', items: [
     { href: '/admin/qr-codes', icon: '📱', label: 'QR-Codes', match: /^\/admin\/qr-codes/ },
+  { href: '/admin/media', icon: '🖼️', label: 'Bildarchiv', match: /^\/admin\/media/ },
     { href: '/admin/import', icon: '📥', label: 'CSV-Import', match: /^\/admin\/import/ },
     { href: '/admin/design', icon: '🎨', label: 'Karten-Design', match: /^\/admin\/design/ },
     { href: '/admin/pdf-creator', icon: '📄', label: 'PDF-Creator', match: /^\/admin\/pdf-creator/ },
