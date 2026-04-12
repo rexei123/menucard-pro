@@ -171,6 +171,8 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
   const [loading, setLoading] = useState(true);
   const [previewMode, setPreviewMode] = useState<'mobile' | 'desktop'>('mobile');
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customTemplates, setCustomTemplates] = useState<Array<{name: string; overrides: any; baseTemplate: string}>>([]);
   const [showTemplateSwitch, setShowTemplateSwitch] = useState<string | null>(null);
 
   // Prüfe ob benutzerdefinierte Anpassungen vorliegen
@@ -197,6 +199,8 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
         setConfig(data.designConfig?.digital || data.digital || data);
         setOverrides(data.savedOverrides?.digital || {});
         setTemplateName(data.templateName || data.designConfig?.digital?.template || 'elegant');
+        setCustomName(data.savedOverrides?.digital?.customName || data.designConfig?.digital?.customName || '');
+        setCustomTemplates(data.customTemplates || []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -295,6 +299,79 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
   }, [menuId]);
 
 
+
+  // Save current overrides as a custom template
+  const saveAsCustomTemplate = useCallback(async (name: string) => {
+    if (customTemplates.length >= 4) return;
+    const newTemplate = {
+      name: name || 'Benutzerdefiniert ' + (customTemplates.length + 1),
+      overrides: JSON.parse(JSON.stringify(overrides)),
+      baseTemplate: templateName,
+    };
+    const updated = [...customTemplates, newTemplate];
+    setCustomTemplates(updated);
+    // Save to DB
+    try {
+      await fetch(`/api/v1/menus/${menuId}/design`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ designConfig: { customTemplates: updated } }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (e) {
+      console.error('Save custom template failed', e);
+    }
+  }, [customTemplates, overrides, templateName, menuId]);
+
+  // Load a custom template
+  const loadCustomTemplate = useCallback(async (index: number) => {
+    const tmpl = customTemplates[index];
+    if (!tmpl) return;
+    setSaving(true);
+    try {
+      await fetch(`/api/v1/menus/${menuId}/design`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ designConfig: { digital: { ...tmpl.overrides, template: tmpl.baseTemplate } } }),
+      });
+      const reload = await fetch(`/api/v1/menus/${menuId}/design`);
+      const reloaded = await reload.json();
+      setConfig(reloaded.designConfig?.digital || reloaded.digital);
+      setOverrides(tmpl.overrides);
+      setTemplateName(tmpl.baseTemplate);
+      setCustomName(tmpl.name);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+      if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  }, [customTemplates, menuId]);
+
+  // Delete a custom template
+  const deleteCustomTemplate = useCallback(async (index: number) => {
+    const updated = customTemplates.filter((_, i) => i !== index);
+    setCustomTemplates(updated);
+    try {
+      await fetch(`/api/v1/menus/${menuId}/design`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ designConfig: { customTemplates: updated } }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }, [customTemplates, menuId]);
+
+  // Save custom template name
+  const saveCustomName = useCallback((name: string) => {
+    setCustomName(name);
+    updateConfig('customName', name);
+  }, [updateConfig]);
+
   // Reset all overrides to template defaults
   const resetToDefaults = useCallback(async () => {
     setSaving(true);
@@ -311,6 +388,7 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
       const reloaded = await reload.json();
       setConfig(reloaded.designConfig?.digital || reloaded.digital);
       setOverrides({ template: templateName });
+      setCustomName('');
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
       if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
@@ -378,20 +456,42 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
               </button>
             ))}
           </div>
-          {/* Benutzerdefiniert-Karte – erscheint nur wenn Anpassungen vorliegen */}
-          {hasCustomOverrides && (
-            <div className="mt-2 rounded-lg border-2 border-blue-500 bg-blue-50 p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">✏️</span>
-                <div>
-                  <div className="text-sm font-medium text-blue-700">Benutzerdefiniert</div>
-                  <div className="text-xs text-blue-500">Basierend auf {templateName === 'elegant' ? 'Elegant' : templateName === 'modern' ? 'Modern' : templateName === 'classic' ? 'Klassisch' : 'Minimal'}</div>
+          {/* Gespeicherte benutzerdefinierte Vorlagen */}
+          {customTemplates.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {customTemplates.map((ct, idx) => (
+                <div key={idx}
+                  className="rounded-lg border-2 border-gray-200 hover:border-blue-300 p-3 text-left transition-all cursor-pointer relative group"
+                  onClick={() => loadCustomTemplate(idx)}>
+                  <div className="text-lg mb-1">✏️</div>
+                  <div className="text-sm font-medium truncate">{ct.name}</div>
+                  <div className="text-xs text-gray-500 truncate">Basis: {ct.baseTemplate === 'elegant' ? 'Elegant' : ct.baseTemplate === 'modern' ? 'Modern' : ct.baseTemplate === 'classic' ? 'Klassisch' : 'Minimal'}</div>
+                  <button onClick={e => { e.stopPropagation(); deleteCustomTemplate(idx); }}
+                    className="absolute top-1 right-1 hidden group-hover:flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-500 text-xs hover:bg-red-200"
+                    title="Vorlage löschen">✕</button>
                 </div>
-              </div>
-              <button onClick={() => setShowResetDialog(true)}
-                className="text-xs text-blue-500 hover:text-blue-700 underline">
-                Zurücksetzen
-              </button>
+              ))}
+            </div>
+          )}
+
+          {/* Aktive benutzerdefinierte Anpassungen */}
+          {hasCustomOverrides && (
+            <div className="rounded-lg border-2 border-blue-500 bg-blue-50 p-3 mt-2">
+              <div className="text-lg mb-1">✏️</div>
+              <input
+                type="text"
+                value={customName}
+                onChange={e => saveCustomName(e.target.value)}
+                placeholder="Benutzerdefiniert"
+                className="w-full text-sm font-medium text-blue-700 bg-transparent border-b border-transparent hover:border-blue-300 focus:border-blue-500 focus:outline-none py-0.5 placeholder-blue-400"
+              />
+              <div className="text-xs text-blue-500 mt-0.5">Basierend auf {templateName === 'elegant' ? 'Elegant' : templateName === 'modern' ? 'Modern' : templateName === 'classic' ? 'Klassisch' : 'Minimal'}</div>
+              {customTemplates.length < 4 && (
+                <button onClick={() => saveAsCustomTemplate(customName || 'Benutzerdefiniert ' + (customTemplates.length + 1))}
+                  className="mt-2 w-full rounded-lg py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors">
+                  Als Vorlage speichern
+                </button>
+              )}
             </div>
           )}
           <SelectInput label="Stimmung" value={config.mood} onChange={v => updateConfig('mood', v)}

@@ -6,6 +6,17 @@ import { getTemplate, mergeConfig } from '@/lib/design-templates';
 import type { AnalogConfig } from '@/lib/design-templates';
 import React from 'react';
 
+// Dateiname ASCII-sicher machen für Content-Disposition
+function sanitizeFilename(name: string): string {
+  return name
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-zA-Z0-9._\- ]/g, '')
+    .trim();
+}
+
+
 // GET /api/v1/menus/[id]/pdf – PDF generieren
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -140,7 +151,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${filename}"`,
+        'Content-Disposition': `inline; filename="${sanitizeFilename(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
         'Cache-Control': 'no-cache',
       },
     });

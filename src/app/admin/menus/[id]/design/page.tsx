@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
-import DesignEditor from '@/components/admin/design-editor';
+import DesignTabs from '@/components/admin/design-tabs';
 
 export default async function DesignEditorPage({
   params,
@@ -17,14 +17,9 @@ export default async function DesignEditorPage({
     where: { id: params.id },
     include: {
       translations: true,
-      location: {
-        include: {
-          tenant: true,
-        },
-      },
+      location: { include: { tenant: true } },
     },
   });
-
   if (!menu) return notFound();
 
   const menuName = menu.translations.find(t => t.languageCode === 'de')?.name
@@ -34,7 +29,6 @@ export default async function DesignEditorPage({
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Top Navigation */}
       <div className="flex items-center justify-between border-b bg-white px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href={`/admin/menus/${menu.id}`}
@@ -46,9 +40,7 @@ export default async function DesignEditorPage({
           <h1 className="text-sm font-semibold">{menuName} – Design</h1>
         </div>
       </div>
-
-      {/* Editor */}
-      <DesignEditor
+      <DesignTabs
         menuId={menu.id}
         tenantSlug={menu.location.tenant.slug}
         locationSlug={menu.location.slug}
