@@ -7,3 +7,8 @@ next-env.d.ts
 dist/
 coverage/
 .DS_Store
+
+# Security: Sensible Dateien ausschließen
+*.bak
+*.sh
+*.sql
