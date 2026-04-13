@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { MinimalSection } from './templates/minimal-renderer';
 import { ModernSection } from './templates/modern-renderer';
+import { ClassicSection } from './templates/classic-renderer';
 
 type PriceVariant = { id: string; label: string | null; price: number; volume: string | null; isDefault: boolean };
 type Translation = { languageCode: string; name: string; shortDescription?: string | null; longDescription?: string | null };
@@ -466,11 +467,31 @@ export default function MenuContent(props: MenuContentProps) {
     />
   );
 
+
+  /* ====================================================
+   * RENDER: Classic Template Sections (delegiert an Komponente)
+   * ==================================================== */
+  const renderClassicSection = (section: typeof filteredSections[0]) => (
+    <ClassicSection
+      key={section.id}
+      section={section}
+      lang={lang}
+      priceLocale={priceLocale}
+      tenantSlug={tenantSlug}
+      locationSlug={locationSlug}
+      menuSlug={menuSlug}
+      langParam={langParam}
+      showShortDesc={showShortDesc}
+      t={t}
+    />
+  );
+
   /* ====================================================
    * RENDER: Choose template renderer
    * ==================================================== */
   const renderSection = template === 'elegant' ? renderElegantSection
     : template === 'minimal' ? renderMinimalSection
+    : template === 'classic' ? renderClassicSection
     : template === 'modern' ? renderModernSection
     : renderDefaultSection;
 
