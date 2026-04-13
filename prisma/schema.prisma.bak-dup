@@ -1,0 +1,842 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  website   String?
+  email     String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt DateTime @updatedAt
+  locations Location[]
+  users     User[]
+  themes    Theme[]
+  media     Media[]
+  languages TenantLanguage[]
+  allergens Allergen[]
+  additives Additive[]
+  tags      Tag[]
+  productGroups    ProductGroup[]
+  products         Product[]
+  priceLevels      PriceLevel[]
+  fillQuantities   FillQuantity[]
+  taxRates         TaxRate[]
+  suppliers        Supplier[]
+  customFieldDefs  CustomFieldDefinition[]
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  address   String?
+  latitude  Float?
+  longitude Float?
+  timezone  String   @default("Europe/Vienna")
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt DateTime @updatedAt
+  translations LocationTranslation[]
+  menus        Menu[]
+  qrCodes      QRCode[]
+  designConfig Json?
+  timeRules    TimeRule[]
+  @@unique([tenantId, slug])
+}
+
+model LocationTranslation {
+  id           String   @id @default(cuid())
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  languageCode String
+  name         String
+  description  String?
+  @@unique([locationId, languageCode])
+}
+
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole  @default(EDITOR)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt    DateTime  @updatedAt
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MANAGER
+  EDITOR
+}
+
+model Menu {
+  id          String    @id @default(cuid())
+  locationId  String
+  location    Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  type        MenuType
+  slug        String
+  isActive    Boolean   @default(true)
+  isArchived  Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt   DateTime  @updatedAt
+  translations MenuTranslation[]
+  sections     MenuSection[]
+  qrCodes      QRCode[]
+  designConfig Json?
+  @@unique([locationId, slug])
+}
+
+enum MenuType {
+  FOOD
+  DRINKS
+  WINE
+  DAILY_SPECIAL
+  SEASONAL
+  BREAKFAST
+  BAR
+  SPA
+  ROOM_SERVICE
+  MINIBAR
+  EVENT
+}
+
+model MenuTranslation {
+  id           String @id @default(cuid())
+  menuId       String
+  menu         Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  languageCode String
+  name         String
+  description  String?
+  footnote     String?
+  @@unique([menuId, languageCode])
+}
+
+model MenuSection {
+  id        String        @id @default(cuid())
+  menuId    String
+  menu      Menu          @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    MenuSection?  @relation("SectionTree", fields: [parentId], references: [id])
+  children  MenuSection[] @relation("SectionTree")
+  slug      String
+  sortOrder Int           @default(0)
+  isActive  Boolean       @default(true)
+  icon      String?
+  createdAt DateTime      @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt DateTime      @updatedAt
+  translations MenuSectionTranslation[]
+  placements       MenuPlacement[]
+  @@unique([menuId, slug])
+}
+
+model MenuSectionTranslation {
+  id           String      @id @default(cuid())
+  sectionId    String
+  section      MenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  languageCode String
+  name         String
+  description  String?
+  @@unique([sectionId, languageCode])
+}
+
+enum ItemType {
+  FOOD
+  DRINK
+  WINE
+  OTHER
+}
+
+enum HighlightType {
+  RECOMMENDATION
+  NEW
+  POPULAR
+  PREMIUM
+  SEASONAL
+  CHEFS_CHOICE
+}
+
+model Allergen {
+  id        String @id @default(cuid())
+  tenantId  String
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code      String
+  icon      String?
+  sortOrder Int    @default(0)
+  translations AllergenTranslation[]
+  productAllergens ProductAllergen[]
+  @@unique([tenantId, code])
+}
+
+model AllergenTranslation {
+  id           String   @id @default(cuid())
+  allergenId   String
+  allergen     Allergen @relation(fields: [allergenId], references: [id], onDelete: Cascade)
+  languageCode String
+  name         String
+  description  String?
+  @@unique([allergenId, languageCode])
+}
+
+model Additive {
+  id        String @id @default(cuid())
+  tenantId  String
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code      String
+  sortOrder Int    @default(0)
+  translations AdditiveTranslation[]
+  @@unique([tenantId, code])
+}
+
+model AdditiveTranslation {
+  id           String   @id @default(cuid())
+  additiveId   String
+  additive     Additive @relation(fields: [additiveId], references: [id], onDelete: Cascade)
+  languageCode String
+  name         String
+  @@unique([additiveId, languageCode])
+}
+
+model Tag {
+  id        String @id @default(cuid())
+  tenantId  String
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug      String
+  color     String?
+  icon      String?
+  translations TagTranslation[]
+  productTags      ProductTag[]
+  @@unique([tenantId, slug])
+}
+
+model TagTranslation {
+  id           String @id @default(cuid())
+  tagId        String
+  tag          Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  languageCode String
+  name         String
+  @@unique([tagId, languageCode])
+}
+
+enum WineStyle {
+  RED
+  WHITE
+  ROSE
+  SPARKLING
+  DESSERT
+  FORTIFIED
+  ORANGE
+  NATURAL
+}
+
+enum WineBody {
+  LIGHT
+  MEDIUM_LIGHT
+  MEDIUM
+  MEDIUM_FULL
+  FULL
+}
+
+enum WineSweetness {
+  DRY
+  OFF_DRY
+  MEDIUM_DRY
+  MEDIUM_SWEET
+  SWEET
+}
+
+enum BeverageCategory {
+  BEER
+  SPIRIT
+  COCKTAIL
+  SOFT_DRINK
+  JUICE
+  WATER
+  HOT_DRINK
+  SMOOTHIE
+  OTHER
+}
+
+enum PairingType {
+  GOES_WELL
+  RECOMMENDED
+  SOMMELIER_CHOICE
+}
+
+enum MediaCategory {
+  PHOTO
+  LOGO
+  DOCUMENT
+}
+
+enum MediaSource {
+  UPLOAD
+  PIXABAY
+  PEXELS
+  WEB
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  filename     String
+  mimeType     String
+  url          String
+  thumbnailUrl String?
+  width        Int?
+  height       Int?
+  sizeBytes    Int?
+  alt          String?
+  createdAt    DateTime @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  productMedia ProductMedia[]
+}
+
+model QRCode {
+  id           String   @id @default(cuid())
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  menuId       String?
+  menu         Menu?    @relation(fields: [menuId], references: [id])
+  label        String?
+  shortCode    String   @unique
+  logoUrl      String?
+  primaryColor String?  @default("#000000")
+  bgColor      String?  @default("#FFFFFF")
+  scans        Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+}
+
+model Theme {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name            String    @default("Default")
+  isActive        Boolean   @default(true)
+  primaryColor    String    @default("#1a1a1a")
+  accentColor     String    @default("#8B6914")
+  backgroundColor String    @default("#FAFAF8")
+  textColor       String    @default("#1a1a1a")
+  fontHeading     String    @default("Playfair Display")
+  fontBody        String    @default("Source Sans 3")
+  borderRadius    String    @default("8px")
+  cardStyle       CardStyle @default(ELEGANT)
+  logoUrl         String?
+  backgroundImage String?
+  customCSS       String?
+}
+
+enum CardStyle {
+  ELEGANT
+  MINIMAL
+  CLASSIC
+  MODERN
+  RUSTIC
+}
+
+model TenantLanguage {
+  id        String  @id @default(cuid())
+  tenantId  String
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code      String
+  name      String
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+  @@unique([tenantId, code])
+}
+
+model TimeRule {
+  id         String   @id @default(cuid())
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  name       String
+  menuId     String?
+  startTime  String
+  endTime    String
+  daysOfWeek Int[]
+  isActive   Boolean  @default(true)
+}
+
+model AnalyticsEvent {
+  id         String    @id @default(cuid())
+  tenantId   String
+  locationId String?
+  menuId     String?
+  menuItemId String?
+  qrCodeId   String?
+  eventType  EventType
+  language   String?
+  userAgent  String?
+  referrer   String?
+  sessionId  String?
+  createdAt  DateTime  @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  @@index([tenantId, createdAt])
+  @@index([eventType, createdAt])
+}
+
+enum EventType {
+  QR_SCAN
+  PAGE_VIEW
+  MENU_VIEW
+  ITEM_VIEW
+  SEARCH
+  FILTER
+  PDF_DOWNLOAD
+  EMBED_VIEW
+  CTA_CLICK
+}
+
+// ============================================
+// CENTRAL PRODUCT DATABASE
+// ============================================
+
+model ProductGroup {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parentId         String?
+  parent           ProductGroup?  @relation("GroupTree", fields: [parentId], references: [id])
+  children         ProductGroup[] @relation("GroupTree")
+  slug             String
+  icon             String?
+  image            String?
+  defaultTaxRateId String?
+  defaultTaxRate   TaxRate? @relation("GroupDefaultTax", fields: [defaultTaxRateId], references: [id])
+  sortOrder        Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt        DateTime @updatedAt
+  translations     ProductGroupTranslation[]
+  products         Product[]
+  @@unique([tenantId, slug])
+}
+
+model ProductGroupTranslation {
+  id              String       @id @default(cuid())
+  productGroupId  String
+  productGroup    ProductGroup @relation(fields: [productGroupId], references: [id], onDelete: Cascade)
+  languageCode    String
+  name            String
+  description     String?
+  @@unique([productGroupId, languageCode])
+}
+
+enum ProductType {
+  WINE
+  DRINK
+  FOOD
+  OTHER
+}
+
+enum ProductStatus {
+  ACTIVE
+  SOLD_OUT
+  ARCHIVED
+  DRAFT
+}
+
+model Product {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productGroupId  String?
+  productGroup    ProductGroup? @relation(fields: [productGroupId], references: [id])
+  sku             String?
+  type            ProductType
+  status          ProductStatus @default(ACTIVE)
+  taxRateId       String?
+  taxRate         TaxRate?      @relation("ProductTax", fields: [taxRateId], references: [id])
+  supplierId      String?
+  supplier        Supplier?     @relation(fields: [supplierId], references: [id])
+  isHighlight     Boolean       @default(false)
+  highlightType   HighlightType?
+  sortOrder       Int           @default(0)
+  customFields    Json?
+  internalNotes   String?
+  createdAt       DateTime      @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt       DateTime      @updatedAt
+  translations       ProductTranslation[]
+  prices             ProductPrice[]
+  productAllergens   ProductAllergen[]
+  productTags        ProductTag[]
+  productMedia       ProductMedia[]
+  productWineProfile ProductWineProfile?
+  productBevDetail   ProductBeverageDetail?
+  placements         MenuPlacement[]
+  customFieldValues  ProductCustomFieldValue[]
+  pairingsFrom       ProductPairing[] @relation("ProdPairSource")
+  pairingsTo         ProductPairing[] @relation("ProdPairTarget")
+  @@unique([tenantId, sku])
+}
+
+model ProductTranslation {
+  id                String  @id @default(cuid())
+  productId         String
+  product           Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  languageCode      String
+  name              String
+  shortDescription  String?
+  longDescription   String?
+  servingSuggestion String?
+  internalNotes     String?
+  @@unique([productId, languageCode])
+}
+
+model PriceLevel {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name             String
+  slug             String
+  isInternal       Boolean  @default(false)
+  surchargePercent Float?
+  sortOrder        Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt        DateTime @updatedAt
+  prices           ProductPrice[]
+  placements       MenuPlacement[]
+  @@unique([tenantId, slug])
+}
+
+model FillQuantity {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  label     String
+  volume    String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  prices     ProductPrice[]
+  placements MenuPlacement[]
+  @@unique([tenantId, label])
+}
+
+model ProductPrice {
+  id             String       @id @default(cuid())
+  productId      String
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  fillQuantityId String
+  fillQuantity   FillQuantity @relation(fields: [fillQuantityId], references: [id])
+  priceLevelId   String
+  priceLevel     PriceLevel   @relation(fields: [priceLevelId], references: [id])
+  price          Decimal      @db.Decimal(10, 2)
+  purchasePrice  Decimal?     @db.Decimal(10, 2)
+  fixedMarkup    Decimal?     @db.Decimal(10, 2)
+  percentMarkup  Float?
+  currency       String       @default("EUR")
+  isDefault      Boolean      @default(false)
+  sortOrder      Int          @default(0)
+  @@unique([productId, fillQuantityId, priceLevelId])
+}
+
+model TaxRate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  rate      Float
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  productGroups ProductGroup[] @relation("GroupDefaultTax")
+  products      Product[]      @relation("ProductTax")
+  @@unique([tenantId, name])
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+  address     String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt   DateTime @updatedAt
+  products    Product[]
+  @@unique([tenantId, slug])
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  SELECT
+  DATE
+  URL
+}
+
+model CustomFieldDefinition {
+  id             String          @id @default(cuid())
+  tenantId       String
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fieldKey       String
+  fieldType      CustomFieldType @default(TEXT)
+  isPublic       Boolean         @default(false)
+  isFilterable   Boolean         @default(false)
+  isRequired     Boolean         @default(false)
+  selectOptions  String[]
+  appliesToType  ProductType?
+  sortOrder      Int             @default(0)
+  isActive       Boolean         @default(true)
+  translations   CustomFieldTranslation[]
+  values         ProductCustomFieldValue[]
+  @@unique([tenantId, fieldKey])
+}
+
+model CustomFieldTranslation {
+  id                      String                @id @default(cuid())
+  customFieldDefinitionId String
+  customFieldDefinition   CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
+  languageCode            String
+  label                   String
+  placeholder             String?
+  helpText                String?
+  @@unique([customFieldDefinitionId, languageCode])
+}
+
+model ProductCustomFieldValue {
+  id                      String                @id @default(cuid())
+  productId               String
+  product                 Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customFieldDefinitionId String
+  customFieldDefinition   CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
+  value                   String
+  @@unique([productId, customFieldDefinitionId])
+}
+
+enum ProductMediaType {
+  LABEL
+  BOTTLE
+  SERVING
+  AMBIANCE
+  LOGO
+  DOCUMENT
+  OTHER
+}
+
+model ProductMedia {
+  id        String           @id @default(cuid())
+  productId String
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  mediaId   String?
+  media     Media?           @relation(fields: [mediaId], references: [id])
+  mediaType ProductMediaType @default(OTHER)
+  url       String?
+  alt       String?
+  sortOrder Int              @default(0)
+  isPrimary Boolean          @default(false)
+}
+
+model ProductAllergen {
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  allergenId String
+  allergen   Allergen @relation(fields: [allergenId], references: [id], onDelete: Cascade)
+  @@id([productId, allergenId])
+}
+
+model ProductTag {
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@id([productId, tagId])
+}
+
+model ProductWineProfile {
+  id              String        @id @default(cuid())
+  productId       String        @unique
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  winery          String?
+  vintage         Int?
+  grapeVarieties  String[]
+  region          String?
+  country         String?
+  appellation     String?
+  style           WineStyle?
+  body            WineBody?
+  sweetness       WineSweetness?
+  bottleSize      String?       @default("0.75l")
+  alcoholContent  Float?
+  servingTemp     String?
+  tastingNotes    String?
+  foodPairing     String?
+  stockQuantity   Int?
+  internalNotes   String?
+}
+
+model ProductBeverageDetail {
+  id             String            @id @default(cuid())
+  productId      String            @unique
+  product        Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  brand          String?
+  producer       String?
+  category       BeverageCategory?
+  alcoholContent Float?
+  servingTemp    String?
+  carbonated     Boolean           @default(false)
+  origin         String?
+}
+
+model ProductPairing {
+  id       String      @id @default(cuid())
+  sourceId String
+  source   Product     @relation("ProdPairSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId String
+  target   Product     @relation("ProdPairTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  type     PairingType @default(GOES_WELL)
+  @@unique([sourceId, targetId])
+}
+
+model MenuPlacement {
+  id             String        @id @default(cuid())
+  menuSectionId  String
+  menuSection    MenuSection   @relation(fields: [menuSectionId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceLevelId   String?
+  priceLevel     PriceLevel?   @relation(fields: [priceLevelId], references: [id])
+  fillQuantityId String?
+  fillQuantity   FillQuantity? @relation(fields: [fillQuantityId], references: [id])
+  priceOverride  Decimal?      @db.Decimal(10, 2)
+  sortOrder      Int           @default(0)
+  isVisible      Boolean       @default(true)
+  highlightType  HighlightType?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  originalName  String?
+  title         String?
+  formats       Json?
+  category      MediaCategory @default(PHOTO)
+  source        MediaSource   @default(UPLOAD)
+  sourceUrl     String?
+  sourceAuthor  String?
+  updatedAt     DateTime      @updatedAt
+  updatedAt      DateTime      @updatedAt
+  @@unique([menuSectionId, productId])
+}

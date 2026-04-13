@@ -1,0 +1,820 @@
+'use client';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+// ─── Types ───
+type TypoLevel = { font: string; size: number; weight?: number; color: string; transform?: string; spacing?: number; style?: string };
+type DigitalConfig = {
+  template: string; mood: string; density: string;
+  typography: Record<string, TypoLevel & { format?: string }>;
+  colors: Record<string, any>;
+  icons: Record<string, any>;
+  badges: Record<string, any>;
+  allergens: Record<string, any>;
+  products: Record<string, any>;
+  navigation: Record<string, any>;
+  header: Record<string, any>;
+  footer: Record<string, any>;
+};
+
+type EditorProps = { menuId: string; tenantSlug: string; locationSlug: string; menuSlug: string };
+
+const FONTS = [
+  { label: 'Playfair Display', value: 'Playfair Display', type: 'serif' },
+  { label: 'Cormorant Garamond', value: 'Cormorant Garamond', type: 'serif' },
+  { label: 'Libre Baskerville', value: 'Libre Baskerville', type: 'serif' },
+  { label: 'Source Sans 3', value: 'Source Sans 3', type: 'sans' },
+  { label: 'Inter', value: 'Inter', type: 'sans' },
+  { label: 'Lato', value: 'Lato', type: 'sans' },
+  { label: 'Open Sans', value: 'Open Sans', type: 'sans' },
+  { label: 'Josefin Sans', value: 'Josefin Sans', type: 'display' },
+  { label: 'Raleway', value: 'Raleway', type: 'display' },
+  { label: 'Montserrat', value: 'Montserrat', type: 'display' },
+];
+
+const TEMPLATES = [
+  { id: 'elegant', name: 'Elegant', desc: 'Serif, warme Töne, Weißraum', icon: '🍷' },
+  { id: 'modern', name: 'Modern', desc: 'Sans-Serif, dunkel, Badges', icon: '🍸' },
+  { id: 'classic', name: 'Klassisch', desc: 'Bordüren, zentriert, traditionell', icon: '🍽️' },
+  { id: 'minimal', name: 'Minimal', desc: 'Max. Lesbarkeit, Listen-Format', icon: '☕' },
+];
+
+const TYPO_LEVELS = [
+  { key: 'h1', label: 'H1 – Karten-Titel', desc: 'z.B. "Weinkarte"' },
+  { key: 'h2', label: 'H2 – Sektions-Titel', desc: 'z.B. "Schaumwein"' },
+  { key: 'h3', label: 'H3 – Produkt-Name', desc: 'z.B. "Grüner Veltliner"' },
+  { key: 'body', label: 'Body – Beschreibung', desc: 'Weinbeschreibung' },
+  { key: 'price', label: 'Preis', desc: 'z.B. "€ 68,10"' },
+  { key: 'meta', label: 'Meta – Zusatzinfo', desc: 'Allergene, Herkunft' },
+];
+
+// ─── Accordion Section ───
+function AccordionSection({ title, icon, isOpen, onToggle, children }: {
+  title: string; icon: string; isOpen: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-gray-200">
+      <button onClick={onToggle} className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+        <span className="flex items-center gap-2 font-medium text-sm">
+          <span>{icon}</span>{title}
+        </span>
+        <svg className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {isOpen && <div className="px-4 pb-4 space-y-4">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Small UI helpers ───
+function Label({ children }: { children: React.ReactNode }) {
+  return <label className="block text-xs font-medium text-gray-500 mb-1">{children}</label>;
+}
+
+function ColorInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)}
+        className="h-8 w-8 cursor-pointer rounded border border-gray-300 p-0.5" />
+      <div className="flex-1">
+        <div className="text-xs text-gray-500">{label}</div>
+        <input type="text" value={value || ''} onChange={e => onChange(e.target.value)}
+          className="w-full text-xs border-b border-gray-200 py-0.5 outline-none focus:border-blue-400" />
+      </div>
+    </div>
+  );
+}
+
+function SelectInput({ label, value, options, onChange }: { label: string; value: string; options: { label: string; value: string }[]; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <select value={value} onChange={e => onChange(e.target.value)}
+        className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-blue-400">
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function SliderInput({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit?: string; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <div className="flex justify-between">
+        <Label>{label}</Label>
+        <span className="text-xs text-gray-400">{value}{unit || ''}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step || 1} value={value} onChange={e => onChange(Number(e.target.value))}
+        className="w-full accent-blue-500" />
+    </div>
+  );
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between cursor-pointer py-1">
+      <span className="text-sm text-gray-700">{label}</span>
+      <button type="button" onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-blue-500' : 'bg-gray-300'}`}>
+        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-4.5' : 'translate-x-0.5'}`}
+          style={{ transform: checked ? 'translateX(18px)' : 'translateX(2px)' }} />
+      </button>
+    </label>
+  );
+}
+
+
+// ─── Confirm Dialog ───
+function ConfirmDialog({ open, title, message, confirmLabel, onConfirm, onCancel }: {
+  open: boolean; title: string; message: string; confirmLabel: string;
+  onConfirm: () => void; onCancel: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5Z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+              <p className="mt-2 text-sm text-gray-600 leading-relaxed">{message}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 bg-gray-50 px-6 py-3">
+          <button onClick={onCancel}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">
+            Abbrechen
+          </button>
+          <button onClick={onConfirm}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 transition-colors">
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Editor ───
+export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlug }: EditorProps) {
+  const [config, setConfig] = useState<DigitalConfig | null>(null);
+  const [overrides, setOverrides] = useState<any>({});
+  const [templateName, setTemplateName] = useState('elegant');
+  const [openSection, setOpenSection] = useState<number>(0);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [previewMode, setPreviewMode] = useState<'mobile' | 'desktop'>('mobile');
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customTemplates, setCustomTemplates] = useState<Array<{name: string; overrides: any; baseTemplate: string}>>([]);
+  const [showTemplateSwitch, setShowTemplateSwitch] = useState<string | null>(null);
+
+  // Prüfe ob benutzerdefinierte Anpassungen vorliegen
+  const hasCustomOverrides = (() => {
+    if (!overrides || typeof overrides !== 'object') return false;
+    const keys = Object.keys(overrides).filter(k => k !== 'template');
+    if (keys.length === 0) return false;
+    // Prüfe ob die übrigen Keys tatsächlich Werte enthalten
+    return keys.some(k => {
+      const val = overrides[k];
+      if (val === null || val === undefined) return false;
+      if (typeof val === 'object' && Object.keys(val).length === 0) return false;
+      return true;
+    });
+  })();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load config
+  useEffect(() => {
+    fetch(`/api/v1/menus/${menuId}/design`)
+      .then(r => r.json())
+      .then(data => {
+        setConfig(data.designConfig?.digital || data.digital || data);
+        setOverrides(data.savedOverrides?.digital || {});
+        setTemplateName(data.templateName || data.designConfig?.digital?.template || 'elegant');
+        setCustomName(data.savedOverrides?.digital?.customName || data.designConfig?.digital?.customName || '');
+        setCustomTemplates(data.customTemplates || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [menuId]);
+
+  // Auto-save with debounce
+  const saveConfig = useCallback((newOverrides: any) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving(true);
+      try {
+        await fetch(`/api/v1/menus/${menuId}/design`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ designConfig: { digital: newOverrides } }),
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1500);
+        // Refresh iframe
+        if (iframeRef.current) {
+          iframeRef.current.src = iframeRef.current.src;
+        }
+      } catch (e) {
+        console.error('Save failed', e);
+      } finally {
+        setSaving(false);
+      }
+    }, 800);
+  }, [menuId]);
+
+  // Update a nested config value and trigger save
+  const updateConfig = useCallback((path: string, value: any) => {
+    if (!config) return;
+    // Update the merged config for immediate UI feedback
+    setConfig(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev));
+      const parts = path.split('.');
+      let obj: any = next;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!obj[parts[i]]) obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      return next;
+    });
+
+    // Update overrides (what gets saved)
+    setOverrides((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev));
+      const parts = path.split('.');
+      let obj: any = next;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!obj[parts[i]]) obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      saveConfig(next);
+      return next;
+    });
+  }, [config, saveConfig]);
+
+  // Switch template – mit Warnung wenn benutzerdefinierte Anpassungen existieren
+  const handleTemplateClick = useCallback((name: string) => {
+    if (hasCustomOverrides) {
+      setShowTemplateSwitch(name);
+    } else {
+      switchTemplate(name);
+    }
+  }, [hasCustomOverrides]);
+
+  const switchTemplate = useCallback(async (name: string) => {
+    setShowTemplateSwitch(null);
+    setTemplateName(name);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v1/menus/${menuId}/design`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ designConfig: { digital: { template: name } } }),
+      });
+      const data = await res.json();
+      // Reload full merged config after template switch
+      const reload = await fetch(`/api/v1/menus/${menuId}/design`);
+      const reloaded = await reload.json();
+      setConfig(reloaded.designConfig?.digital || reloaded.digital);
+      setOverrides(reloaded.savedOverrides?.digital || {});
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+      if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  }, [menuId]);
+
+
+
+  // Save current overrides as a custom template
+  const saveAsCustomTemplate = useCallback(async (name: string) => {
+    if (customTemplates.length >= 4) return;
+    const newTemplate = {
+      name: name || 'Benutzerdefiniert ' + (customTemplates.length + 1),
+      overrides: JSON.parse(JSON.stringify(overrides)),
+      baseTemplate: templateName,
+    };
+    const updated = [...customTemplates, newTemplate];
+    setCustomTemplates(updated);
+    // Save to DB
+    try {
+      await fetch(`/api/v1/menus/${menuId}/design`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ designConfig: { customTemplates: updated } }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (e) {
+      console.error('Save custom template failed', e);
+    }
+  }, [customTemplates, overrides, templateName, menuId]);
+
+  // Load a custom template
+  const loadCustomTemplate = useCallback(async (index: number) => {
+    const tmpl = customTemplates[index];
+    if (!tmpl) return;
+    setSaving(true);
+    try {
+      await fetch(`/api/v1/menus/${menuId}/design`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ designConfig: { digital: { ...tmpl.overrides, template: tmpl.baseTemplate } } }),
+      });
+      const reload = await fetch(`/api/v1/menus/${menuId}/design`);
+      const reloaded = await reload.json();
+      setConfig(reloaded.designConfig?.digital || reloaded.digital);
+      setOverrides(tmpl.overrides);
+      setTemplateName(tmpl.baseTemplate);
+      setCustomName(tmpl.name);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+      if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  }, [customTemplates, menuId]);
+
+  // Delete a custom template
+  const deleteCustomTemplate = useCallback(async (index: number) => {
+    const updated = customTemplates.filter((_, i) => i !== index);
+    setCustomTemplates(updated);
+    try {
+      await fetch(`/api/v1/menus/${menuId}/design`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ designConfig: { customTemplates: updated } }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }, [customTemplates, menuId]);
+
+  // Save custom template name
+  const saveCustomName = useCallback((name: string) => {
+    setCustomName(name);
+    updateConfig('customName', name);
+  }, [updateConfig]);
+
+  // Reset all overrides to template defaults
+  const resetToDefaults = useCallback(async () => {
+    setSaving(true);
+    setShowResetDialog(false);
+    try {
+      // Save only the template name, removing all other overrides
+      await fetch(`/api/v1/menus/${menuId}/design`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ designConfig: { digital: { template: templateName } } }),
+      });
+      // Reload full merged config from server
+      const reload = await fetch(`/api/v1/menus/${menuId}/design`);
+      const reloaded = await reload.json();
+      setConfig(reloaded.designConfig?.digital || reloaded.digital);
+      setOverrides({ template: templateName });
+      setCustomName('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+      if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+    } catch (e) {
+      console.error('Reset failed', e);
+    } finally {
+      setSaving(false);
+    }
+  }, [menuId, templateName]);
+
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full" /></div>;
+  if (!config) return <div className="p-6 text-red-500">Fehler beim Laden der Design-Konfiguration.</div>;
+
+  const previewUrl = `/${tenantSlug}/${locationSlug}/${menuSlug}`;
+
+  const toggleSection = (i: number) => setOpenSection(prev => prev === i ? -1 : i);
+
+  return (
+    <div className="flex h-[calc(100vh-64px)]">
+      {/* Left: Editor Panel */}
+      <div className="w-[420px] min-w-[380px] overflow-y-auto border-r border-gray-200 bg-white">
+        {/* Status Bar */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-4 py-2">
+          <h2 className="text-sm font-semibold">Design-Editor</h2>
+          <div className="flex items-center gap-2">
+            {saving && <span className="text-xs text-gray-400">Speichert...</span>}
+            {saved && <span className="text-xs text-green-500">Gespeichert ✓</span>}
+            <button onClick={() => setShowResetDialog(true)}
+              className="rounded px-2.5 py-1 text-xs font-medium text-gray-500 border border-gray-300 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+              title="Alle Einstellungen auf Vorlage-Standard zurücksetzen">
+              Zurücksetzen
+            </button>
+          </div>
+        </div>
+
+        {/* Reset Confirmation Dialog */}
+        <ConfirmDialog
+          open={showResetDialog}
+          title="Design zurücksetzen?"
+          message="Alle individuellen Anpassungen werden verworfen und die Einstellungen der aktuellen Vorlage wiederhergestellt. Dieser Vorgang kann nicht rückgängig gemacht werden."
+          confirmLabel="Zurücksetzen"
+          onConfirm={resetToDefaults}
+          onCancel={() => setShowResetDialog(false)}
+        />
+
+        {/* Template Switch Confirmation Dialog */}
+        <ConfirmDialog
+          open={showTemplateSwitch !== null}
+          title="Vorlage wechseln?"
+          message="Sie haben individuelle Anpassungen vorgenommen. Beim Wechsel zu einer anderen Vorlage gehen alle Änderungen verloren und werden durch die Standard-Einstellungen der neuen Vorlage ersetzt."
+          confirmLabel="Vorlage wechseln"
+          onConfirm={() => showTemplateSwitch && switchTemplate(showTemplateSwitch)}
+          onCancel={() => setShowTemplateSwitch(null)}
+        />
+
+        {/* === Section 1: Vorlage & Grundstil === */}
+        <AccordionSection title="Vorlage & Grundstil" icon="🎨" isOpen={openSection === 0} onToggle={() => toggleSection(0)}>
+          <div className="grid grid-cols-2 gap-2">
+            {TEMPLATES.map(tmpl => (
+              <button key={tmpl.id} onClick={() => handleTemplateClick(tmpl.id)}
+                className={`rounded-lg border-2 p-3 text-left transition-all ${!hasCustomOverrides && templateName === tmpl.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                <div className="text-lg mb-1">{tmpl.icon}</div>
+                <div className="text-sm font-medium">{tmpl.name}</div>
+                <div className="text-xs text-gray-500">{tmpl.desc}</div>
+              </button>
+            ))}
+          </div>
+          {/* Gespeicherte benutzerdefinierte Vorlagen */}
+          {customTemplates.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {customTemplates.map((ct, idx) => (
+                <div key={idx}
+                  className="rounded-lg border-2 border-gray-200 hover:border-blue-300 p-3 text-left transition-all cursor-pointer relative group"
+                  onClick={() => loadCustomTemplate(idx)}>
+                  <div className="text-lg mb-1">✏️</div>
+                  <div className="text-sm font-medium truncate">{ct.name}</div>
+                  <div className="text-xs text-gray-500 truncate">Basis: {ct.baseTemplate === 'elegant' ? 'Elegant' : ct.baseTemplate === 'modern' ? 'Modern' : ct.baseTemplate === 'classic' ? 'Klassisch' : 'Minimal'}</div>
+                  <button onClick={e => { e.stopPropagation(); deleteCustomTemplate(idx); }}
+                    className="absolute top-1 right-1 hidden group-hover:flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-500 text-xs hover:bg-red-200"
+                    title="Vorlage löschen">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Aktive benutzerdefinierte Anpassungen */}
+          {hasCustomOverrides && (
+            <div className="rounded-lg border-2 border-blue-500 bg-blue-50 p-3 mt-2">
+              <div className="text-lg mb-1">✏️</div>
+              <input
+                type="text"
+                value={customName}
+                onChange={e => saveCustomName(e.target.value)}
+                placeholder="Benutzerdefiniert"
+                className="w-full text-sm font-medium text-blue-700 bg-transparent border-b border-transparent hover:border-blue-300 focus:border-blue-500 focus:outline-none py-0.5 placeholder-blue-400"
+              />
+              <div className="text-xs text-blue-500 mt-0.5">Basierend auf {templateName === 'elegant' ? 'Elegant' : templateName === 'modern' ? 'Modern' : templateName === 'classic' ? 'Klassisch' : 'Minimal'}</div>
+              <div className="flex gap-2 mt-2">
+                {customTemplates.length < 4 && (
+                  <button onClick={() => saveAsCustomTemplate(customName || 'Benutzerdefiniert ' + (customTemplates.length + 1))}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                    Als Vorlage speichern
+                  </button>
+                )}
+                <button onClick={() => setShowResetDialog(true)}
+                  className="text-xs text-gray-500 hover:text-gray-700">
+                  Zurücksetzen
+                </button>
+              </div>
+            </div>
+          )}
+          <SelectInput label="Stimmung" value={config.mood} onChange={v => updateConfig('mood', v)}
+            options={[{ label: 'Hell', value: 'light' }, { label: 'Warm', value: 'warm' }, { label: 'Dunkel', value: 'dark' }]} />
+          <SelectInput label="Dichte" value={config.density} onChange={v => updateConfig('density', v)}
+            options={[{ label: 'Luftig', value: 'airy' }, { label: 'Normal', value: 'normal' }, { label: 'Kompakt', value: 'compact' }]} />
+        </AccordionSection>
+
+        {/* === Section 2: Typografie === */}
+        <AccordionSection title="Typografie" icon="🔤" isOpen={openSection === 1} onToggle={() => toggleSection(1)}>
+          {TYPO_LEVELS.map(level => {
+            const t = config.typography[level.key] || {};
+            return (
+              <div key={level.key} className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2">
+                <div className="text-xs font-semibold text-gray-700">{level.label}</div>
+                <div className="text-xs text-gray-400">{level.desc}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <SelectInput label="Schrift" value={t.font || 'Source Sans 3'}
+                    onChange={v => updateConfig(`typography.${level.key}.font`, v)}
+                    options={FONTS.map(f => ({ label: `${f.label} (${f.type})`, value: f.value }))} />
+                  <SliderInput label="Größe" value={t.size || 16} min={8} max={64} unit="px"
+                    onChange={v => updateConfig(`typography.${level.key}.size`, v)} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <SelectInput label="Gewicht" value={String(t.weight || 400)}
+                    onChange={v => updateConfig(`typography.${level.key}.weight`, Number(v))}
+                    options={[
+                      { label: 'Light (300)', value: '300' }, { label: 'Normal (400)', value: '400' },
+                      { label: 'Medium (500)', value: '500' }, { label: 'Semi-Bold (600)', value: '600' },
+                      { label: 'Bold (700)', value: '700' }, { label: 'Extra-Bold (800)', value: '800' },
+                    ]} />
+                  <ColorInput label="Farbe" value={t.color || '#333333'}
+                    onChange={v => updateConfig(`typography.${level.key}.color`, v)} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <SelectInput label="Transform" value={t.transform || 'none'}
+                    onChange={v => updateConfig(`typography.${level.key}.transform`, v)}
+                    options={[
+                      { label: 'Keine', value: 'none' }, { label: 'VERSALIEN', value: 'uppercase' },
+                      { label: 'kleinbuchstaben', value: 'lowercase' }, { label: 'Erster Groß', value: 'capitalize' },
+                    ]} />
+                  <SliderInput label="Spacing" value={(t.spacing || 0) * 100} min={-5} max={20} unit="%"
+                    onChange={v => updateConfig(`typography.${level.key}.spacing`, v / 100)} />
+                </div>
+                {level.key === 'body' && (
+                  <SelectInput label="Stil" value={t.style || 'normal'}
+                    onChange={v => updateConfig(`typography.${level.key}.style`, v)}
+                    options={[{ label: 'Normal', value: 'normal' }, { label: 'Kursiv', value: 'italic' }]} />
+                )}
+                {/* Preview */}
+                <div className="mt-1 rounded border border-gray-200 bg-white px-3 py-2 overflow-hidden"
+                  style={{ fontFamily: `'${t.font || 'sans-serif'}'`, fontSize: `${Math.min(t.size || 16, 28)}px`, fontWeight: t.weight || 400, color: t.color || '#333', textTransform: (t.transform || 'none') as any, letterSpacing: t.spacing ? `${t.spacing}em` : undefined, fontStyle: t.style || 'normal' }}>
+                  {level.key === 'price' ? '€ 68,10' : level.desc}
+                </div>
+              </div>
+            );
+          })}
+        </AccordionSection>
+
+        {/* === Section 3: Farben & Flächen === */}
+        <AccordionSection title="Farben & Flächen" icon="🎨" isOpen={openSection === 2} onToggle={() => toggleSection(2)}>
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Grundfarben</div>
+            <ColorInput label="Seiten-Hintergrund" value={config.colors.pageBackground}
+              onChange={v => updateConfig('colors.pageBackground', v)} />
+            <ColorInput label="Kopfbereich Hintergrund" value={config.colors.headerBackground}
+              onChange={v => updateConfig('colors.headerBackground', v)} />
+            <ColorInput label="Kopfbereich Text" value={config.colors.headerText}
+              onChange={v => updateConfig('colors.headerText', v)} />
+
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Sektionen</div>
+            <ColorInput label="Sektions-Header Hintergrund" value={config.colors.sectionHeaderBg}
+              onChange={v => updateConfig('colors.sectionHeaderBg', v)} />
+            <ColorInput label="Sektions-Linie" value={config.colors.sectionLine}
+              onChange={v => updateConfig('colors.sectionLine', v)} />
+            <SliderInput label="Linienstärke" value={config.colors.sectionLineWidth || 1} min={0} max={5} unit="px"
+              onChange={v => updateConfig('colors.sectionLineWidth', v)} />
+            <SelectInput label="Linienstil" value={config.colors.sectionLineStyle || 'solid'}
+              onChange={v => updateConfig('colors.sectionLineStyle', v)}
+              options={[
+                { label: 'Durchgezogen', value: 'solid' }, { label: 'Gestrichelt', value: 'dashed' },
+                { label: 'Doppelt', value: 'double' }, { label: 'Keine', value: 'none' },
+              ]} />
+
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Produkte</div>
+            <ColorInput label="Produkt Hintergrund" value={config.colors.productBg}
+              onChange={v => updateConfig('colors.productBg', v)} />
+            <ColorInput label="Produkt Hover" value={config.colors.productHover}
+              onChange={v => updateConfig('colors.productHover', v)} />
+            <ColorInput label="Trennlinie" value={config.colors.productDivider}
+              onChange={v => updateConfig('colors.productDivider', v)} />
+
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Preis-Verbindungslinie</div>
+            <SelectInput label="Stil" value={config.colors.priceLine || 'dotted'}
+              onChange={v => updateConfig('colors.priceLine', v)}
+              options={[
+                { label: 'Gepunktet', value: 'dotted' }, { label: 'Durchgezogen', value: 'solid' }, { label: 'Keine', value: 'none' },
+              ]} />
+            <ColorInput label="Farbe" value={config.colors.priceLineColor}
+              onChange={v => updateConfig('colors.priceLineColor', v)} />
+
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Akzentfarben</div>
+            <div className="grid grid-cols-2 gap-2">
+              <ColorInput label="Primär" value={config.colors.accentPrimary}
+                onChange={v => updateConfig('colors.accentPrimary', v)} />
+              <ColorInput label="Empfehlung" value={config.colors.accentRecommend}
+                onChange={v => updateConfig('colors.accentRecommend', v)} />
+              <ColorInput label="Neu" value={config.colors.accentNew}
+                onChange={v => updateConfig('colors.accentNew', v)} />
+              <ColorInput label="Premium" value={config.colors.accentPremium}
+                onChange={v => updateConfig('colors.accentPremium', v)} />
+            </div>
+          </div>
+        </AccordionSection>
+
+        {/* === Section 4: Icons & Badges === */}
+        <AccordionSection title="Icons & Badges" icon="🏷️" isOpen={openSection === 3} onToggle={() => toggleSection(3)}>
+          <SelectInput label="Icon-Stil" value={config.icons?.style || 'outlined'}
+            onChange={v => updateConfig('icons.style', v)}
+            options={[
+              { label: 'Emoji (🍷🍸)', value: 'emoji' }, { label: 'Linien-Icons', value: 'outlined' },
+              { label: 'Ausgefüllt', value: 'filled' }, { label: 'Keine', value: 'none' },
+            ]} />
+          <SelectInput label="Badge-Stil" value={config.badges?.style || 'pill'}
+            onChange={v => updateConfig('badges.style', v)}
+            options={[
+              { label: 'Pill-Tag', value: 'pill' }, { label: 'Farbiger Punkt', value: 'dot' },
+              { label: 'Icon', value: 'icon' }, { label: 'Farbiger Rand', value: 'bordered' },
+            ]} />
+          <div className="space-y-1">
+            <Label>Badges anzeigen</Label>
+            {['recommendation', 'new', 'premium', 'vegetarian', 'vegan', 'bio'].map(badge => (
+              <Toggle key={badge} label={badge.charAt(0).toUpperCase() + badge.slice(1)}
+                checked={(config.badges?.show || []).includes(badge)}
+                onChange={checked => {
+                  const current = config.badges?.show || [];
+                  const next = checked ? [...current, badge] : current.filter((b: string) => b !== badge);
+                  updateConfig('badges.show', next);
+                }} />
+            ))}
+          </div>
+          <SelectInput label="Allergene Position" value={config.allergens?.position || 'product'}
+            onChange={v => updateConfig('allergens.position', v)}
+            options={[
+              { label: 'Am Produkt', value: 'product' }, { label: 'Am Seitenende', value: 'footer' }, { label: 'Aus', value: 'hidden' },
+            ]} />
+          <SelectInput label="Allergene Stil" value={config.allergens?.style || 'numbers'}
+            onChange={v => updateConfig('allergens.style', v)}
+            options={[
+              { label: 'Nummern', value: 'numbers' }, { label: 'Abkürzungen', value: 'abbreviations' }, { label: 'Icons', value: 'icons' },
+            ]} />
+        </AccordionSection>
+
+        {/* === Section 5: Produktdarstellung === */}
+        <AccordionSection title="Produktdarstellung" icon="📦" isOpen={openSection === 4} onToggle={() => toggleSection(4)}>
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Bilder</div>
+            <Toggle label="Bilder anzeigen" checked={config.products?.showImages ?? true}
+              onChange={v => updateConfig('products.showImages', v)} />
+            {config.products?.showImages && (<>
+              <SelectInput label="Stil" value={config.products?.imageStyle || 'color'}
+                onChange={v => updateConfig('products.imageStyle', v)}
+                options={[
+                  { label: 'Farbe', value: 'color' }, { label: 'Schwarzweiß', value: 'grayscale' }, { label: 'Sepia', value: 'sepia' },
+                ]} />
+              <SelectInput label="Form" value={config.products?.imageShape || 'rounded'}
+                onChange={v => updateConfig('products.imageShape', v)}
+                options={[
+                  { label: 'Abgerundet', value: 'rounded' }, { label: 'Rund', value: 'round' }, { label: 'Rechteck', value: 'rectangle' },
+                ]} />
+              <SliderInput label="Größe" value={config.products?.imageSize || 64} min={32} max={128} unit="px"
+                onChange={v => updateConfig('products.imageSize', v)} />
+              <SelectInput label="Position" value={config.products?.imagePosition || 'left'}
+                onChange={v => updateConfig('products.imagePosition', v)}
+                options={[{ label: 'Links', value: 'left' }, { label: 'Rechts', value: 'right' }]} />
+            </>)}
+
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Beschreibung</div>
+            <Toggle label="Kurzbeschreibung" checked={config.products?.showShortDesc ?? true}
+              onChange={v => updateConfig('products.showShortDesc', v)} />
+            <Toggle label="Langbeschreibung" checked={config.products?.showLongDesc ?? false}
+              onChange={v => updateConfig('products.showLongDesc', v)} />
+            <SliderInput label="Max. Zeilen" value={config.products?.descMaxLines || 2} min={1} max={10}
+              onChange={v => updateConfig('products.descMaxLines', v)} />
+
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Preis</div>
+            <SelectInput label="Position" value={config.products?.pricePosition || 'right'}
+              onChange={v => updateConfig('products.pricePosition', v)}
+              options={[
+                { label: 'Rechts', value: 'right' }, { label: 'Unter Name', value: 'below-name' }, { label: 'Unter Beschreibung', value: 'below-desc' },
+              ]} />
+            <Toggle label="Alle Preise zeigen" checked={config.products?.showAllPrices ?? true}
+              onChange={v => updateConfig('products.showAllPrices', v)} />
+            <Toggle label="Füllmenge zeigen" checked={config.products?.showFillQuantity ?? true}
+              onChange={v => updateConfig('products.showFillQuantity', v)} />
+
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Weindetails</div>
+            {['winery', 'vintage', 'grape', 'region', 'country', 'alcohol', 'appellation'].map(detail => (
+              <Toggle key={detail}
+                label={{ winery: 'Weingut', vintage: 'Jahrgang', grape: 'Rebsorte', region: 'Region', country: 'Land', alcohol: 'Alkoholgehalt', appellation: 'Appellation' }[detail] || detail}
+                checked={(config.products?.wineDetails || []).includes(detail)}
+                onChange={checked => {
+                  const current = config.products?.wineDetails || [];
+                  const next = checked ? [...current, detail] : current.filter((d: string) => d !== detail);
+                  updateConfig('products.wineDetails', next);
+                }} />
+            ))}
+            <SelectInput label="Weindetails Position" value={config.products?.wineDetailPosition || 'below'}
+              onChange={v => updateConfig('products.wineDetailPosition', v)}
+              options={[
+                { label: 'Unter Name', value: 'below' }, { label: 'Aufklappbar', value: 'collapsible' }, { label: 'Nur Detailseite', value: 'detail-only' },
+              ]} />
+          </div>
+        </AccordionSection>
+
+        {/* === Section 6: Navigation & Inhalt === */}
+        <AccordionSection title="Navigation & Inhalt" icon="📑" isOpen={openSection === 5} onToggle={() => toggleSection(5)}>
+          <Toggle label="Inhaltsverzeichnis anzeigen" checked={config.navigation?.showToc ?? true}
+            onChange={v => updateConfig('navigation.showToc', v)} />
+          {config.navigation?.showToc && (<>
+            <SelectInput label="Position" value={config.navigation?.tocPosition || 'sticky'}
+              onChange={v => updateConfig('navigation.tocPosition', v)}
+              options={[
+                { label: 'Oben unter Header', value: 'top' }, { label: 'Sticky', value: 'sticky' }, { label: 'Dropdown', value: 'dropdown' },
+              ]} />
+            <SelectInput label="Stil" value={config.navigation?.tocStyle || 'pills'}
+              onChange={v => updateConfig('navigation.tocStyle', v)}
+              options={[
+                { label: 'Pill-Buttons', value: 'pills' }, { label: 'Tabs', value: 'tabs' }, { label: 'Einfache Liste', value: 'list' },
+              ]} />
+          </>)}
+          <Toggle label="Sticky Navigation" checked={config.navigation?.stickyNav ?? true}
+            onChange={v => updateConfig('navigation.stickyNav', v)} />
+          <Toggle label="Smooth Scroll" checked={config.navigation?.smoothScroll ?? true}
+            onChange={v => updateConfig('navigation.smoothScroll', v)} />
+          <Toggle label="Aktive Sektion hervorheben" checked={config.navigation?.highlightActive ?? true}
+            onChange={v => updateConfig('navigation.highlightActive', v)} />
+          <Toggle label="'Nach oben' Button" checked={config.navigation?.showBackToTop ?? true}
+            onChange={v => updateConfig('navigation.showBackToTop', v)} />
+          <Toggle label="Leere Sektionen ausblenden" checked={config.navigation?.hideEmptySections ?? true}
+            onChange={v => updateConfig('navigation.hideEmptySections', v)} />
+        </AccordionSection>
+
+        {/* === Section 7: Kopf- & Fußbereich === */}
+        <AccordionSection title="Kopf- & Fußbereich" icon="📐" isOpen={openSection === 6} onToggle={() => toggleSection(6)}>
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Header</div>
+            <SelectInput label="Logo Position" value={config.header?.logoPosition || 'center'}
+              onChange={v => updateConfig('header.logoPosition', v)}
+              options={[{ label: 'Links', value: 'left' }, { label: 'Zentriert', value: 'center' }, { label: 'Rechts', value: 'right' }]} />
+            <SliderInput label="Logo Größe" value={config.header?.logoSize || 120} min={40} max={240} unit="px"
+              onChange={v => updateConfig('header.logoSize', v)} />
+            <div>
+              <Label>Titel (leer = Kartenname)</Label>
+              <input type="text" value={config.header?.title || ''} placeholder="Kartenname wird verwendet"
+                onChange={e => updateConfig('header.title', e.target.value || null)}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-blue-400" />
+            </div>
+            <div>
+              <Label>Untertitel</Label>
+              <input type="text" value={config.header?.subtitle || ''} placeholder="z.B. Saison 2025/26"
+                onChange={e => updateConfig('header.subtitle', e.target.value || null)}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-blue-400" />
+            </div>
+            <SliderInput label="Overlay Opacity" value={(config.header?.overlayOpacity || 0.6) * 100} min={0} max={100} unit="%"
+              onChange={v => updateConfig('header.overlayOpacity', v / 100)} />
+            <SelectInput label="Header-Höhe" value={config.header?.height || 'normal'}
+              onChange={v => updateConfig('header.height', v)}
+              options={[
+                { label: 'Klein (nur Logo+Titel)', value: 'small' },
+                { label: 'Normal (Logo+Titel+Untertitel)', value: 'normal' },
+                { label: 'Groß (Vollbild mit Hintergrundbild)', value: 'large' },
+              ]} />
+
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Fußzeile</div>
+            <Toggle label="Fußzeile anzeigen" checked={config.footer?.show ?? true}
+              onChange={v => updateConfig('footer.show', v)} />
+            {config.footer?.show && (<>
+              <div>
+                <Label>Fußzeilen-Text</Label>
+                <input type="text" value={config.footer?.text || ''}
+                  onChange={e => updateConfig('footer.text', e.target.value)}
+                  className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-blue-400" />
+              </div>
+              <Toggle label="Allergen-Hinweis" checked={config.footer?.showAllergenNote ?? true}
+                onChange={v => updateConfig('footer.showAllergenNote', v)} />
+              <Toggle label="Preishinweis" checked={config.footer?.showPriceNote ?? true}
+                onChange={v => updateConfig('footer.showPriceNote', v)} />
+            </>)}
+          </div>
+        </AccordionSection>
+      </div>
+
+      {/* Right: Preview Panel */}
+      <div className="flex-1 bg-gray-100 flex flex-col">
+        <div className="flex items-center justify-between border-b bg-white px-4 py-2">
+          <div className="flex gap-1">
+            <button onClick={() => setPreviewMode('mobile')}
+              className={`rounded px-3 py-1 text-xs font-medium ${previewMode === 'mobile' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              📱 Handy
+            </button>
+            <button onClick={() => setPreviewMode('desktop')}
+              className={`rounded px-3 py-1 text-xs font-medium ${previewMode === 'desktop' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              💻 Desktop
+            </button>
+          </div>
+          <a href={previewUrl} target="_blank" rel="noopener noreferrer"
+            className="text-xs text-blue-500 hover:underline">Vorschau ↗</a>
+        </div>
+        <div className="flex-1 flex items-start justify-center overflow-auto p-4">
+          <div className={`bg-white shadow-xl rounded-xl overflow-hidden ${previewMode === 'mobile' ? 'w-[375px]' : 'w-full max-w-[1024px]'}`}
+            style={{ height: previewMode === 'mobile' ? '667px' : '100%' }}>
+            <iframe ref={iframeRef} src={previewUrl} className="w-full h-full border-0"
+              title="Vorschau" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

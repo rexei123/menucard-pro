@@ -1,59 +1,72 @@
 #!/bin/bash
-set -e
 cd /var/www/menucard-pro
 
-echo "=== Fixing + Button and Translate Buttons ==="
+echo "=== Websuche Buttons Fix ==="
 
 python3 << 'PYEOF'
-# Fix 1: Product list panel - simple + button without type dropdown
-content = open('src/components/admin/product-list-panel.tsx').read()
+with open('src/components/admin/media-archive.tsx', 'r') as f:
+    content = f.read()
 
-content = content.replace(
-    """const createProduct = async (type: string) => {
-    setCreating(true);
-    try {
-      const res = await fetch('/api/v1/products', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type }),
-      });""",
-    """const createProduct = async () => {
-    setCreating(true);
-    try {
-      const res = await fetch('/api/v1/products', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'OTHER' }),
-      });"""
-)
+# Finde den Quellen-Block (radio buttons) und ersetze mit großen Buttons
+old_block = """      <div className="flex flex-wrap gap-4 mb-6">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="radio" name="wsource" checked={source === 'wikimedia'}
+            onChange={() => setSource('wikimedia')} className="accent-amber-600" />
+          <span>Wikimedia Commons <span className="text-xs text-green-600">(frei)</span></span>
+        </label>
+        {availableSources.filter((s: any) => s.id !== 'wikimedia').map((s: any) => (
+          <label key={s.id} className={'flex items-center gap-2 text-sm cursor-pointer ' + (!s.available ? 'opacity-40' : '')}>
+            <input type="radio" name="wsource" checked={source === s.id}
+              onChange={() => setSource(s.id)} className="accent-amber-600" disabled={!s.available} />
+            <span>{s.name} {!s.available && <span className="text-xs text-gray-400">(Key fehlt)</span>}</span>
+          </label>
+        ))}
+      </div>"""
 
-# Replace dropdown with simple button
-old_btn = """<div className="relative group">
-              <button disabled={creating} className="flex h-6 w-6 items-center justify-center rounded-md text-white text-xs font-bold hover:opacity-80 disabled:opacity-50" style={{backgroundColor:'#8B6914'}}>+</button>
-              <div className="absolute right-0 top-7 z-20 hidden group-hover:block rounded-lg border bg-white shadow-lg py-1 w-32">
-                <button onClick={() => createProduct('WINE')} className="block w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50">🍷 Wein</button>
-                <button onClick={() => createProduct('DRINK')} className="block w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50">🍸 Getränk</button>
-                <button onClick={() => createProduct('FOOD')} className="block w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50">🍽️ Speise</button>
-              </div>
-            </div>"""
+new_block = """      <div className="flex flex-wrap gap-2 mb-6">
+        {[
+          { id: 'wikimedia', label: 'Wikimedia Commons', free: true },
+          ...availableSources.filter((s: any) => s.id !== 'wikimedia'),
+        ].map((s: any) => (
+          <button key={s.id || s.label} type="button"
+            onClick={() => setSource(s.id)}
+            className={'px-4 py-2.5 rounded-lg text-sm font-medium border-2 transition-all ' +
+              (source === s.id
+                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                : s.available || s.free
+                  ? 'border-gray-200 bg-white text-gray-600 hover:border-amber-300 hover:bg-amber-50/50'
+                  : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-amber-200 hover:bg-amber-50/30 cursor-pointer')
+            }>
+            {s.label || s.name}
+            {(s.free) && <span className="ml-1.5 text-xs text-green-600">(frei)</span>}
+            {(!s.available && !s.free) && <span className="ml-1.5 text-xs text-gray-400">(Key fehlt)</span>}
+          </button>
+        ))}
+      </div>"""
 
-new_btn = """<button onClick={() => createProduct()} disabled={creating} className="flex h-6 w-6 items-center justify-center rounded-md text-white text-xs font-bold hover:opacity-80 disabled:opacity-50" style={{backgroundColor:'#8B6914'}}>+</button>"""
+if old_block in content:
+    content = content.replace(old_block, new_block)
+    print("OK - Buttons ersetzt")
+else:
+    # Fallback: Suche flexibler
+    import re
+    pattern = r'<div className="flex flex-wrap gap-4 mb-6">.*?</div>\s*</div>'
+    match = re.search(pattern, content, re.DOTALL)
+    if match:
+        content = content[:match.start()] + new_block + content[match.end():]
+        print("OK - Buttons ersetzt (regex)")
+    else:
+        print("FEHLER - Block nicht gefunden")
 
-content = content.replace(old_btn, new_btn)
-open('src/components/admin/product-list-panel.tsx', 'w').write(content)
-print('List panel fixed')
-
-# Fix 2: Product editor - bigger translate buttons
-content = open('src/components/admin/product-editor.tsx').read()
-
-for field in ['name', 'shortDescription', 'longDescription', 'servingSuggestion']:
-    old = f"""<button type="button" onClick={{() => translateDeToEn('{field}')}} disabled={{translating.has('{field}')}} className="text-[10px] text-gray-400 hover:text-amber-700 disabled:opacity-50">{{translating.has('{field}') ? '...' : 'DE→EN'}}</button>"""
-    new = f"""<button type="button" onClick={{() => translateDeToEn('{field}')}} disabled={{translating.has('{field}')}} className="rounded-md px-2 py-0.5 text-[11px] font-medium border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 transition-colors">{{translating.has('{field}') ? '⏳ Übersetze...' : '🔄 DE → EN'}}</button>"""
-    content = content.replace(old, new)
-
-open('src/components/admin/product-editor.tsx', 'w').write(content)
-print('Editor fixed')
+with open('src/components/admin/media-archive.tsx', 'w') as f:
+    f.write(content)
 PYEOF
 
-npm run build && pm2 restart menucard-pro
-echo "=== Done ==="
+npm run build 2>&1 | tail -3
+
+if [ $? -eq 0 ]; then
+  pm2 restart menucard-pro
+  echo "✅ Buttons gefixt!"
+else
+  echo "❌ Build fehlgeschlagen"
+fi
