@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { MinimalSection } from './templates/minimal-renderer';
 
 type PriceVariant = { id: string; label: string | null; price: number; volume: string | null; isDefault: boolean };
 type Translation = { languageCode: string; name: string; shortDescription?: string | null; longDescription?: string | null };
@@ -423,11 +424,33 @@ export default function MenuContent(props: MenuContentProps) {
     );
   };
 
+
+  /* ====================================================
+   * RENDER: Minimal Template Sections (delegiert an Komponente)
+   * ==================================================== */
+  const renderMinimalSection = (section: typeof filteredSections[0]) => (
+    <MinimalSection
+      key={section.id}
+      section={section}
+      lang={lang}
+      priceLocale={priceLocale}
+      tenantSlug={tenantSlug}
+      locationSlug={locationSlug}
+      menuSlug={menuSlug}
+      langParam={langParam}
+      showShortDesc={showShortDesc}
+      showAllPrices={showAllPrices}
+      showFillQuantity={showFillQuantity}
+      wineDetails={wineDetails}
+      t={t}
+    />
+  );
+
   /* ====================================================
    * RENDER: Choose template renderer
    * ==================================================== */
   const renderSection = template === 'elegant' ? renderElegantSection
-    : template === 'minimal' ? renderElegantSection  /* TODO: eigenes Template */
+    : template === 'minimal' ? renderMinimalSection
     : renderDefaultSection;
 
   /* ====================================================
