@@ -32,10 +32,10 @@ const FONTS = [
 ];
 
 const TEMPLATES = [
-  { id: 'elegant', name: 'Elegant', desc: 'Serif, warme Töne, Weißraum', icon: '🍷' },
-  { id: 'modern', name: 'Modern', desc: 'Sans-Serif, dunkel, Badges', icon: '🍸' },
-  { id: 'classic', name: 'Klassisch', desc: 'Bordüren, zentriert, traditionell', icon: '🍽️' },
-  { id: 'minimal', name: 'Minimal', desc: 'Max. Lesbarkeit, Listen-Format', icon: '☕' },
+  { id: 'elegant', name: 'Elegant', desc: 'Serif, warme Töne, Weißraum', icon: 'wine_bar' },
+  { id: 'modern', name: 'Modern', desc: 'Sans-Serif, dunkel, Badges', icon: 'local_bar' },
+  { id: 'classic', name: 'Klassisch', desc: 'Bordüren, zentriert, traditionell', icon: 'restaurant' },
+  { id: 'minimal', name: 'Minimal', desc: 'Max. Lesbarkeit, Listen-Format', icon: 'coffee' },
 ];
 
 const TYPO_LEVELS = [
@@ -415,7 +415,7 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
           <h2 className="text-sm font-semibold">Design-Editor</h2>
           <div className="flex items-center gap-2">
             {saving && <span className="text-xs text-gray-400">Speichert...</span>}
-            {saved && <span className="text-xs text-green-500">Gespeichert ✓</span>}
+            {saved && <span className="text-xs text-green-500">Gespeichert</span>}
             <button onClick={() => setShowResetDialog(true)}
               className="rounded px-2.5 py-1 text-xs font-medium text-gray-500 border border-gray-300 hover:bg-gray-50 hover:text-gray-700 transition-colors"
               title="Alle Einstellungen auf Vorlage-Standard zurücksetzen">
@@ -445,7 +445,7 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
         />
 
         {/* === Section 1: Vorlage & Grundstil === */}
-        <AccordionSection title="Vorlage & Grundstil" icon="🎨" isOpen={openSection === 0} onToggle={() => toggleSection(0)}>
+        <AccordionSection title="Vorlage & Grundstil" icon="palette" isOpen={openSection === 0} onToggle={() => toggleSection(0)}>
           <div className="grid grid-cols-2 gap-2">
             {TEMPLATES.map(tmpl => (
               <button key={tmpl.id} onClick={() => handleTemplateClick(tmpl.id)}
@@ -468,7 +468,7 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
                   <div className="text-xs text-gray-500 truncate">Basis: {ct.baseTemplate === 'elegant' ? 'Elegant' : ct.baseTemplate === 'modern' ? 'Modern' : ct.baseTemplate === 'classic' ? 'Klassisch' : 'Minimal'}</div>
                   <button onClick={e => { e.stopPropagation(); deleteCustomTemplate(idx); }}
                     className="absolute top-1 right-1 hidden group-hover:flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-500 text-xs hover:bg-red-200"
-                    title="Vorlage löschen">✕</button>
+                    title="Vorlage löschen">×</button>
                 </div>
               ))}
             </div>
@@ -552,7 +552,7 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
         </AccordionSection>
 
         {/* === Section 3: Farben & Flächen === */}
-        <AccordionSection title="Farben & Flächen" icon="🎨" isOpen={openSection === 2} onToggle={() => toggleSection(2)}>
+        <AccordionSection title="Farben & Flächen" icon="palette" isOpen={openSection === 2} onToggle={() => toggleSection(2)}>
           <div className="space-y-3">
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Grundfarben</div>
             <ColorInput label="Seiten-Hintergrund" value={config.colors.pageBackground}
@@ -608,11 +608,11 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
         </AccordionSection>
 
         {/* === Section 4: Icons & Badges === */}
-        <AccordionSection title="Icons & Badges" icon="🏷️" isOpen={openSection === 3} onToggle={() => toggleSection(3)}>
+        <AccordionSection title="Icons & Badges" icon="sell" isOpen={openSection === 3} onToggle={() => toggleSection(3)}>
           <SelectInput label="Icon-Stil" value={config.icons?.style || 'outlined'}
             onChange={v => updateConfig('icons.style', v)}
             options={[
-              { label: 'Emoji (🍷🍸)', value: 'emoji' }, { label: 'Linien-Icons', value: 'outlined' },
+              { label: 'Emoji-Icons', value: 'emoji' }, { label: 'Linien-Icons', value: 'outlined' },
               { label: 'Ausgefüllt', value: 'filled' }, { label: 'Keine', value: 'none' },
             ]} />
           <SelectInput label="Badge-Stil" value={config.badges?.style || 'pill'}
@@ -646,7 +646,7 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
         </AccordionSection>
 
         {/* === Section 5: Produktdarstellung === */}
-        <AccordionSection title="Produktdarstellung" icon="📦" isOpen={openSection === 4} onToggle={() => toggleSection(4)}>
+        <AccordionSection title="Produktdarstellung" icon="inventory_2" isOpen={openSection === 4} onToggle={() => toggleSection(4)}>
           <div className="space-y-3">
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Bilder</div>
             <Toggle label="Bilder anzeigen" checked={config.products?.showImages ?? true}
@@ -791,7 +791,7 @@ export default function DesignEditor({ menuId, tenantSlug, locationSlug, menuSlu
           <div className="flex gap-1">
             <button onClick={() => setPreviewMode('mobile')}
               className={`rounded px-3 py-1 text-xs font-medium ${previewMode === 'mobile' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              📱 Handy
+              Handy
             </button>
             <button onClick={() => setPreviewMode('desktop')}
               className={`rounded px-3 py-1 text-xs font-medium ${previewMode === 'desktop' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>

@@ -22,13 +22,13 @@ export default function DesignTabs({ menuId, tenantSlug, locationSlug, menuSlug 
             className={`px-5 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === 'digital' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-900'
             }`}>
-            🖥️ Digital
+            Digital
           </button>
           <button onClick={() => setActiveTab('pdf')}
             className={`px-5 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === 'pdf' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-900'
             }`}>
-            📄 PDF / Druck
+            PDF / Druck
           </button>
         </div>
       </div>

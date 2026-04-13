@@ -140,7 +140,7 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
                     onClick={() => setCropFormat(key)}
                     className="mt-1 w-full text-[10px] text-amber-600 hover:text-amber-800"
                   >
-                    ✂️ Zuschneiden
+                    Zuschneiden
                   </button>
                 )}
               </div>
@@ -209,11 +209,11 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
           <div className="flex gap-3 pt-4 border-t">
             <button onClick={save} disabled={saving}
               className="px-5 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
-              {saving ? 'Speichere...' : '💾 Speichern'}
+              {saving ? 'Speichere...' : 'Speichern'}
             </button>
             <button onClick={() => deleteMedia(false)}
               className="px-5 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50">
-              🗑️ Bild löschen
+              Bild löschen
             </button>
           </div>
         </div>

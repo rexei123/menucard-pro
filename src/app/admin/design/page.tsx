@@ -49,7 +49,7 @@ export default async function DesignOverviewPage() {
                 <div className="flex items-center gap-3">
                   <a href={`/api/v1/menus/${menu.id}/pdf`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
-                    📄 PDF
+                    PDF
                   </a>
                   <Link href={`/admin/menus/${menu.id}/design`}
                     className="flex items-center gap-1 text-sm text-blue-500 hover:underline">

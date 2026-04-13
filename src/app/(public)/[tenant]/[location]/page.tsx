@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import LanguageSwitcher from '@/components/language-switcher';
 
-const icons: Record<string, string> = { FOOD: '🍽️', DRINKS: '🥤', WINE: '🍷', BREAKFAST: '🥐', BAR: '🍸', SPA: '🧖', ROOM_SERVICE: '🛎️', MINIBAR: '🧊', EVENT: '🎉' };
+const icons: Record<string, string> = { FOOD: 'restaurant', DRINKS: 'local_bar', WINE: 'wine_bar', BREAKFAST: 'coffee', BAR: 'local_bar', SPA: 'spa', ROOM_SERVICE: 'room_service', MINIBAR: 'kitchen', EVENT: 'celebration' };
 
 export default async function LocationPage({
   params,
@@ -38,7 +38,7 @@ export default async function LocationPage({
       <main className="mx-auto max-w-lg px-4 py-6 space-y-3">
         {location.menus.map((menu) => (
           <Link key={menu.id} href={`/${tenant.slug}/${location.slug}/${menu.slug}${langParam}`} className="flex items-center gap-4 rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md">
-            <span className="text-3xl">{icons[menu.type] || '📄'}</span>
+            <span className="material-symbols-outlined" style={{fontSize: 32, color: "var(--color-primary)"}}>{icons[menu.type] || 'description'}</span>
             <div>
               <h2 className="text-lg font-semibold" style={{fontFamily: "'Playfair Display', serif"}}>{t(menu.translations)}</h2>
               <p className="mt-0.5 text-sm text-gray-400">{t(menu.translations, 'description')}</p>

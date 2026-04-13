@@ -12,9 +12,9 @@ type MenuItem = {
 };
 
 const typeIcons: Record<string, string> = {
-  FOOD: '🍽️', DRINKS: '🍸', WINE: '🍷', BAR: '🍸', EVENT: '🎉',
-  BREAKFAST: '☕', SPA: '💆', ROOM_SERVICE: '🛎️', MINIBAR: '🧊',
-  DAILY_SPECIAL: '⭐', SEASONAL: '🌿',
+  FOOD: 'restaurant', DRINKS: 'local_bar', WINE: 'wine_bar', BAR: 'local_bar', EVENT: 'celebration',
+  BREAKFAST: 'coffee', SPA: 'spa', ROOM_SERVICE: 'room_service', MINIBAR: 'kitchen',
+  DAILY_SPECIAL: 'star', SEASONAL: 'eco',
 };
 
 export default function MenuListPanel({ menus }: { menus: MenuItem[] }) {
@@ -55,7 +55,7 @@ export default function MenuListPanel({ menus }: { menus: MenuItem[] }) {
       <div className="flex-1 overflow-y-auto">
         {filtered.map(m => {
           const active = activeId === m.id;
-          const icon = typeIcons[m.type] || '📄';
+          const icon = typeIcons[m.type] || 'description';
           return (
             <Link
               key={m.id}

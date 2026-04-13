@@ -205,7 +205,7 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
           </div>
 
           {menu.qrCodes.length > 0 && (
-            <div className="flex gap-2 flex-wrap">{menu.qrCodes.map(qr => <span key={qr.id} className="rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-600">📱 {qr.label || qr.shortCode}</span>)}</div>
+            <div className="flex gap-2 flex-wrap">{menu.qrCodes.map(qr => <span key={qr.id} className="rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-600">{qr.label || qr.shortCode}</span>)}</div>
           )}
 
           {sections.map(sec => (
@@ -235,9 +235,9 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
                       {pl.price !== null && <span className="text-base font-semibold text-gray-600 tabular-nums mr-1">{fmtEur(pl.price)}</span>}
                       <button onClick={() => toggleVisible(pl.id, sec.id, pl.isVisible)} title={pl.isVisible ? 'Als ausgetrunken markieren' : 'Wieder verfügbar'}
                         className={`rounded-full w-6 h-6 flex items-center justify-center text-sm transition-all ${pl.isVisible ? 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-500' : 'bg-red-100 text-red-600 hover:bg-green-100 hover:text-green-600'}`}>
-                        {pl.isVisible ? '●' : '🚫'}
+                        {pl.isVisible ? '●' : '○'}
                       </button>
-                      <button onClick={() => remove(pl.id, sec.id)} title="Entfernen" className="rounded p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors text-sm">✕</button>
+                      <button onClick={() => remove(pl.id, sec.id)} title="Entfernen" className="rounded p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors text-sm">×</button>
                     </div>
                   </div>
 
@@ -263,7 +263,7 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
         <div onMouseDown={startResize} className={`absolute left-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-amber-200 transition-colors ${resizing ? 'bg-amber-300' : ''}`} style={{ zIndex: 10 }} />
         <div className="border-b px-3 py-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-700">{browserDrop ? '🗑️ Hier ablegen = Entfernen' : 'Produktpool'}</h2>
+            <h2 className="text-base font-semibold text-gray-700">{browserDrop ? 'Hier ablegen = Entfernen' : 'Produktpool'}</h2>
             <span className="text-sm text-gray-400">{available.length}</span>
           </div>
           <div className="relative">

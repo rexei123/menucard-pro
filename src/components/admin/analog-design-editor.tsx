@@ -276,7 +276,7 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
                 <div className="text-xs text-gray-500 truncate">Basis: {ct.baseTemplate === 'elegant' ? 'Elegant' : ct.baseTemplate === 'modern' ? 'Modern' : ct.baseTemplate === 'classic' ? 'Klassisch' : 'Minimal'}</div>
                 <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteCustomTemplate(idx); }}
                   className="absolute top-1 right-1 hidden group-hover:flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-500 text-xs hover:bg-red-200"
-                  title="Vorlage löschen">✕</button>
+                  title="Vorlage löschen">×</button>
               </div>
             ))}
           </div>
@@ -311,7 +311,7 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
         )}
 
         {/* Akkordeon 1: Inhalt & Sprache */}
-        <AccordionSection title="Inhalt & Sprache" icon="📄" open={!!openSections.content} onToggle={() => toggleSection('content')}>
+        <AccordionSection title="Inhalt & Sprache" icon="description" open={!!openSections.content} onToggle={() => toggleSection('content')}>
           <Toggle label="Deckblatt anzeigen" checked={config.content?.showTitlePage !== false} onChange={v => updateConfig('content.showTitlePage', v)} />
           <Toggle label="Inhaltsverzeichnis" checked={config.content?.showToc !== false} onChange={v => updateConfig('content.showToc', v)} />
           <Toggle label="Legende / Allergenhinweis" checked={config.content?.showLegend !== false} onChange={v => updateConfig('content.showLegend', v)} />
@@ -344,7 +344,7 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
         </AccordionSection>
 
         {/* Akkordeon 3: Deckblatt */}
-        <AccordionSection title="Deckblatt" icon="🏔️" open={!!openSections.titlePage} onToggle={() => toggleSection('titlePage')}>
+        <AccordionSection title="Deckblatt" icon="landscape" open={!!openSections.titlePage} onToggle={() => toggleSection('titlePage')}>
           <SelectInput label="Logo-Position" value={config.titlePage?.logoPosition || 'upperThird'}
             options={[{ value: 'upperThird', label: 'Oberes Drittel' }, { value: 'center', label: 'Zentriert' }, { value: 'lowerThird', label: 'Unteres Drittel' }]}
             onChange={v => updateConfig('titlePage.logoPosition', v)} />
@@ -379,7 +379,7 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
         </AccordionSection>
 
         {/* Akkordeon 6: Farben */}
-        <AccordionSection title="Farben" icon="🎨" open={!!openSections.colors} onToggle={() => toggleSection('colors')}>
+        <AccordionSection title="Farben" icon="palette" open={!!openSections.colors} onToggle={() => toggleSection('colors')}>
           <div className="grid grid-cols-2 gap-3">
             <ColorInput label="Seitenhintergrund" value={config.colors?.pageBg || '#FFFFFF'} onChange={v => updateConfig('colors.pageBg', v)} />
             <ColorInput label="Textfarbe" value={config.colors?.textMain || '#333333'} onChange={v => updateConfig('colors.textMain', v)} />
@@ -390,7 +390,7 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
         </AccordionSection>
 
         {/* Akkordeon 7: Produktdarstellung */}
-        <AccordionSection title="Produktdarstellung" icon="🍷" open={!!openSections.productLayout} onToggle={() => toggleSection('productLayout')}>
+        <AccordionSection title="Produktdarstellung" icon="wine_bar" open={!!openSections.productLayout} onToggle={() => toggleSection('productLayout')}>
           <Toggle label="Beschreibung (DE)" checked={config.productLayout?.descDE !== false} onChange={v => updateConfig('productLayout.descDE', v)} />
           <Toggle label="Beschreibung (EN)" checked={config.productLayout?.descEN !== false} onChange={v => updateConfig('productLayout.descEN', v)} />
           <SelectInput label="Beschreibungs-Layout" value={config.productLayout?.descLayout || 'stacked'}
@@ -403,7 +403,7 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
         </AccordionSection>
 
         {/* Akkordeon 8: Bilder */}
-        <AccordionSection title="Bilder" icon="🖼️" open={!!openSections.images} onToggle={() => toggleSection('images')}>
+        <AccordionSection title="Bilder" icon="image" open={!!openSections.images} onToggle={() => toggleSection('images')}>
           <Toggle label="Bilder anzeigen" checked={config.images?.show !== false} onChange={v => updateConfig('images.show', v)} />
           {config.images?.show !== false && (<>
             <SelectInput label="Position" value={config.images?.position || 'pageBottom'}
@@ -415,7 +415,7 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
         </AccordionSection>
 
         {/* Akkordeon 9: Kopf-/Fußzeile */}
-        <AccordionSection title="Kopf- & Fußzeile" icon="📏" open={!!openSections.headerFooter} onToggle={() => toggleSection('headerFooter')}>
+        <AccordionSection title="Kopf- & Fußzeile" icon="straighten" open={!!openSections.headerFooter} onToggle={() => toggleSection('headerFooter')}>
           <Toggle label="Kategorienname in Kopfzeile" checked={config.headerFooter?.header?.repeatSectionName !== false}
             onChange={v => updateConfig('headerFooter.header.repeatSectionName', v)} />
           <SelectInput label="Kopfzeile Schrift" value={config.headerFooter?.header?.font || 'Dancing Script'} options={FONTS}
@@ -451,11 +451,11 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
           <div className="flex gap-2">
             <button onClick={() => setPreviewKey(k => k + 1)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors">
-              🔄 Vorschau aktualisieren
+              Vorschau aktualisieren
             </button>
             <button onClick={() => window.open(`/api/v1/menus/${menuId}/pdf`, '_blank')}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors">
-              ⬇️ PDF herunterladen
+              PDF herunterladen
             </button>
           </div>
         </div>
@@ -464,7 +464,7 @@ export default function AnalogDesignEditor({ menuId }: { menuId: string }) {
             <iframe src={pdfViewerUrl} className="w-full h-full border-0" title="PDF-Vorschau" />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-gray-400">
-              <span className="text-5xl mb-4">📄</span>
+              <span className="material-symbols-outlined" style={{fontSize: 48, color: "var(--color-text-muted)"}}>picture_as_pdf</span>
               <p className="text-lg font-medium">PDF-Vorschau</p>
               <p className="text-sm mt-1">Klicken Sie auf &quot;Vorschau aktualisieren&quot;</p>
             </div>

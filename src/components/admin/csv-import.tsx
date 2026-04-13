@@ -245,7 +245,7 @@ export default function CsvImport() {
       {step === 'upload' && (
         <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}
           className="rounded-xl border-2 border-dashed bg-white p-12 text-center transition-colors hover:border-amber-400">
-          <div className="text-4xl mb-4">📄</div>
+          <div className="mb-4"><span className="material-symbols-outlined" style={{fontSize: 48, color: "var(--color-text-muted)"}}>upload_file</span></div>
           <p className="text-lg font-medium text-gray-700">CSV-Datei hier ablegen</p>
           <p className="mt-1 text-sm text-gray-400">oder klicken um eine Datei auszuwählen</p>
           <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileSelect} className="hidden" />
@@ -398,7 +398,7 @@ export default function CsvImport() {
 
       {step === 'done' && result && (
         <div className="rounded-xl border bg-white p-12 text-center">
-          <div className="text-4xl mb-4">✅</div>
+          <div className="mb-4"><span className="material-symbols-outlined" style={{fontSize: 48, color: "var(--color-success)"}}>check_circle</span></div>
           <p className="text-lg font-medium text-gray-700">Import abgeschlossen</p>
           <div className="mt-4 inline-flex gap-6">
             {result.created > 0 && <div><span className="text-2xl font-bold text-green-600">{result.created}</span><p className="text-xs text-gray-400">Neu erstellt</p></div>}
