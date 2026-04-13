@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import sharp from 'sharp';
 import { readFile, mkdir, access, chmod } from 'fs/promises';
 import path from 'path';
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   const mediaList = await prisma.media.findMany({
     where: {
       OR: [
-        { formats: { equals: null } },
+        { formats: { equals: Prisma.JsonNull } },
         { formats: { equals: {} } },
       ],
     },
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
   }
 
   const remaining = await prisma.media.count({
-    where: { OR: [{ formats: { equals: null } }, { formats: { equals: {} } }] },
+    where: { OR: [{ formats: { equals: Prisma.JsonNull } }, { formats: { equals: {} } }] },
   });
 
   return NextResponse.json({ migrated, errors, remaining, errorDetails });

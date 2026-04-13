@@ -53,7 +53,7 @@ export function KpiCard({ icon, iconColor = 'var(--color-primary)', label, value
           className="w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center"
           style={{ backgroundColor: `${iconColor}15` }}
         >
-          <Icon name={icon} size={22} className="text-[var(--color-primary)]" style={{ color: iconColor } as any} />
+          <Icon name={icon} size={22} className="" />
         </div>
         {trend && (
           <span
