@@ -2,106 +2,197 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Icon } from '@/components/ui/icon';
 
 type NavItem = { href: string; icon: string; label: string; match: RegExp };
-type NavGroup = { title: string; items: NavItem[] };
 
-const navGroups: NavGroup[] = [
-  { title: '', items: [
-    { href: '/admin', icon: '📊', label: 'Dashboard', match: /^\/admin$/ },
-  ]},
-  { title: 'Inhalt', items: [
-    { href: '/admin/items', icon: '📦', label: 'Produkte', match: /^\/admin\/items/ },
-    { href: '/admin/menus', icon: '📋', label: 'Karten', match: /^\/admin\/menus/ },
-  ]},
-  { title: 'Tools', items: [
-    { href: '/admin/qr-codes', icon: '📱', label: 'QR-Codes', match: /^\/admin\/qr-codes/ },
-  { href: '/admin/media', icon: '🖼️', label: 'Bildarchiv', match: /^\/admin\/media/ },
-    { href: '/admin/import', icon: '📥', label: 'CSV-Import', match: /^\/admin\/import/ },
-    { href: '/admin/design', icon: '🎨', label: 'Karten-Design', match: /^\/admin\/design/ },
-    { href: '/admin/pdf-creator', icon: '📄', label: 'PDF-Creator', match: /^\/admin\/pdf-creator/ },
-  ]},
-  { title: 'Einstellungen', items: [
-    { href: '/admin/settings/users', icon: '👤', label: 'Benutzer', match: /^\/admin\/settings\/users/ },
-    { href: '/admin/settings', icon: '⚙️', label: 'Einstellungen', match: /^\/admin\/settings$/ },
-  ]},
+const navItems: NavItem[] = [
+  { href: '/admin', icon: 'dashboard', label: 'Dashboard', match: /^\/admin$/ },
+  { href: '/admin/items', icon: 'restaurant_menu', label: 'Menüverwaltung', match: /^\/admin\/items/ },
+  { href: '/admin/menus', icon: 'menu_book', label: 'Karten', match: /^\/admin\/menus/ },
+  { href: '/admin/media', icon: 'photo_library', label: 'Bildarchiv', match: /^\/admin\/media/ },
+  { href: '/admin/qr-codes', icon: 'qr_code_2', label: 'QR-Codes', match: /^\/admin\/qr-codes/ },
+  { href: '/admin/design', icon: 'palette', label: 'Templates', match: /^\/admin\/design/ },
+  { href: '/admin/import', icon: 'upload_file', label: 'CSV-Import', match: /^\/admin\/import/ },
+  { href: '/admin/pdf-creator', icon: 'picture_as_pdf', label: 'PDF-Creator', match: /^\/admin\/pdf-creator/ },
+  { href: '/admin/settings', icon: 'settings', label: 'Einstellungen', match: /^\/admin\/settings/ },
 ];
-
-function GroupHeader({ title, expanded }: { title: string; expanded: boolean }) {
-  if (!title) return null;
-  if (!expanded) return <div className="my-2 mx-1 border-t border-gray-300" />;
-  return (
-    <div className="flex items-center gap-2 mt-4 mb-1 px-1">
-      <div className="flex-1 border-t border-gray-300" />
-      <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">{title}</span>
-      <div className="flex-1 border-t border-gray-300" />
-    </div>
-  );
-}
 
 export default function IconBar({ userName, userRole }: { userName: string; userRole: string }) {
   const pathname = usePathname();
-  const [expanded, setExpanded] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
+
+  const roleLabel = userRole === 'OWNER' ? 'Administrator' : userRole === 'MANAGER' ? 'Manager' : 'Mitarbeiter';
+
   return (
-    <div className={`flex h-full flex-col border-r bg-white py-3 transition-all duration-200 ${expanded ? 'w-52' : 'w-14'}`}>
-      {/* Logo + Toggle */}
-      <div className={`mb-4 flex items-center ${expanded ? 'px-3 gap-2' : 'justify-center'}`}>
-        <button onClick={() => setExpanded(!expanded)} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white" style={{ backgroundColor: '#8B6914' }}>
-          M
-        </button>
-        {expanded && <span className="text-base font-semibold truncate" style={{fontFamily: "'Playfair Display', serif"}}>MenuCard Pro</span>}
-      </div>
-      <button onClick={() => setExpanded(!expanded)} className="mx-auto mb-3 flex h-6 w-6 items-center justify-center rounded-md hover:bg-gray-100 text-gray-400 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{expanded ? <path d="m11 17-5-5 5-5M18 17l-5-5 5-5"/> : <path d="m13 17 5-5-5-5M6 17l5-5-5-5"/>}</svg>
-      </button>
-      {/* Nav */}
-      <nav className="flex flex-1 flex-col gap-0.5 px-2 overflow-y-auto">
-        {navGroups.map((group, gi) => (
-          <div key={gi}>
-            <GroupHeader title={group.title} expanded={expanded} />
-            {group.items.map(item => {
-              const active = item.match.test(pathname);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={expanded ? undefined : item.label}
-                  className={`flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors ${active ? 'bg-amber-50 font-medium' : 'hover:bg-gray-100 text-gray-600'}`}
-                  style={active ? { boxShadow: 'inset 3px 0 0 #8B6914' } : {}}
-                >
-                  <span className="text-lg flex-shrink-0 w-6 text-center">{item.icon}</span>
-                  {expanded && <span className="truncate">{item.label}</span>}
-                </Link>
-              );
-            })}
+    <div
+      className="flex h-full flex-col border-r transition-all duration-normal"
+      style={{
+        width: collapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)',
+        backgroundColor: 'var(--color-sidebar-bg)',
+        borderColor: 'var(--color-sidebar-border)',
+      }}
+    >
+      {/* Logo */}
+      <div className={`flex items-center ${collapsed ? 'justify-center py-4' : 'px-4 py-4 gap-2.5'}`}>
+        <div
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: 'var(--color-primary)' }}
+        >
+          <Icon name="restaurant" size={18} className="text-white" />
+        </div>
+        {!collapsed && (
+          <div className="min-w-0">
+            <span
+              className="text-sm font-bold block truncate"
+              style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-heading)' }}
+            >
+              MenuCard Pro
+            </span>
+            <span
+              className="text-xs block"
+              style={{ color: 'var(--color-text-muted)', fontSize: '0.65rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}
+            >
+              Admin Panel
+            </span>
           </div>
-        ))}
-      </nav>
-      {/* Admin-Bereich */}
-      <div className="px-2">
-        <GroupHeader title="Admin" expanded={expanded} />
+        )}
       </div>
-      <div className={`mt-1 ${expanded ? 'px-2' : 'flex flex-col items-center gap-1 px-1'}`}>
-        {expanded ? (
+
+      {/* Toggle */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="mx-auto mb-2 flex h-6 w-6 items-center justify-center rounded-md transition-colors"
+        style={{ color: 'var(--color-text-muted)' }}
+        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-bg-muted)')}
+        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+        title={collapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
+      >
+        <Icon name={collapsed ? 'chevron_right' : 'chevron_left'} size={16} weight={300} />
+      </button>
+
+      {/* Navigation */}
+      <nav className="flex flex-1 flex-col gap-0.5 px-2 overflow-y-auto">
+        {navItems.map(item => {
+          const active = item.match.test(pathname);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={collapsed ? item.label : undefined}
+              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-fast"
+              style={{
+                backgroundColor: active ? 'var(--color-sidebar-active-bg)' : 'transparent',
+                color: active ? 'var(--color-sidebar-active-text)' : 'var(--color-sidebar-text)',
+                fontWeight: active ? 500 : 400,
+              }}
+              onMouseEnter={e => {
+                if (!active) {
+                  e.currentTarget.style.backgroundColor = 'var(--color-sidebar-hover-bg)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!active) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              <Icon
+                name={item.icon}
+                size={22}
+                weight={active ? 500 : 400}
+                fill={active}
+                className="flex-shrink-0"
+              />
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Divider */}
+      <div className="mx-3 my-2 border-t" style={{ borderColor: 'var(--color-sidebar-border)' }} />
+
+      {/* User Info + Actions */}
+      <div className={`pb-3 ${collapsed ? 'flex flex-col items-center gap-1.5 px-1' : 'px-3'}`}>
+        {collapsed ? (
           <>
-            <div className="mb-1 px-1">
-              <p className="text-sm font-medium text-gray-700 truncate">{userName}</p>
-              <p className="text-xs text-gray-400">{userRole}</p>
+            <div
+              title={`${userName} (${roleLabel})`}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
+              style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }}
+            >
+              {userName.charAt(0).toUpperCase()}
             </div>
-            <button onClick={() => { window.location.reload(); }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
-              <span className="text-lg flex-shrink-0 w-6 text-center">🔄</span><span>Neu laden</span>
+            <button
+              onClick={() => window.location.reload()}
+              title="Neu laden"
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-bg-muted)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <Icon name="refresh" size={18} />
             </button>
-            <button onClick={() => { if(confirm('Abmelden?')) window.location.href='/api/auth/signout'; }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors">
-              <span className="text-lg flex-shrink-0 w-6 text-center">⏻</span><span>Abmelden</span>
+            <button
+              onClick={() => { if(confirm('Abmelden?')) window.location.href='/api/auth/signout'; }}
+              title="Abmelden"
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-error-light)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <Icon name="logout" size={18} />
             </button>
           </>
         ) : (
           <>
-            <div title={`${userName} (${userRole})`} className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-              {userName.charAt(0).toUpperCase()}
+            {/* User */}
+            <div className="flex items-center gap-2.5 mb-2.5 px-0.5">
+              <div
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                style={{ backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' }}
+              >
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text)' }}>
+                  {userName}
+                </p>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {roleLabel}
+                </p>
+              </div>
             </div>
-            <button onClick={() => { window.location.reload(); }} title="Neu laden" className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors">🔄</button>
-            <button onClick={() => { if(confirm('Abmelden?')) window.location.href='/api/auth/signout'; }} title="Abmelden" className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">⏻</button>
+            {/* Actions */}
+            <div className="flex gap-1">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition-colors"
+                style={{ color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-bg-muted)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <Icon name="refresh" size={16} />
+                <span>Aktualisieren</span>
+              </button>
+              <button
+                onClick={() => { if(confirm('Abmelden?')) window.location.href='/api/auth/signout'; }}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition-colors"
+                style={{ color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = 'var(--color-error-light)';
+                  e.currentTarget.style.color = 'var(--color-error)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--color-text-secondary)';
+                }}
+              >
+                <Icon name="logout" size={16} />
+                <span>Abmelden</span>
+              </button>
+            </div>
           </>
         )}
       </div>

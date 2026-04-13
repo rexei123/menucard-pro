@@ -2,45 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design Tokens importieren */
+@import '../styles/tokens.css';
+
 @layer base {
+  /* Legacy HSL-Variablen für bestehende shadcn/ui Komponenten */
   :root {
-    --background: 40 20% 98%;
+    --background: 0 0% 100%;
     --foreground: 0 0% 10%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
-    --primary: 0 0% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 40 10% 94%;
+    --primary: 340 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
     --secondary-foreground: 0 0% 10%;
-    --muted: 40 10% 94%;
+    --muted: 240 5% 96%;
     --muted-foreground: 0 0% 45%;
-    --accent: 43 74% 31%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84% 60%;
+    --accent: 340 70% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 40 10% 88%;
-    --input: 40 10% 88%;
-    --ring: 43 74% 31%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 340 70% 55%;
     --radius: 0.5rem;
-    --sidebar: 0 0% 98%;
-    --sidebar-foreground: 0 0% 10%;
-    --sidebar-border: 40 10% 90%;
-    --sidebar-accent: 43 74% 31%;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 230 8% 40%;
+    --sidebar-border: 240 5% 96%;
+    --sidebar-accent: 340 70% 55%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
   }
+
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading), 'Playfair Display', serif;
+    font-family: var(--font-heading);
+    color: var(--color-text);
   }
 }
 
@@ -72,13 +79,76 @@ html {
   100% { background-position: 200% 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--background)) 50%, hsl(var(--muted)) 75%);
+  background: linear-gradient(90deg, var(--color-bg-muted) 25%, var(--color-bg) 50%, var(--color-bg-muted) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
 }
 
 /* Pull-to-refresh prevention on iOS */
 body {
   overscroll-behavior-y: none;
+}
+
+/* Eyebrow / Overline Text (aus Visily-Designs) */
+.eyebrow-text {
+  font-family: var(--font-display);
+  letter-spacing: 0.25em;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Menu item italic description (Elegant Template) */
+.menu-item-description {
+  font-family: var(--font-heading);
+  font-style: italic;
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+}
+
+/* Price tag tabular numbers */
+.price-tag {
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle border utility */
+.border-subtle {
+  border-color: var(--color-border-subtle);
+}
+
+/* Card shadow utility */
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+/* Nav shadow (bottom bar) */
+.shadow-nav {
+  box-shadow: var(--shadow-nav);
+}
+
+/* Header blur effect */
+.header-blur {
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Heading underline accent (Klassisch Template) */
+.heading-underline::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 2px;
+  background-color: var(--color-primary);
+  margin-top: 0.75rem;
+}
+.heading-underline-center::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 2px;
+  background-color: var(--color-primary);
+  margin: 0.75rem auto 0;
 }

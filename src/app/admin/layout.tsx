@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <Providers>
-      <div className="flex h-screen overflow-hidden bg-[#FAFAF8]">
+      <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--color-bg-subtle)' }}>
         <IconBar
           userName={session.user.firstName || 'Admin'}
           userRole={session.user.role || 'OWNER'}

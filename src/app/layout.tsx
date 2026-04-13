@@ -1,17 +1,25 @@
 import type { Metadata, Viewport } from 'next';
-import { Playfair_Display, Source_Sans_3 } from 'next/font/google';
+import { Playfair_Display, Inter, Montserrat } from 'next/font/google';
 import './globals.css';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-heading',
   display: 'swap',
+  weight: ['400', '500', '600', '700'],
 });
 
-const sourceSans = Source_Sans_3({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
 });
 
 export const viewport: Viewport = {
@@ -19,7 +27,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#FAFAF8',
+  themeColor: '#FFFFFF',
 };
 
 export const metadata: Metadata = {
@@ -37,7 +45,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de" suppressHydrationWarning className={`${playfair.variable} ${sourceSans.variable}`}>
+    <html lang="de" suppressHydrationWarning className={`${playfair.variable} ${inter.variable} ${montserrat.variable}`}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
+      </head>
       <body className="min-h-screen font-body antialiased">{children}</body>
     </html>
   );
