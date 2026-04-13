@@ -170,20 +170,20 @@ export default function CropEditor({
           />
         </div>
 
-        <p className="text-xs text-gray-500 text-center mb-4">
+        <p className="text-xs text-[#565D6D] text-center mb-4">
           Ausschnitt: {crop.cropW}&times;{crop.cropH} px ab ({crop.cropX}, {crop.cropY})
           <br />
-          <span className="text-gray-400">Ziehen Sie den Ausschnitt mit der Maus</span>
+          <span className="text-[#999]">Ziehen Sie den Ausschnitt mit der Maus</span>
         </p>
 
         <div className="flex justify-between">
           <button onClick={resetCrop}
-            className="px-4 py-2 text-sm border rounded hover:bg-gray-50">
+            className="px-4 py-2 text-sm border rounded hover:bg-[#F9FAFB]">
             Zuruecksetzen
           </button>
           <div className="flex gap-2">
             <button onClick={onCancel}
-              className="px-4 py-2 text-sm border rounded hover:bg-gray-50">
+              className="px-4 py-2 text-sm border rounded hover:bg-[#F9FAFB]">
               Abbrechen
             </button>
             <button onClick={handleSave} disabled={saving}

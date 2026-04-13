@@ -131,14 +131,14 @@ function MediaGrid({ category }: { category: 'PHOTO' | 'LOGO' }) {
         </select>
       </div>
 
-      <p className="text-sm text-gray-500 mb-3">
+      <p className="text-sm text-[#565D6D] mb-3">
         {total} {category === 'PHOTO' ? 'Fotos' : 'Logos'}
       </p>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Laden...</div>
+        <div className="text-center py-12 text-[#999]">Laden...</div>
       ) : media.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-[#999]">
           {search ? 'Keine Treffer' : ('Noch keine ' + (category === 'PHOTO' ? 'Fotos' : 'Logos') + ' vorhanden')}
         </div>
       ) : (
@@ -164,7 +164,7 @@ function MediaGrid({ category }: { category: 'PHOTO' | 'LOGO' }) {
                     </span>
                   )}
                   {m.source !== 'UPLOAD' && (
-                    <span className="absolute top-1 right-1 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                    <span className="absolute top-1 right-1 bg-[#DD3C71] text-white text-[10px] px-1.5 py-0.5 rounded">
                       {m.source}
                     </span>
                   )}
@@ -177,7 +177,7 @@ function MediaGrid({ category }: { category: 'PHOTO' | 'LOGO' }) {
                         {m.products[0].mediaType}
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-[#999]">
                       {m.productCount > 0 ? (m.productCount + ' Prod.') : 'nicht zugeordnet'}
                     </span>
                   </div>
@@ -193,7 +193,7 @@ function MediaGrid({ category }: { category: 'PHOTO' | 'LOGO' }) {
                 className="px-3 py-1 text-sm border rounded disabled:opacity-30">
                 Zurueck
               </button>
-              <span className="px-3 py-1 text-sm text-gray-600">
+              <span className="px-3 py-1 text-sm text-[#565D6D]">
                 Seite {page} / {totalPages}
               </span>
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
@@ -270,18 +270,18 @@ function UploadTab({ onUploaded }: { onUploaded: () => void }) {
           input.click();
         }}
         className={'border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ' +
-          (isDragOver ? 'border-amber-500 bg-amber-50' : 'border-gray-300 hover:border-amber-400 hover:bg-amber-50/50')
+          (isDragOver ? 'border-amber-500 bg-amber-50' : 'border-[#DEE1E6] hover:border-amber-400 hover:bg-amber-50/50')
         }
       >
         <div className="text-4xl mb-3">&#x1F4F8;</div>
-        <p className="text-gray-600 font-medium">Bilder hierher ziehen</p>
-        <p className="text-gray-400 text-sm mt-1">oder klicken zum Auswaehlen</p>
-        <p className="text-gray-400 text-xs mt-2">JPEG, PNG, WebP - Max 4MB pro Bild</p>
+        <p className="text-[#565D6D] font-medium">Bilder hierher ziehen</p>
+        <p className="text-[#999] text-sm mt-1">oder klicken zum Auswaehlen</p>
+        <p className="text-[#999] text-xs mt-2">JPEG, PNG, WebP - Max 4MB pro Bild</p>
       </div>
 
       {/* Kategorie */}
       <div className="mt-4 flex items-center gap-3">
-        <span className="text-sm text-gray-600">Kategorie:</span>
+        <span className="text-sm text-[#565D6D]">Kategorie:</span>
         <select value={category} onChange={(e) => setCategory(e.target.value as any)}
           className="px-3 py-1.5 border rounded text-sm bg-white">
           <option value="PHOTO">Foto</option>
@@ -293,18 +293,18 @@ function UploadTab({ onUploaded }: { onUploaded: () => void }) {
       {files.length > 0 && (
         <div className="mt-4 space-y-2">
           {files.map((item, i) => (
-            <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+            <div key={i} className="flex items-center gap-3 p-2 bg-[#F9FAFB] rounded-lg">
               <span className="text-lg">
                 {item.status === 'done' ? '\u2705' : item.status === 'error' ? '\u274C' : item.status === 'uploading' ? '\u23F3' : '\uD83D\uDCC4'}
               </span>
               <span className="flex-1 text-sm truncate">{item.file.name}</span>
-              <span className="text-xs text-gray-400">{(item.file.size / 1024).toFixed(0)} KB</span>
+              <span className="text-xs text-[#999]">{(item.file.size / 1024).toFixed(0)} KB</span>
               {item.error && <span className="text-xs text-red-500">{item.error}</span>}
             </div>
           ))}
 
           <div className="flex items-center justify-between mt-3">
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-[#565D6D]">
               {doneCount > 0 && (doneCount + ' hochgeladen')}
               {pendingCount > 0 && (' - ' + pendingCount + ' wartend')}
             </span>
@@ -316,7 +316,7 @@ function UploadTab({ onUploaded }: { onUploaded: () => void }) {
             )}
             {pendingCount === 0 && files.length > 0 && (
               <button onClick={() => setFiles([])}
-                className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">
+                className="px-4 py-2 border rounded-lg text-sm hover:bg-[#F9FAFB]">
                 Liste leeren
               </button>
             )}
@@ -431,38 +431,38 @@ function WebSearchTab({ onImported }: { onImported: () => void }) {
               (source === s.id
                 ? 'border-amber-500 bg-amber-50 text-amber-700'
                 : s.available || s.free
-                  ? 'border-gray-200 bg-white text-gray-600 hover:border-amber-300 hover:bg-amber-50/50'
-                  : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-amber-200 hover:bg-amber-50/30 cursor-pointer')
+                  ? 'border-[#E5E7EB] bg-white text-[#565D6D] hover:border-amber-300 hover:bg-amber-50/50'
+                  : 'border-gray-100 bg-[#F9FAFB] text-[#999] hover:border-amber-200 hover:bg-amber-50/30 cursor-pointer')
             }>
             {s.label || s.name}
             {(s.free) && <span className="ml-1.5 text-xs text-green-600">(frei)</span>}
-            {(!s.available && !s.free) && <span className="ml-1.5 text-xs text-gray-400">(Key fehlt)</span>}
+            {(!s.available && !s.free) && <span className="ml-1.5 text-xs text-[#999]">(Key fehlt)</span>}
           </button>
         ))}
       </div>
       {searchError && <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">{searchError}</div>}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Suche ...</div>
+        <div className="text-center py-12 text-[#999]">Suche ...</div>
       ) : results.length === 0 && searched ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-[#999]">
           <p>Keine Ergebnisse</p>
           <p className="text-xs mt-1">Tipp: Englische Suchbegriffe liefern mehr Ergebnisse</p>
         </div>
       ) : results.length > 0 ? (
         <>
-          <p className="text-sm text-gray-500 mb-3">{total} Ergebnisse - Seite {page}</p>
+          <p className="text-sm text-[#565D6D] mb-3">{total} Ergebnisse - Seite {page}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {results.map((r, idx) => (
               <div key={r.id} onClick={() => toggleSelect(idx)}
                 className={'cursor-pointer border-2 rounded-lg overflow-hidden transition-all ' +
-                  (selected.has(idx) ? 'border-amber-500 ring-2 ring-amber-200' : 'border-transparent hover:border-gray-300')}>
+                  (selected.has(idx) ? 'border-amber-500 ring-2 ring-amber-200' : 'border-transparent hover:border-[#DEE1E6]')}>
                 <div className="relative aspect-square bg-gray-100">
                   <img src={r.previewUrl} alt={r.tags} className="w-full h-full object-cover" loading="lazy" />
                   {selected.has(idx) && <div className="absolute top-2 right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs">+</div>}
                 </div>
                 <div className="p-1.5">
-                  <p className="text-[10px] text-gray-500 truncate">{r.author}</p>
-                  <p className="text-[10px] text-gray-400">{r.width}x{r.height}</p>
+                  <p className="text-[10px] text-[#565D6D] truncate">{r.author}</p>
+                  <p className="text-[10px] text-[#999]">{r.width}x{r.height}</p>
                 </div>
               </div>
             ))}
@@ -500,7 +500,7 @@ export default function MediaArchive() {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Bildarchiv</h1>
+      <h1 className="text-2xl font-bold text-[#171A1F] mb-6">Bildarchiv</h1>
 
       {/* Tabs */}
       <div className="flex border-b mb-6">
@@ -511,7 +511,7 @@ export default function MediaArchive() {
             className={'px-5 py-3 text-sm font-medium border-b-2 transition-colors ' +
               (activeTab === tab.id
                 ? 'border-amber-600 text-amber-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')
+                : 'border-transparent text-[#565D6D] hover:text-[#171A1F] hover:border-[#DEE1E6]')
             }
           >
             {tab.icon} {tab.label}

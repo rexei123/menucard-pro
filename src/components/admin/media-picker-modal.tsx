@@ -149,8 +149,8 @@ export default function MediaPickerModal({
 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+          <h2 className="text-lg font-semibold text-[#171A1F]">{title}</h2>
+          <button onClick={onClose} className="text-[#999] hover:text-[#565D6D] text-xl">&times;</button>
         </div>
 
         {/* Tabs */}
@@ -162,7 +162,7 @@ export default function MediaPickerModal({
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={'px-4 py-2.5 text-sm font-medium border-b-2 ' +
-                (activeTab === tab.id ? 'border-amber-600 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-700')
+                (activeTab === tab.id ? 'border-amber-600 text-amber-700' : 'border-transparent text-[#565D6D] hover:text-[#171A1F]')
               }>
               {tab.label}
             </button>
@@ -189,9 +189,9 @@ export default function MediaPickerModal({
                 )}
               </div>
               {loading ? (
-                <div className="text-center py-8 text-gray-400">Laden...</div>
+                <div className="text-center py-8 text-[#999]">Laden...</div>
               ) : media.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">Keine Bilder gefunden</div>
+                <div className="text-center py-8 text-[#999]">Keine Bilder gefunden</div>
               ) : (
                 <>
                   <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
@@ -202,7 +202,7 @@ export default function MediaPickerModal({
                           <img src={m.thumbnailUrl || m.url} alt={m.title}
                             className="w-full h-full object-cover" loading="lazy" />
                         </div>
-                        <p className="text-[10px] p-1 truncate text-gray-600">{m.title}</p>
+                        <p className="text-[10px] p-1 truncate text-[#565D6D]">{m.title}</p>
                       </div>
                     ))}
                   </div>
@@ -210,7 +210,7 @@ export default function MediaPickerModal({
                     <div className="flex justify-center gap-2 mt-4">
                       <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page <= 1}
                         className="px-2 py-1 text-xs border rounded disabled:opacity-30">Zurueck</button>
-                      <span className="px-2 py-1 text-xs text-gray-500">{page}/{totalPages}</span>
+                      <span className="px-2 py-1 text-xs text-[#565D6D]">{page}/{totalPages}</span>
                       <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page >= totalPages}
                         className="px-2 py-1 text-xs border rounded disabled:opacity-30">Weiter</button>
                     </div>
@@ -241,15 +241,15 @@ export default function MediaPickerModal({
                 className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/50"
               >
                 <p className="text-2xl mb-2">&#x1F4F8;</p>
-                <p className="text-sm text-gray-600">Bilder hier ablegen oder klicken</p>
+                <p className="text-sm text-[#565D6D]">Bilder hier ablegen oder klicken</p>
               </div>
               {uploadFiles.length > 0 && (
                 <div className="mt-3 space-y-1">
                   {uploadFiles.map((f, i) => (
-                    <div key={i} className="flex items-center gap-2 p-1.5 bg-gray-50 rounded text-sm">
+                    <div key={i} className="flex items-center gap-2 p-1.5 bg-[#F9FAFB] rounded text-sm">
                       <span>{uploadDone.length > i ? '\u2705' : uploadingIdx === i ? '\u23F3' : '\uD83D\uDCC4'}</span>
                       <span className="flex-1 truncate">{f.name}</span>
-                      <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
+                      <span className="text-xs text-[#999]">{(f.size / 1024).toFixed(0)} KB</span>
                     </div>
                   ))}
                   <button onClick={uploadAll} disabled={uploadingIdx >= 0}
@@ -285,17 +285,17 @@ export default function MediaPickerModal({
                       (webSource === s.id
                         ? 'border-amber-500 bg-amber-50 text-amber-700'
                         : s.available || s.free
-                          ? 'border-gray-200 bg-white text-gray-600 hover:border-amber-300'
-                          : 'border-gray-100 bg-gray-50 text-gray-400')
+                          ? 'border-[#E5E7EB] bg-white text-[#565D6D] hover:border-amber-300'
+                          : 'border-gray-100 bg-[#F9FAFB] text-[#999]')
                     }>
                     {s.label || s.name}
                     {s.free && <span className="ml-1 text-green-600">(frei)</span>}
-                    {!s.available && !s.free && <span className="ml-1 text-gray-400">(Key fehlt)</span>}
+                    {!s.available && !s.free && <span className="ml-1 text-[#999]">(Key fehlt)</span>}
                   </button>
                 ))}
               </div>
               {webLoading ? (
-                <div className="text-center py-8 text-gray-400">Suche...</div>
+                <div className="text-center py-8 text-[#999]">Suche...</div>
               ) : webResults.length > 0 ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {webResults.map((r: any) => (
@@ -304,7 +304,7 @@ export default function MediaPickerModal({
                         <img src={r.previewUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
                       </div>
                       <div className="p-1.5">
-                        <p className="text-[10px] text-gray-500 truncate">{r.author}</p>
+                        <p className="text-[10px] text-[#565D6D] truncate">{r.author}</p>
                         <button onClick={() => webImport(r)} disabled={webImporting}
                           className="mt-1 w-full px-2 py-1 bg-amber-100 text-amber-700 rounded text-[10px] hover:bg-amber-200 disabled:opacity-50">
                           Importieren

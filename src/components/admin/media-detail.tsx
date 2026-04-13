@@ -92,7 +92,7 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
     return new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  if (loading) return <div className="p-6 text-center text-gray-400">Laden...</div>;
+  if (loading) return <div className="p-6 text-center text-[#999]">Laden...</div>;
   if (!media) return <div className="p-6 text-center text-red-500">Bild nicht gefunden</div>;
 
   const formats = media.formats as Record<string, any> || {};
@@ -117,7 +117,7 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
           </div>
 
           {/* Formate */}
-          <h3 className="text-sm font-semibold text-gray-700 mt-6 mb-3">Formate</h3>
+          <h3 className="text-sm font-semibold text-[#171A1F] mt-6 mb-3">Formate</h3>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {formatKeys.map(key => (
               <div key={key} className="group relative">
@@ -129,10 +129,10 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
                     loading="lazy"
                   />
                 </div>
-                <p className="text-[10px] text-center text-gray-500 mt-1">
+                <p className="text-[10px] text-center text-[#565D6D] mt-1">
                   {key === 'original' ? 'Original' : key}
                 </p>
-                <p className="text-[10px] text-center text-gray-400">
+                <p className="text-[10px] text-center text-[#999]">
                   {formats[key]?.width}×{formats[key]?.height}
                 </p>
                 {key !== 'original' && key !== 'thumb' && (
@@ -151,21 +151,21 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
         {/* Rechte Seite: Metadaten */}
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Titel</label>
+            <label className="text-sm font-medium text-[#171A1F] block mb-1">Titel</label>
             <input
               type="text" value={title} onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Alt-Text</label>
+            <label className="text-sm font-medium text-[#171A1F] block mb-1">Alt-Text</label>
             <input
               type="text" value={alt} onChange={(e) => setAlt(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Kategorie</label>
+            <label className="text-sm font-medium text-[#171A1F] block mb-1">Kategorie</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm bg-white">
               <option value="PHOTO">Foto</option>
@@ -175,28 +175,28 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
           </div>
 
           {/* Info */}
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-gray-500">Quelle</span><span>{media.source}</span></div>
+          <div className="bg-[#F9FAFB] rounded-lg p-4 space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-[#565D6D]">Quelle</span><span>{media.source}</span></div>
             {media.sourceAuthor && (
-              <div className="flex justify-between"><span className="text-gray-500">Fotograf</span><span>{media.sourceAuthor}</span></div>
+              <div className="flex justify-between"><span className="text-[#565D6D]">Fotograf</span><span>{media.sourceAuthor}</span></div>
             )}
-            <div className="flex justify-between"><span className="text-gray-500">Hochgeladen</span><span>{formatDate(media.createdAt)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Größe</span><span>{formatSize(media.sizeBytes)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Dimensionen</span><span>{media.width}×{media.height}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Datei</span><span className="truncate max-w-[200px]">{media.originalName || media.filename}</span></div>
+            <div className="flex justify-between"><span className="text-[#565D6D]">Hochgeladen</span><span>{formatDate(media.createdAt)}</span></div>
+            <div className="flex justify-between"><span className="text-[#565D6D]">Größe</span><span>{formatSize(media.sizeBytes)}</span></div>
+            <div className="flex justify-between"><span className="text-[#565D6D]">Dimensionen</span><span>{media.width}×{media.height}</span></div>
+            <div className="flex justify-between"><span className="text-[#565D6D]">Datei</span><span className="truncate max-w-[200px]">{media.originalName || media.filename}</span></div>
           </div>
 
           {/* Zugeordnete Produkte */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            <h3 className="text-sm font-semibold text-[#171A1F] mb-2">
               Zugeordnet zu ({media.productMedia.length})
             </h3>
             {media.productMedia.length === 0 ? (
-              <p className="text-sm text-gray-400">Keinem Produkt zugeordnet</p>
+              <p className="text-sm text-[#999]">Keinem Produkt zugeordnet</p>
             ) : (
               <div className="space-y-1">
                 {media.productMedia.map(pm => (
-                  <div key={pm.id} className="flex items-center gap-2 text-sm p-2 bg-gray-50 rounded">
+                  <div key={pm.id} className="flex items-center gap-2 text-sm p-2 bg-[#F9FAFB] rounded">
                     <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">{pm.mediaType}</span>
                     <span>{pm.product.translations[0]?.name || 'Unbenannt'}</span>
                   </div>
