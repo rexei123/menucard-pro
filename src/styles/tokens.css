@@ -36,6 +36,8 @@
   /* Status */
   --color-success: #16A34A;
   --color-success-light: #F0FDF4;
+  --color-add: #22C55E;          /* Hinzufuegen-Buttons (green-500) */
+  --color-add-hover: #16A34A;    /* Hinzufuegen-Buttons hover (green-600) */
   --color-warning: #F59E0B;
   --color-warning-light: #FFFBEB;
   --color-error: #E05252;

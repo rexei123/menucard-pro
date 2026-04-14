@@ -309,7 +309,7 @@ export default function CsvImport() {
           <div className="rounded-xl border bg-white overflow-hidden">
             <div className="max-h-[500px] overflow-y-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-gray-50 border-b">
+                <thead className="sticky top-0 bg-gray-50 border-b overflow-x-auto whitespace-nowrap">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium text-gray-500">Status</th>
                     <th className="px-3 py-2 text-left font-medium text-gray-500">SKU</th>

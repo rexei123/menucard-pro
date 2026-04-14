@@ -2,9 +2,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image as PdfImage, Link as PdfLink } from '@react-pdf/renderer';
 import { registerFonts, pdfFont } from './fonts';
 import type { AnalogConfig } from '../design-templates';
-
 registerFonts();
-
 // ─── Types ───
 type ProductData = {
   id: string;
@@ -27,7 +25,6 @@ type ProductData = {
   isHighlight?: boolean;
   highlightType?: string;
 };
-
 type SectionData = {
   id: string;
   name: string;
@@ -37,7 +34,6 @@ type SectionData = {
   icon?: string;
   products: ProductData[];
 };
-
 type MenuPdfProps = {
   menuName: string;
   menuNameEN?: string;
@@ -46,11 +42,13 @@ type MenuPdfProps = {
   tenantName?: string;
   locationName?: string;
 };
-
 function formatPrice(price: number): string {
   return price.toFixed(2).replace('.', ',');
 }
-
+// Normalisiere fuer Dedup-Vergleich: Trim, Klein, Whitespace kollabieren
+function norm(s: string | undefined | null): string {
+  return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
 // ─── PDF Document ───
 export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenantName, locationName }: MenuPdfProps) {
   const typo = config.typography || {} as any;
@@ -62,30 +60,24 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
   const hf = config.headerFooter || {} as any;
   const tp = config.titlePage || {} as any;
   const tocConfig = config.toc || {} as any;
-
   const pageSize = pageConfig.format === 'A5' ? 'A5' as const : 'A4' as const;
   const isLandscape = pageConfig.orientation === 'landscape';
   const marginMap: Record<string, number> = { narrow: 42, normal: 56, wide: 70 };
   const margin = marginMap[pageConfig.margins] || 56;
-
   // Fonts
   const sectionFont = pdfFont((typo.sectionTitle as any)?.font || 'Dancing Script');
   const bodyFont = pdfFont((typo.productName as any)?.font || 'Source Sans 3');
   const priceFont = pdfFont((typo.price as any)?.font || 'Source Sans 3');
-
   // Colors
   const textMain = colors.textMain || '#333333';
   const accent = colors.accent || '#C8A850';
   const priceColor = colors.priceColor || '#000000';
   const footerColor = colors.footerColor || '#999999';
-
   // Spacing
   const spacingMap: Record<string, number> = { small: 4, normal: 8, large: 14 };
   const productSpacing = spacingMap[layout.spacing] || 8;
-
   // Only sections with products
   const activeSections = sections.filter(s => s.products.length > 0);
-
   const styles = StyleSheet.create({
     page: {
       paddingTop: margin,
@@ -102,27 +94,24 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
       justifyContent: 'center',
       alignItems: 'center',
     },
-    titleLogoBox: {
-      width: tp.logoSize || 180,
-      height: tp.logoSize || 180,
-      backgroundColor: tp.logoBgColor || '#555555',
-      borderRadius: 6,
-      marginBottom: 28,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
     titleMain: {
       fontFamily: sectionFont,
-      fontSize: 48,
+      fontSize: 52,
       color: textMain,
       textAlign: 'center',
     },
     titleEN: {
       fontFamily: sectionFont,
-      fontSize: 30,
+      fontSize: 32,
       color: '#AAAAAA',
       textAlign: 'center',
-      marginTop: 4,
+      marginTop: 6,
+    },
+    titleDivider: {
+      height: 0.8,
+      backgroundColor: accent,
+      width: 80,
+      marginVertical: 24,
     },
     titleTenant: {
       fontFamily: bodyFont,
@@ -131,7 +120,6 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
       textAlign: 'center',
       letterSpacing: 3,
       textTransform: 'uppercase',
-      marginTop: 20,
     },
     titleLocation: {
       fontFamily: bodyFont,
@@ -193,23 +181,7 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
     },
     // ─── Section Header ───
     sectionHeaderBlock: {
-      marginBottom: 16,
-    },
-    sectionHeaderLine: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    sectionLine: {
-      flex: 1,
-      height: 0.5,
-      backgroundColor: '#CCCCCC',
-    },
-    sectionHeaderSmall: {
-      fontFamily: sectionFont,
-      fontSize: 14,
-      color: '#999999',
-      marginHorizontal: 12,
+      marginBottom: 20,
     },
     sectionTitleBig: {
       fontFamily: sectionFont,
@@ -221,13 +193,6 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
       fontSize: ((typo.sectionTitle as any)?.size || 40) * 0.5,
       color: '#BBBBBB',
       marginTop: 2,
-    },
-    sectionDivider: {
-      height: 1,
-      backgroundColor: accent,
-      marginTop: 8,
-      marginBottom: 16,
-      width: 60,
     },
     // ─── Product ───
     productRow: {
@@ -246,19 +211,36 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
       flex: 1,
       paddingRight: 10,
     },
-    productPrice: {
+    // Preise rechts: Container
+    priceBlock: {
+      minWidth: 120,
+      alignItems: 'flex-end',
+    },
+    // Preiszeile: Label + Betrag zweispaltig
+    priceLine: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'baseline',
+    },
+    priceLabel: {
+      fontFamily: priceFont,
+      fontSize: ((typo.price as any)?.size || 10) - 1,
+      color: '#888888',
+      marginRight: 8,
+    },
+    priceValue: {
       fontFamily: priceFont,
       fontSize: (typo.price as any)?.size || 10,
       fontWeight: ((typo.price as any)?.weight || 400) as any,
       color: priceColor,
+      minWidth: 52,
       textAlign: 'right',
-      minWidth: 100,
     },
     wineryLine: {
       fontFamily: pdfFont((typo.winery as any)?.font || 'Source Sans 3'),
       fontSize: (typo.winery as any)?.size || 9,
       color: (typo.winery as any)?.color || '#999999',
-      marginTop: 1,
+      marginTop: 2,
     },
     descDE: {
       fontFamily: pdfFont((typo.description as any)?.font || 'Source Sans 3'),
@@ -271,7 +253,7 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
     descEN: {
       fontFamily: pdfFont((typo.description as any)?.font || 'Source Sans 3'),
       fontSize: (typo.description as any)?.size || 9,
-      color: '#AAAAAA',
+      color: '#B5B5B5',
       lineHeight: (typo.description as any)?.lineHeight || 1.4,
       textAlign: ((typo.description as any)?.align || 'justify') as any,
       fontStyle: 'italic',
@@ -314,17 +296,18 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
       marginHorizontal: 10,
     },
   });
-
   // ─── Footer Component ───
+  // Legacy-Text aus alten Template-Configs automatisch mit Trennzeichen versehen
+  const rawFooterLeft = hf.footer?.textLeft || 'Inklusivpreise in Euro · All prices incl. Taxes';
+  const footerLeft = rawFooterLeft === 'Inklusivpreise in Euro All prices incl. Taxes'
+    ? 'Inklusivpreise in Euro · All prices incl. Taxes'
+    : rawFooterLeft;
   const Footer = () => (
     <View style={styles.footer} fixed>
-      <Text style={styles.footerText}>
-        {hf.footer?.textLeft || 'Inklusivpreise in Euro All prices incl. Taxes'}
-      </Text>
+      <Text style={styles.footerText}>{footerLeft}</Text>
       <Text style={styles.footerText} render={({ pageNumber }) => String(pageNumber)} />
     </View>
   );
-
   // ─── Page Header Component ───
   const PageHeader = ({ name }: { name: string }) => (
     <View style={styles.pageHeader} fixed>
@@ -333,34 +316,44 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
       <View style={styles.pageHeaderLine} />
     </View>
   );
-
   // ─── Render Product ───
   const renderProduct = (product: ProductData) => {
-    // Price formatting
-    const priceLines = product.prices.map(p => {
-      const fill = p.label || '';
-      const priceStr = formatPrice(p.price);
-      return `${fill}  ${priceStr} €`;
-    });
-
-    // Winery line - single, clean
+    // Preise: Label + Betrag getrennt
+    const priceItems = product.prices.map(p => ({
+      label: p.label || '',
+      value: formatPrice(p.price) + ' €',
+    }));
+    // Winery-Zeile
     const wineryParts: string[] = [];
     if (product.winery) wineryParts.push(product.winery);
     if (product.wineryLocation) wineryParts.push(product.wineryLocation);
     else if (product.region) wineryParts.push(product.region);
     const wineryText = wineryParts.join(', ');
-
-    // Description
-    const descDE = layout.descDE !== false ? (product.longDescription || product.shortDescription || '') : '';
-    const descEN = layout.descEN !== false && showEN ? (product.longDescriptionEN || product.shortDescriptionEN || '') : '';
-
+    const wineryNorm = norm(wineryText);
+    // Beschreibungen mit Dedup
+    let descDE = layout.descDE !== false ? (product.longDescription || product.shortDescription || '') : '';
+    let descEN = layout.descEN !== false && showEN ? (product.longDescriptionEN || product.shortDescriptionEN || '') : '';
+    // Dedup: descDE unterdruecken, wenn identisch zu Winery-Zeile
+    if (norm(descDE) && norm(descDE) === wineryNorm) descDE = '';
+    // Dedup: descEN unterdruecken, wenn identisch zu descDE oder Winery-Zeile oder Produktname
+    const descDENorm = norm(descDE);
+    const nameNorm = norm(product.name);
+    const descENnorm = norm(descEN);
+    if (descENnorm && (descENnorm === descDENorm || descENnorm === wineryNorm || descENnorm === nameNorm)) {
+      descEN = '';
+    }
+    // Produktname EN nur zeigen, wenn verschieden
+    const nameEN = product.nameEN && norm(product.nameEN) !== nameNorm ? product.nameEN : '';
     return (
       <View key={product.id} style={styles.productRow} wrap={false}>
         <View style={styles.productNameLine}>
           <Text style={styles.productName}>{product.name}</Text>
-          <View>
-            {priceLines.map((line, i) => (
-              <Text key={i} style={styles.productPrice}>{line}</Text>
+          <View style={styles.priceBlock}>
+            {priceItems.map((it, i) => (
+              <View key={i} style={styles.priceLine}>
+                {it.label ? <Text style={styles.priceLabel}>{it.label}</Text> : null}
+                <Text style={styles.priceValue}>{it.value}</Text>
+              </View>
             ))}
           </View>
         </View>
@@ -370,14 +363,10 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
       </View>
     );
   };
-
   // ─── Calculate TOC page numbers (estimate) ───
-  // Title page = 1, TOC = 2, content starts at 3
   let contentStartPage = 1;
   if (config.content?.showTitlePage !== false) contentStartPage++;
   if (config.content?.showToc !== false) contentStartPage++;
-
-  // Estimate pages per section (rough: ~5 products per page)
   const tocEntries: { name: string; nameEN?: string; page: number }[] = [];
   let currentPage = contentStartPage;
   for (const section of activeSections) {
@@ -385,22 +374,21 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
     const productsPages = Math.ceil(section.products.length / 5);
     currentPage += Math.max(1, productsPages);
   }
-
   return (
     <Document title={menuName} author={tenantName || 'MenuCard Pro'} creator="MenuCard Pro">
-
       {/* ═══ TITLE PAGE ═══ */}
       {config.content?.showTitlePage !== false && (
         <Page size={pageSize} orientation={isLandscape ? 'landscape' : 'portrait'}
           style={[styles.page, { paddingBottom: margin }]}>
           <View style={styles.titlePage}>
             {tp.logo ? (
-              <PdfImage src={tp.logo} style={{ width: tp.logoSize || 180, marginBottom: 28 }} />
-            ) : (
-              <View style={styles.titleLogoBox} />
-            )}
+              <PdfImage src={tp.logo as string} style={{ width: tp.logoSize || 180, marginBottom: 28 }} />
+            ) : null}
             <Text style={styles.titleMain}>{menuName}</Text>
-            {showEN && menuNameEN && <Text style={styles.titleEN}>{menuNameEN}</Text>}
+            {showEN && menuNameEN && norm(menuNameEN) !== norm(menuName) && (
+              <Text style={styles.titleEN}>{menuNameEN}</Text>
+            )}
+            <View style={styles.titleDivider} />
             {tenantName && <Text style={styles.titleTenant}>{tenantName}</Text>}
             {locationName && <Text style={styles.titleLocation}>{locationName}</Text>}
             {tp.quote && (
@@ -413,7 +401,6 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
           </View>
         </Page>
       )}
-
       {/* ═══ TABLE OF CONTENTS ═══ */}
       {config.content?.showToc !== false && (
         <Page size={pageSize} orientation={isLandscape ? 'landscape' : 'portrait'} style={styles.page}>
@@ -422,7 +409,7 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
             {tocEntries.map((entry, i) => (
               <View key={i} style={styles.tocEntry}>
                 <Text style={styles.tocName}>{entry.name}</Text>
-                {showEN && entry.nameEN && tocConfig.bilingual !== false && (
+                {showEN && entry.nameEN && tocConfig.bilingual !== false && norm(entry.nameEN) !== norm(entry.name) && (
                   <Text style={styles.tocNameEN}>{entry.nameEN}</Text>
                 )}
                 <View style={styles.tocDots} />
@@ -433,25 +420,20 @@ export function MenuPdfDocument({ menuName, menuNameEN, sections, config, tenant
           <Footer />
         </Page>
       )}
-
       {/* ═══ CONTENT PAGES ═══ */}
       {activeSections.map((section, sIdx) => (
         <Page key={section.id} size={pageSize} orientation={isLandscape ? 'landscape' : 'portrait'} style={styles.page} wrap>
           {/* Page header (repeating section name at top) */}
           <PageHeader name={section.name} />
-
           {/* Big section title on first page of section */}
           <View style={styles.sectionHeaderBlock}>
             <Text style={styles.sectionTitleBig}>{section.name}</Text>
-            {showEN && section.nameEN && (
+            {showEN && section.nameEN && norm(section.nameEN) !== norm(section.name) && (
               <Text style={styles.sectionTitleEN}>{section.nameEN}</Text>
             )}
-            <View style={styles.sectionDivider} />
           </View>
-
           {/* Products */}
           {section.products.map(p => renderProduct(p))}
-
           {/* Footer */}
           <Footer />
         </Page>

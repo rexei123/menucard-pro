@@ -2,32 +2,47 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PDF-Vorschau</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:#f3f4f6; display:flex; flex-direction:column; align-items:center; padding:16px; gap:16px; font-family:system-ui; }
-canvas { background:white; box-shadow:0 2px 8px rgba(0,0,0,.15); max-width:100%; height:auto!important; }
-.info { font-size:12px; color:#9ca3af; }
-.msg { color:#6b7280; padding:40px; text-align:center; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f3f4f6; display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 8px; font-family: system-ui, -apple-system, sans-serif; }
+  canvas { background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); max-width: 100%; height: auto !important; border-radius: 4px; }
+  .loading { color: #6b7280; padding: 40px; text-align: center; font-size: 14px; }
+  .error { color: #dc2626; padding: 40px; text-align: center; font-size: 14px; }
+  .page-label { font-size: 11px; color: #9ca3af; margin: 4px 0 12px; }
 </style>
 </head>
 <body>
-<div id="v"><div class="msg">PDF wird geladen...</div></div>
+<div id="viewer"><div class="loading">PDF wird geladen…</div></div>
 <script>
-var u=new URLSearchParams(location.search).get('url'),v=document.getElementById('v');
-if(!u){v.innerHTML='<div class="msg">Keine URL</div>';}else{
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-pdfjsLib.getDocument(u).promise.then(async function(p){
-v.innerHTML='';
-for(var i=1;i<=p.numPages;i++){
-var pg=await p.getPage(i),vp=pg.getViewport({scale:1.5}),c=document.createElement('canvas');
-c.width=vp.width;c.height=vp.height;
-await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
-v.appendChild(c);
-var d=document.createElement('div');d.className='info';d.textContent='Seite '+i+' / '+p.numPages;v.appendChild(d);
-}
-}).catch(function(e){v.innerHTML='<div class="msg" style="color:red">Fehler: '+e.message+'</div>';});}
+  const params = new URLSearchParams(window.location.search);
+  const url = params.get('url');
+  const viewer = document.getElementById('viewer');
+  if (!url) {
+    viewer.innerHTML = '<div class="error">Keine PDF-URL angegeben</div>';
+  } else {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.getDocument(url).promise.then(async function(pdf) {
+      viewer.innerHTML = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        viewer.appendChild(canvas);
+        const label = document.createElement('div');
+        label.className = 'page-label';
+        label.textContent = 'Seite ' + i + ' von ' + pdf.numPages;
+        viewer.appendChild(label);
+      }
+    }).catch(function(err) {
+      viewer.innerHTML = '<div class="error">Fehler beim Laden: ' + err.message + '</div>';
+    });
+  }
 </script>
 </body>
 </html>

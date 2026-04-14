@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { MenuPdfDocument } from '@/lib/pdf/menu-pdf';
-import { getTemplate, mergeConfig } from '@/lib/design-templates';
-import type { AnalogConfig } from '@/lib/design-templates';
+import { resolveMenuAnalogConfig } from '@/lib/template-resolver';
 import React from 'react';
 
 // Dateiname ASCII-sicher machen für Content-Disposition
@@ -16,14 +15,14 @@ function sanitizeFilename(name: string): string {
     .trim();
 }
 
-
 // GET /api/v1/menus/[id]/pdf – PDF generieren
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const menu = await prisma.menu.findUnique({
       where: { id: params.id },
       include: {
         translations: true,
+        template: true,
         location: {
           include: { tenant: true },
         },
@@ -56,16 +55,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         },
       },
     });
-
     if (!menu) {
       return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
     }
 
-    // Resolve analog config
-    const saved = menu.designConfig as any;
-    const templateName = saved?.analog?.template || saved?.digital?.template || 'elegant';
-    const template = getTemplate(templateName);
-    const analogConfig: AnalogConfig = mergeConfig(template.analog, saved?.analog);
+    // Resolve analog config (neu: templateId bevorzugt, Fallback designConfig)
+    const analogConfig = resolveMenuAnalogConfig(menu as any);
 
     const menuNameDE = menu.translations.find(t => t.languageCode === 'de')?.name || menu.slug;
     const menuNameEN = menu.translations.find(t => t.languageCode === 'en')?.name || undefined;
@@ -75,7 +70,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .map(section => {
         const sDE = section.translations.find(t => t.languageCode === 'de');
         const sEN = section.translations.find(t => t.languageCode === 'en');
-
         const products = section.placements
           .filter(pl => pl.product.status !== 'ARCHIVED')
           .map(pl => {
@@ -83,24 +77,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             const tDE = p.translations.find(t => t.languageCode === 'de');
             const tEN = p.translations.find(t => t.languageCode === 'en');
             const wp = p.productWineProfile;
-
-            // Build clean product name: "Name Jahrgang Rebsorten Region Appellation"
             const nameParts: string[] = [tDE?.name || ''];
             if (wp?.grapeVarieties?.length) nameParts.push(wp.grapeVarieties.join(', '));
             if (wp?.appellation) nameParts.push(wp.appellation);
-
-            // Prices
             const prices = p.prices.map(pp => ({
               label: pp.fillQuantity?.label || '',
               price: pl.priceOverride ? Number(pl.priceOverride) : Number(pp.price),
               volume: pp.fillQuantity?.volume || undefined,
             }));
-
-            // Single winery line
-            const wineryParts: string[] = [];
-            if (wp?.winery) wineryParts.push(wp.winery);
-            if (wp?.region) wineryParts.push(wp.region);
-
             return {
               id: p.id,
               name: nameParts.filter(Boolean).join('  '),
@@ -122,7 +106,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
               highlightType: pl.highlightType || p.highlightType || undefined,
             };
           });
-
         return {
           id: section.id,
           name: sDE?.name || section.slug,
@@ -133,9 +116,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           products,
         };
       })
-      .filter(s => s.products.length > 0); // Skip empty sections
+      .filter(s => s.products.length > 0);
 
-    // Render PDF
     const element = React.createElement(MenuPdfDocument, {
       menuName: menuNameDE,
       menuNameEN,
@@ -144,9 +126,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       tenantName: menu.location.tenant.name,
       locationName: menu.location.name,
     });
-
     const buffer = await renderToBuffer(element as any);
-
     const filename = `${menuNameDE.replace(/[^a-zA-Z0-9äöüÄÖÜß\-_ ]/g, '')}.pdf`;
     return new NextResponse(new Uint8Array(buffer), {
       headers: {

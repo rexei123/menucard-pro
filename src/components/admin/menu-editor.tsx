@@ -2,14 +2,23 @@
 
 import { useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import TemplatePickerDrawer from './template-picker-drawer';
 
 type Placement = { id: string; productId: string; name: string; winery: string | null; vintage: number | null; price: number | null; type: string; sortOrder: number; isVisible: boolean };
 type Section = { id: string; slug: string; name: string; icon: string | null; placements: Placement[] };
 type BrowserProduct = { id: string; name: string; type: string; groupName: string; groupSlug: string; price: number | null; winery: string | null; vintage: number | null; status: string };
-type MenuInfo = { id: string; name: string; slug: string; type: string; locationName: string; isActive: boolean; publicUrl: string; qrCodes: { id: string; label: string | null; shortCode: string }[]; sections: Section[] };
+type MenuInfo = { id: string; name: string; slug: string; type: string; locationName: string; isActive: boolean; publicUrl: string; templateId: string | null; qrCodes: { id: string; label: string | null; shortCode: string }[]; sections: Section[] };
 
 const TB: Record<string, { l: string; c: string }> = { WINE: { l: 'W', c: 'bg-purple-100 text-purple-700' }, DRINK: { l: 'G', c: 'bg-blue-100 text-blue-700' }, FOOD: { l: 'S', c: 'bg-orange-100 text-orange-700' }, OTHER: { l: '?', c: 'bg-gray-100 text-gray-600' } };
 const fmtEur = (p: number) => new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR' }).format(p);
+
+// Drop-Indicator style (UI-Design-konform, rosa)
+const dropIndicatorActive = {
+  background: 'linear-gradient(90deg, rgba(221,60,113,0.08), rgba(221,60,113,0.18))',
+  border: '2px dashed var(--color-primary)',
+  borderRadius: 8,
+  margin: '4px 12px',
+};
 
 export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuInfo; allProducts: BrowserProduct[]; groups: { slug: string; name: string; parentName: string | null }[] }) {
   const [sections, setSections] = useState(menu.sections);
@@ -20,6 +29,7 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [poolWidth, setPoolWidth] = useState(500);
   const [resizing, setResizing] = useState(false);
@@ -95,7 +105,6 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
     const sid = ins.sid;
     const idx = ins.idx;
 
-    // Same section = reorder
     const sec = sections.find(s => s.id === sid);
     const existingHere = sec?.placements.find(p => p.productId === productId);
     if (existingHere && fromSection === sid) {
@@ -110,7 +119,6 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
       return;
     }
 
-    // From another section = move
     if (fromSection) {
       let moving: Placement | null = null;
       for (const s of sections) { const f = s.placements.find(p => p.productId === productId); if (f) { moving = f; break; } }
@@ -120,7 +128,6 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
       }
     }
 
-    // Add
     const prod = allProducts.find(p => p.id === productId);
     if (!prod) { endDrag(); return; }
     const pl = await apiAdd(sid, productId, idx);
@@ -136,7 +143,6 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
     endDrag();
   };
 
-  // Drop on browser = remove
   const dropBrowser = async (e: React.DragEvent) => {
     e.preventDefault();
     setBrowserDrop(false);
@@ -152,7 +158,6 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
     endDrag();
   };
 
-  // Click add
   const clickAdd = async (productId: string, sectionId: string) => {
     const prod = allProducts.find(p => p.id === productId);
     if (!prod) return;
@@ -186,7 +191,6 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
   };
 
   const total = sections.reduce((s, sec) => s + sec.placements.length, 0);
-  const isDragging = !!dragRef.current;
 
   return (
     <div className="flex flex-1 h-full -m-6">
@@ -196,10 +200,32 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>{menu.name}</h1>
-              <p className="text-base text-gray-400 mt-1">{menu.locationName} · {menu.type} · {sections.length} Sektionen · {total} Produkte</p>
+              <p className="text-base text-gray-400 mt-1">{menu.locationName} &middot; {menu.type} &middot; {sections.length} Sektionen &middot; {total} Produkte</p>
             </div>
             <div className="flex gap-2">
-              <a href={menu.publicUrl} target="_blank" className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-50">Vorschau ↗</a>
+              <a href={menu.publicUrl} target="_blank" className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-50">Vorschau &#8599;</a>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1 transition-colors"
+                style={{
+                  border: '1px solid var(--color-primary)',
+                  color: 'var(--color-primary)',
+                  backgroundColor: 'transparent',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(221,60,113,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16, fontVariationSettings: "'FILL' 0, 'wght' 500" }}>palette</span>
+                Vorlage
+              </button>
+              {drawerOpen && (
+                <TemplatePickerDrawer
+                  menuId={menu.id}
+                  currentTemplateId={menu.templateId}
+                  onClose={() => setDrawerOpen(false)}
+                />
+              )}
               <span className={`rounded-full px-3 py-1.5 text-sm font-medium ${menu.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{menu.isActive ? 'Aktiv' : 'Inaktiv'}</span>
             </div>
           </div>
@@ -211,44 +237,94 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
           {sections.map(sec => (
             <div key={sec.id} className="rounded-xl border bg-white shadow-sm overflow-visible">
               <div className="border-b bg-gray-50/50 px-4 py-3" onDragOver={e => overEmpty(e, sec.id)} onDrop={dropAtInsert}>
-                <h2 className="text-base font-semibold">{sec.icon && <span className="mr-1">{sec.icon}</span>}{sec.name}</h2>
+                <h2 className="text-base font-semibold flex items-center gap-2">
+                  {sec.icon && (
+                    <span
+                      className="material-symbols-outlined select-none"
+                      style={{
+                        fontSize: 22,
+                        color: 'var(--color-primary)',
+                        fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 22",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {sec.icon}
+                    </span>
+                  )}
+                  <span>{sec.name}</span>
+                </h2>
                 <p className="text-sm text-gray-400">{sec.placements.length} Produkte</p>
               </div>
 
-              {sec.placements.map((pl, i) => (
-                <div key={pl.id}>
-                  <div onDragOver={e => { e.preventDefault(); setInsertAt({ sid: sec.id, idx: i }); }} onDrop={dropAtInsert} style={{ height: insertAt?.sid === sec.id && insertAt?.idx === i ? 48 : 0, transition: 'height 0.25s ease', overflow: 'hidden', background: insertAt?.sid === sec.id && insertAt?.idx === i ? 'linear-gradient(90deg, #eff6ff, #dbeafe)' : 'transparent', border: insertAt?.sid === sec.id && insertAt?.idx === i ? '2px dashed #93c5fd' : 'none', borderRadius: 8, margin: insertAt?.sid === sec.id && insertAt?.idx === i ? '4px 12px' : '0' }} />
-                  <div draggable onDragStart={e => startDrag(e, pl.productId, sec.id)} onDragEnd={endDrag} onDragOver={e => overItem(e, sec.id, i)} onDrop={dropAtInsert}
-                    className={`flex items-center justify-between px-4 py-2.5 border-b last:border-0 cursor-grab active:cursor-grabbing transition-all duration-150 group ${!pl.isVisible ? 'bg-red-50/30' : 'hover:bg-gray-50/50'}`}>
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-gray-300 cursor-grab group-hover:text-gray-500">⠿</span>
-                      <span className={`flex-shrink-0 rounded px-1 py-0.5 text-sm font-bold ${TB[pl.type]?.c || TB.OTHER.c}`}>{TB[pl.type]?.l || '?'}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/admin/items/${pl.productId}`} className={`text-base font-medium hover:text-amber-700 truncate ${!pl.isVisible ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{pl.name}</Link>
-                          {!pl.isVisible && <span className="bg-red-100 text-red-600 text-sm font-bold px-1.5 py-0.5 rounded flex-shrink-0">AUSGETRUNKEN</span>}
+              {sec.placements.map((pl, i) => {
+                const activeInsert = insertAt?.sid === sec.id && insertAt?.idx === i;
+                return (
+                  <div key={pl.id}>
+                    <div
+                      onDragOver={e => { e.preventDefault(); setInsertAt({ sid: sec.id, idx: i }); }}
+                      onDrop={dropAtInsert}
+                      style={{
+                        height: activeInsert ? 48 : 0,
+                        transition: 'height 0.25s ease',
+                        overflow: 'hidden',
+                        ...(activeInsert ? dropIndicatorActive : { background: 'transparent', border: 'none', margin: 0 }),
+                      }}
+                    />
+                    <div draggable onDragStart={e => startDrag(e, pl.productId, sec.id)} onDragEnd={endDrag} onDragOver={e => overItem(e, sec.id, i)} onDrop={dropAtInsert}
+                      className={`flex items-center justify-between px-4 py-2.5 border-b last:border-0 cursor-grab active:cursor-grabbing transition-all duration-150 group ${!pl.isVisible ? 'bg-red-50/30' : 'hover:bg-gray-50/50'}`}>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="text-gray-300 cursor-grab group-hover:text-gray-500">&#x283F;</span>
+                        <span className={`flex-shrink-0 rounded px-1 py-0.5 text-sm font-bold ${TB[pl.type]?.c || TB.OTHER.c}`}>{TB[pl.type]?.l || '?'}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/admin/items/${pl.productId}`}
+                              className={`text-base font-medium truncate transition-colors ${!pl.isVisible ? 'text-gray-400 line-through' : 'text-gray-800'}`}
+                              style={!pl.isVisible ? {} : undefined}
+                              onMouseEnter={e => { if (pl.isVisible) e.currentTarget.style.color = 'var(--color-primary)'; }}
+                              onMouseLeave={e => { if (pl.isVisible) e.currentTarget.style.color = ''; }}
+                            >
+                              {pl.name}
+                            </Link>
+                            {!pl.isVisible && <span className="bg-red-100 text-red-600 text-sm font-bold px-1.5 py-0.5 rounded flex-shrink-0">AUSGETRUNKEN</span>}
+                          </div>
+                          {pl.winery && <p className="text-sm text-gray-400">{pl.winery}{pl.vintage ? ` ${pl.vintage}` : ''}</p>}
                         </div>
-                        {pl.winery && <p className="text-sm text-gray-400">{pl.winery}{pl.vintage ? ` ${pl.vintage}` : ''}</p>}
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                        {pl.price !== null && <span className="text-base font-semibold text-gray-600 tabular-nums mr-1">{fmtEur(pl.price)}</span>}
+                        <button onClick={() => toggleVisible(pl.id, sec.id, pl.isVisible)} title={pl.isVisible ? 'Als ausgetrunken markieren' : 'Wieder verfuegbar'}
+                          className={`rounded-full w-6 h-6 flex items-center justify-center text-sm transition-all ${pl.isVisible ? 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-500' : 'bg-red-100 text-red-600 hover:bg-green-100 hover:text-green-600'}`}>
+                          {pl.isVisible ? '\u25CF' : '\u25CB'}
+                        </button>
+                        <button onClick={() => remove(pl.id, sec.id)} title="Entfernen" className="rounded p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors text-sm">&times;</button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
-                      {pl.price !== null && <span className="text-base font-semibold text-gray-600 tabular-nums mr-1">{fmtEur(pl.price)}</span>}
-                      <button onClick={() => toggleVisible(pl.id, sec.id, pl.isVisible)} title={pl.isVisible ? 'Als ausgetrunken markieren' : 'Wieder verfügbar'}
-                        className={`rounded-full w-6 h-6 flex items-center justify-center text-sm transition-all ${pl.isVisible ? 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-500' : 'bg-red-100 text-red-600 hover:bg-green-100 hover:text-green-600'}`}>
-                        {pl.isVisible ? '●' : '○'}
-                      </button>
-                      <button onClick={() => remove(pl.id, sec.id)} title="Entfernen" className="rounded p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors text-sm">×</button>
-                    </div>
                   </div>
+                );
+              })}
 
-                </div>
-              ))}
+              {(() => {
+                const endIdx = sec.placements.length;
+                const activeEnd = insertAt?.sid === sec.id && insertAt?.idx === endIdx && endIdx > 0;
+                return (
+                  <div
+                    onDragOver={e => { e.preventDefault(); setInsertAt({ sid: sec.id, idx: endIdx }); }}
+                    onDrop={dropAtInsert}
+                    style={{
+                      height: activeEnd ? 48 : 4,
+                      transition: 'height 0.25s ease',
+                      overflow: 'hidden',
+                      ...(activeEnd ? dropIndicatorActive : { background: 'transparent', border: 'none', margin: 0 }),
+                    }}
+                  />
+                );
+              })()}
 
-              <div onDragOver={e => { e.preventDefault(); setInsertAt({ sid: sec.id, idx: sec.placements.length }); }} onDrop={dropAtInsert} style={{ height: insertAt?.sid === sec.id && insertAt?.idx === sec.placements.length && sec.placements.length > 0 ? 48 : 4, transition: 'height 0.25s ease', overflow: 'hidden', background: insertAt?.sid === sec.id && insertAt?.idx === sec.placements.length && sec.placements.length > 0 ? 'linear-gradient(90deg, #eff6ff, #dbeafe)' : 'transparent', border: insertAt?.sid === sec.id && insertAt?.idx === sec.placements.length && sec.placements.length > 0 ? '2px dashed #93c5fd' : 'none', borderRadius: 8, margin: insertAt?.sid === sec.id && insertAt?.idx === sec.placements.length && sec.placements.length > 0 ? '4px 12px' : '0' }} />
               {sec.placements.length === 0 && (
                 <div onDragOver={e => overEmpty(e, sec.id)} onDrop={dropAtInsert}
                   className="px-4 py-6 text-center text-sm text-gray-400 border-2 border-dashed border-gray-200 m-2 rounded-lg">
-                  Produkte hierher ziehen oder aus dem Pool rechts hinzufügen
+                  Produkte hierher ziehen oder aus dem Pool rechts hinzufuegen
                 </div>
               )}
             </div>
@@ -260,7 +336,16 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
       <div onDragOver={e => { e.preventDefault(); if (dragRef.current?.fromSection) setBrowserDrop(true); }}
         onDragLeave={() => setBrowserDrop(false)} onDrop={dropBrowser}
         className={`relative flex flex-col border-l transition-colors flex-shrink-0 ${browserDrop ? 'bg-red-50 border-l-2 border-l-red-400' : 'bg-white'}`} style={{ width: poolWidth }}>
-        <div onMouseDown={startResize} className={`absolute left-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-amber-200 transition-colors ${resizing ? 'bg-amber-300' : ''}`} style={{ zIndex: 10 }} />
+        <div
+          onMouseDown={startResize}
+          className="absolute left-0 top-0 h-full w-1.5 cursor-col-resize transition-colors"
+          style={{
+            zIndex: 10,
+            backgroundColor: resizing ? 'rgba(221,60,113,0.4)' : 'transparent',
+          }}
+          onMouseEnter={e => { if (!resizing) e.currentTarget.style.backgroundColor = 'rgba(221,60,113,0.2)'; }}
+          onMouseLeave={e => { if (!resizing) e.currentTarget.style.backgroundColor = 'transparent'; }}
+        />
         <div className="border-b px-3 py-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-base font-semibold text-gray-700">{browserDrop ? 'Hier ablegen = Entfernen' : 'Produktpool'}</h2>
@@ -274,12 +359,12 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
             <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setGroupFilter(''); }} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-sm outline-none">
               <option value="">Alle Typen</option>
               <option value="WINE">Wein</option>
-              <option value="DRINK">Getränk</option>
+              <option value="DRINK">Getraenk</option>
               <option value="FOOD">Speise</option>
             </select>
             <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-sm outline-none">
               <option value="">Alle Gruppen</option>
-              {filteredGroups.map(g => <option key={g.slug} value={g.slug}>{g.parentName ? `${g.parentName} → ${g.name}` : g.name}</option>)}
+              {filteredGroups.map(g => <option key={g.slug} value={g.slug}>{g.parentName ? `${g.parentName} \u2192 ${g.name}` : g.name}</option>)}
             </select>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-sm outline-none">
               <option value="">Status</option>
@@ -296,17 +381,17 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
             return (
               <div key={p.id} draggable onDragStart={e => startDrag(e, p.id, null)} onDragEnd={endDrag}
                 className="flex items-center gap-2 border-b px-3 py-2.5 cursor-grab active:cursor-grabbing hover:bg-gray-50 transition-colors group">
-                <span className="text-gray-300 text-sm group-hover:text-gray-500">⠿</span>
+                <span className="text-gray-300 text-sm group-hover:text-gray-500">&#x283F;</span>
                 <span className={`flex-shrink-0 rounded px-1 py-0.5 text-sm font-bold ${b.c}`}>{b.l}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
-                  <p className="text-sm text-gray-400 truncate">{p.groupName}{p.winery ? ` · ${p.winery}` : ''}</p>
+                  <p className="text-sm text-gray-400 truncate">{p.groupName}{p.winery ? ` \u00B7 ${p.winery}` : ''}</p>
                 </div>
                 {p.price !== null && <span className="text-sm font-semibold text-gray-500 tabular-nums flex-shrink-0">{fmtEur(p.price)}</span>}
                 <div className="relative group/add">
-                  <button className="text-gray-300 hover:text-green-600 text-base font-bold">+</button>
+                  <button className="text-gray-300 hover:text-[#22C55E] text-base font-bold">+</button>
                   <div className="absolute right-0 top-5 z-30 hidden group-hover/add:block rounded-lg border bg-white shadow-lg py-1 w-48">
-                    {sections.map(s => <button key={s.id} onClick={() => clickAdd(p.id, s.id)} className="block w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 truncate">→ {s.name}</button>)}
+                    {sections.map(s => <button key={s.id} onClick={() => clickAdd(p.id, s.id)} className="block w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 truncate">&rarr; {s.name}</button>)}
                   </div>
                 </div>
               </div>

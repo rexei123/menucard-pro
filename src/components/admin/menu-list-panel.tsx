@@ -60,27 +60,47 @@ export default function MenuListPanel({ menus }: { menus: MenuItem[] }) {
             <Link
               key={m.id}
               href={`/admin/menus/${m.id}`}
-              className={`block border-b px-3 py-3 transition-colors ${active ? 'bg-amber-50 border-l-2 border-l-amber-600' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}`}
+              className={`block border-b px-3 py-3 transition-colors border-l-2 ${active ? 'border-l-[var(--color-primary)]' : 'hover:bg-gray-50 border-l-transparent'}`}
+              style={active ? { backgroundColor: 'rgba(221,60,113,0.08)' } : {}}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{icon}</span>
+                  <span
+                    className="material-symbols-outlined select-none"
+                    style={{
+                      fontSize: 22,
+                      color: active ? 'var(--color-primary)' : 'var(--color-text-muted, #6B7280)',
+                      fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 22",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {icon}
+                  </span>
                   <div>
                     <p className={`text-base leading-snug ${active ? 'font-semibold text-gray-900' : 'text-gray-800'}`}>{m.name}</p>
-                    <p className="text-sm text-gray-400 mt-0.5">{m.locationName} · {m.type}</p>
+                    <p className="text-sm text-gray-400 mt-0.5">{m.locationName} &middot; {m.type}</p>
                   </div>
                 </div>
                 <span className={`flex-shrink-0 h-2 w-2 mt-2 rounded-full ${m.isActive ? 'bg-green-400' : 'bg-gray-300'}`} />
               </div>
               <div className="mt-1.5 pl-8 text-sm text-gray-400">
-                {m.sectionCount} Sektionen · {m.itemCount} Produkte
+                {m.sectionCount} Sektionen &middot; {m.itemCount} Produkte
               </div>
             </Link>
           );
         })}
       </div>
 
-      <div onMouseDown={startResize} className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-amber-200 transition-colors ${dragging ? 'bg-amber-300' : ''}`} style={{ zIndex: 10 }} />
+      <div
+        onMouseDown={startResize}
+        className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize transition-colors"
+        style={{
+          zIndex: 10,
+          backgroundColor: dragging ? 'rgba(221,60,113,0.4)' : 'transparent'
+        }}
+        onMouseEnter={e => { if (!dragging) e.currentTarget.style.backgroundColor = 'rgba(221,60,113,0.2)'; }}
+        onMouseLeave={e => { if (!dragging) e.currentTarget.style.backgroundColor = 'transparent'; }}
+      />
     </div>
   );
 }

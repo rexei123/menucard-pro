@@ -56,6 +56,7 @@ export default async function MenuDetailPage({ params }: { params: { id: string 
     id: menu.id, name: menu.translations.find(t => t.languageCode === 'de')?.name || menu.slug,
     slug: menu.slug, type: menu.type, locationName: menu.location.name,
     isActive: menu.isActive, publicUrl: `/${tenant.slug}/${menu.location.slug}/${menu.slug}`,
+    templateId: menu.templateId || null,
     qrCodes: menu.qrCodes.map(q => ({ id: q.id, label: q.label, shortCode: q.shortCode })),
     sections: menu.sections.map(s => ({
       id: s.id, slug: s.slug, name: s.translations[0]?.name || s.slug, icon: s.icon,

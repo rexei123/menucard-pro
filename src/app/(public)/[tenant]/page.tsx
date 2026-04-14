@@ -28,7 +28,10 @@ export default async function TenantPage({
   if (!tenant) return notFound();
   const theme = tenant.themes[0];
   const langParam = lang === 'en' ? '?lang=en' : '';
-  const menuLabel = lang === 'en' ? 'menus' : 'Karten';
+  const menuLabel = (n: number) =>
+    lang === 'en'
+      ? (n === 1 ? 'menu' : 'menus')
+      : (n === 1 ? 'Karte' : 'Karten');
 
   return (
     <div className="min-h-screen" style={{ background: theme?.backgroundColor || '#FAFAF8' }}>
@@ -40,7 +43,7 @@ export default async function TenantPage({
           <Link key={loc.id} href={`/${tenant.slug}/${loc.slug}${langParam}`} className="block rounded-2xl border bg-white p-6 shadow-sm hover:shadow-md">
             <h2 className="text-lg font-semibold" style={{fontFamily: "'Playfair Display', serif"}}>{t(loc.translations)}</h2>
             <p className="mt-1 text-sm text-gray-500">{t(loc.translations, 'description')}</p>
-            <p className="mt-2 text-xs text-gray-400">{loc.menus.length} {menuLabel}</p>
+            <p className="mt-2 text-xs text-gray-400">{loc.menus.length} {menuLabel(loc.menus.length)}</p>
           </Link>
         ))}
       </main>

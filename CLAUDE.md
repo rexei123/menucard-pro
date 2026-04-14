@@ -123,3 +123,19 @@ FillQuantity (18): Flasche 0,75l, 1/8 offen, etc.
 - `/root/menucard-pre-cleanup-20260410.sql`
 - `/root/menucard-backup-20260410.sql`
 - GitHub: rexei123/menucard-pro (main branch)
+
+## Design-Regel: Action-Button-Farben
+
+**Hinzufuegen-Buttons: Gruen (hell)**
+- Farbe: `#22C55E` (green-500, CSS-Variable `--color-add`)
+- Hover: `#16A34A` (green-600, CSS-Variable `--color-add-hover`)
+- Beispiele: `+ Artikel`, `+ Preis hinzufuegen`, `+ Neu anlegen`
+- Referenz: gleicher Farbton wie die kleinen Status-Punkte bei Produkten
+
+**Entfernen-/Loeschen-Buttons: Rosa (UI-Primaerfarbe)**
+- Farbe: `var(--color-primary)` (#DD3C71)
+- Oder: `var(--color-error)` fuer destruktive Aktionen
+- Beispiele: `Loeschen`, `Entfernen`, `X` bei Listenpunkten
+
+**Wichtig:** Diese Farblogik gilt im Admin-Backend durchgaengig. Gruen signalisiert "hinzufuegen/bestaetigen", Rosa/Rot signalisiert "entfernen/abbrechen".
+

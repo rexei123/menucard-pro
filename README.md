@@ -127,3 +127,19 @@ rm -rf .next && npm run build && pm2 restart menucard-pro
 | PDF-Export | `/api/v1/pdf?tenant=hotel-sonnblick&location=restaurant&menu={slug}&lang=de` |
 | API Products | `/api/v1/products` |
 | API Placements | `/api/v1/placements` |
+
+## Design-Regel: Action-Button-Farben
+
+**Hinzufuegen-Buttons: Gruen (hell)**
+- Farbe: `#22C55E` (green-500, CSS-Variable `--color-add`)
+- Hover: `#16A34A` (green-600, CSS-Variable `--color-add-hover`)
+- Beispiele: `+ Artikel`, `+ Preis hinzufuegen`, `+ Neu anlegen`
+- Referenz: gleicher Farbton wie die kleinen Status-Punkte bei Produkten
+
+**Entfernen-/Loeschen-Buttons: Rosa (UI-Primaerfarbe)**
+- Farbe: `var(--color-primary)` (#DD3C71)
+- Oder: `var(--color-error)` fuer destruktive Aktionen
+- Beispiele: `Loeschen`, `Entfernen`, `X` bei Listenpunkten
+
+**Wichtig:** Diese Farblogik gilt im Admin-Backend durchgaengig. Gruen signalisiert "hinzufuegen/bestaetigen", Rosa/Rot signalisiert "entfernen/abbrechen".
+

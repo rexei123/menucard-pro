@@ -107,7 +107,7 @@ export default function ProductListPanel({ products, groups }: { products: Produ
           <h2 className="text-base font-semibold text-gray-700">Produkte</h2>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-400">{filtered.length}/{products.length}</span>
-            <button onClick={() => createProduct()} disabled={creating} className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold text-white hover:opacity-80 disabled:opacity-50 bg-green-600">{creating ? "..." : "+ Artikel"}</button>
+            <button onClick={() => createProduct()} disabled={creating} className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold text-white hover:opacity-80 disabled:opacity-50 bg-[#22C55E] hover:bg-[#16A34A]">{creating ? "..." : "+ Artikel"}</button>
           </div>
         </div>
         {/* Search */}

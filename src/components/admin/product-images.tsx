@@ -125,11 +125,23 @@ export default function ProductImages({ productId, initialImages }: { productId:
         <h2 className="text-base font-semibold text-gray-500">&#x1F4F8; Bilder</h2>
         <div className="flex gap-2">
           <button onClick={() => setShowMediaPicker(true)}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium border-2 border-dashed border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 transition-colors">
+            className="rounded-lg px-3 py-1.5 text-sm font-medium border-2 border-dashed transition-colors"
+            style={{
+              borderColor: 'var(--color-primary)',
+              color: 'var(--color-primary)',
+              backgroundColor: 'transparent'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--color-primary-subtle, rgba(221,60,113,0.08))'; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+          >
             Aus Bildarchiv
           </button>
           <button onClick={() => fileRef.current?.click()} disabled={uploading}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50" style={{backgroundColor:'#8B6914'}}>
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 transition-colors"
+            style={{backgroundColor:'#22C55E'}}
+            onMouseEnter={e => { if (!uploading) e.currentTarget.style.backgroundColor = '#16A34A'; }}
+            onMouseLeave={e => { if (!uploading) e.currentTarget.style.backgroundColor = '#22C55E'; }}
+          >
             {uploading ? 'Laedt...' : '+ Hochladen'}
           </button>
         </div>
@@ -140,15 +152,32 @@ export default function ProductImages({ productId, initialImages }: { productId:
       {images.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-3">
           {images.map(img => (
-            <div key={img.id} className={'relative group rounded-lg border overflow-hidden ' + (img.isPrimary ? 'ring-2 ring-amber-400' : '')}>
+            <div
+              key={img.id}
+              className="relative group rounded-lg border overflow-hidden"
+              style={img.isPrimary ? { boxShadow: '0 0 0 2px var(--color-primary)' } : {}}
+            >
               <img src={img.url} alt="" className="w-full h-40 object-contain bg-gray-50 p-2" />
               {img.isPrimary && (
-                <span className="absolute top-1 left-1 bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Hauptbild</span>
+                <span
+                  className="absolute top-1 left-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: 'var(--color-primary)' }}
+                >
+                  Hauptbild
+                </span>
               )}
               {/* Hover Overlay */}
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
                 {!img.isPrimary && (
-                  <button onClick={() => setPrimary(img.id)} className="text-sm text-white bg-amber-500 rounded px-2 py-1 hover:bg-amber-600">Hauptbild</button>
+                  <button
+                    onClick={() => setPrimary(img.id)}
+                    className="text-sm text-white rounded px-2 py-1 transition-colors"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                  >
+                    Hauptbild
+                  </button>
                 )}
                 <select value={img.mediaType} onChange={e => setType(img.id, e.target.value)}
                   className="text-sm rounded px-2 py-1 bg-white/90 text-gray-800 outline-none">
@@ -171,7 +200,7 @@ export default function ProductImages({ productId, initialImages }: { productId:
         onDrop={onDrop}
         onClick={() => fileRef.current?.click()}
         className={'rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-colors ' +
-          (dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50')}
+          (dragOver ? 'border-[var(--color-primary)] bg-[rgba(221,60,113,0.05)]' : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50')}
       >
         <p className="text-base text-gray-400">{uploading ? 'Wird hochgeladen...' : dragOver ? 'Hier ablegen' : 'Bilder hierher ziehen oder klicken'}</p>
         <p className="text-sm text-gray-300 mt-1">JPEG, PNG, WebP - Max 4MB - Automatisch optimiert</p>

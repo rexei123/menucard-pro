@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import LanguageSwitcher from '@/components/language-switcher';
 import MenuContent from '@/components/menu-content';
-import { resolveDigitalConfig, configToCssVars } from '@/lib/design-config-reader';
+import { resolveMenuDigitalConfig, configToCssVars } from '@/lib/template-resolver';
 
 const ui: Record<string, Record<string, string>> = {
   prices: { de: 'Alle Preise in Euro inkl. MwSt.', en: 'All prices in EUR incl. taxes.' },
@@ -35,6 +35,7 @@ export default async function MenuPage({
     where: { locationId_slug: { locationId: location.id, slug: params.menu } },
     include: {
       translations: true,
+      template: true,
       sections: { where: { isActive: true }, orderBy: { sortOrder: 'asc' }, include: {
         translations: true,
         placements: { orderBy: { sortOrder: 'asc' }, include: {
@@ -53,7 +54,7 @@ export default async function MenuPage({
   if (!menu) return notFound();
 
   // Resolve design config: merge template defaults with menu overrides
-  const digitalConfig = resolveDigitalConfig(menu.designConfig);
+  const digitalConfig = resolveMenuDigitalConfig(menu as any);
   const cssVars = configToCssVars(digitalConfig);
 
   const menuName = digitalConfig.header.title || t(menu.translations);

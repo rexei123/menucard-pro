@@ -38,11 +38,10 @@ export default async function DashboardPage() {
   /* Aktives Template ermitteln */
   const firstMenu = await prisma.menu.findFirst({
     where: { location: { tenantId: tid } },
-    select: { designConfig: true, name: true },
+    select: { template: { select: { baseType: true } }, slug: true, translations: { select: { name: true, languageCode: true } } },
   });
 
-  const designConfig = firstMenu?.designConfig as any;
-  const templateName = designConfig?.digital?.template || 'elegant';
+  const templateName = (firstMenu?.template?.baseType as string) || 'elegant';
   const templateLabels: Record<string, string> = {
     elegant: 'Elegant',
     modern: 'Modern',
@@ -103,8 +102,8 @@ export default async function DashboardPage() {
             <div className="space-y-3">
               {recentProducts.map((product) => {
                 const name = product.translations[0]?.name || 'Unbenannt';
-                const price = product.prices[0]?.amount ? `${Number(product.prices[0].amount).toFixed(2).replace('.', ',')} €` : '';
-                const thumb = product.productMedia[0]?.media?.thumbnailPath;
+                const price = product.prices[0]?.price ? `${Number(product.prices[0].price).toFixed(2).replace('.', ',')} €` : '';
+                const thumb = product.productMedia[0]?.media?.url;
                 const updatedAt = new Date(product.updatedAt);
                 const timeAgo = getTimeAgo(updatedAt);
 
@@ -112,10 +111,8 @@ export default async function DashboardPage() {
                   <Link
                     key={product.id}
                     href={`/admin/items?product=${product.id}`}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[var(--color-bg-subtle)]"
                     style={{ backgroundColor: 'transparent' }}
-                    onMouseEnter={(e: any) => e.currentTarget.style.backgroundColor = 'var(--color-bg-subtle)'}
-                    onMouseLeave={(e: any) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     {thumb ? (
                       <img
@@ -228,10 +225,8 @@ export default async function DashboardPage() {
               </div>
               <Link
                 href="/admin/media"
-                className="flex items-center justify-between mt-3 rounded-lg px-3 py-2.5 border transition-colors"
+                className="flex items-center justify-between mt-3 rounded-lg px-3 py-2.5 border transition-colors hover:bg-[var(--color-bg-subtle)]"
                 style={{ borderColor: 'var(--color-border-subtle)' }}
-                onMouseEnter={(e: any) => e.currentTarget.style.backgroundColor = 'var(--color-bg-subtle)'}
-                onMouseLeave={(e: any) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <div className="flex items-center gap-2.5">
                   <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-text-secondary)' }}>photo_library</span>

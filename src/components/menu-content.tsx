@@ -82,16 +82,18 @@ export default function MenuContent(props: MenuContentProps) {
 
   const filteredSections = useMemo(() => {
     const q = query.toLowerCase().trim();
+    // B-4: Sektion-/Kategorie-Name auch durchsuchen
     return sections.map(section => {
       const filtered = section.items.filter(item => {
         if (q) {
+          const sectionName = t(section.translations).toLowerCase();
           const name = t(item.translations).toLowerCase();
           const desc = (t(item.translations, 'shortDescription') || '').toLowerCase();
           const longDesc = (t(item.translations, 'longDescription') || '').toLowerCase();
           const winery = (item.wineProfile?.winery || '').toLowerCase();
           const region = (item.wineProfile?.region || '').toLowerCase();
           const grapes = (item.wineProfile?.grapeVarieties || []).join(' ').toLowerCase();
-          if (!`${name} ${desc} ${longDesc} ${winery} ${region} ${grapes}`.includes(q)) return false;
+          if (!`${sectionName} ${name} ${desc} ${longDesc} ${winery} ${region} ${grapes}`.includes(q)) return false;
         }
         if (styleFilter && item.wineProfile?.style !== styleFilter) return false;
         if (countryFilter && item.wineProfile?.country !== countryFilter) return false;
@@ -181,7 +183,7 @@ export default function MenuContent(props: MenuContentProps) {
                   key={s.id}
                   href={`#${s.slug}`}
                   onClick={() => setActiveSection(s.slug)}
-                  className="flex-shrink-0 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors"
+                  className="flex-shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors"
                   style={{
                     whiteSpace: 'nowrap',
                     color: isActiveTab ? 'var(--color-primary, #DD3C71)' : 'var(--color-text-muted, #8E8E8E)',

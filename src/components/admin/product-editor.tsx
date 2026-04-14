@@ -283,7 +283,7 @@ export default function ProductEditor({ product: initial, options, images }: { p
       <section className="rounded-xl border bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-gray-500">Preise & Kalkulation</h2>
-          <button onClick={addPrice} className="text-sm font-medium px-3 py-1.5 rounded-lg text-white" style={{backgroundColor:'#8B6914'}}>+ Preis hinzufügen</button>
+          <button onClick={addPrice} className="text-sm font-medium px-3 py-1.5 rounded-lg text-white" style={{backgroundColor:'#22C55E'}}>+ Preis hinzufügen</button>
         </div>
         <div className="space-y-3">
           {data.prices.map((p, i) => {
@@ -481,7 +481,7 @@ export default function ProductEditor({ product: initial, options, images }: { p
         </div>
         <div className="flex gap-2">
           <button onClick={() => { if (!dirty || confirm("Ungespeicherte Änderungen verwerfen?")) window.location.href="/admin/items"; }} className="rounded-lg border px-4 py-2 text-base font-medium hover:bg-gray-50">Abbrechen</button>
-          <button onClick={save} disabled={saving} className="rounded-lg px-6 py-2 text-base font-medium text-white disabled:opacity-50 transition-colors" style={{backgroundColor:'#8B6914'}}>
+          <button onClick={save} disabled={saving} className="rounded-lg px-6 py-2 text-base font-medium text-white disabled:opacity-50 transition-colors" style={{backgroundColor:'#22C55E'}}>
             {saving ? 'Speichere...' : 'Speichern'}
           </button>
         </div>

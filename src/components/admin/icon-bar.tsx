@@ -5,17 +5,27 @@ import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 
 type NavItem = { href: string; icon: string; label: string; match: RegExp };
+type NavGroup = { title: string; items: NavItem[] };
 
-const navItems: NavItem[] = [
-  { href: '/admin', icon: 'dashboard', label: 'Dashboard', match: /^\/admin$/ },
-  { href: '/admin/items', icon: 'restaurant_menu', label: 'Menüverwaltung', match: /^\/admin\/items/ },
-  { href: '/admin/menus', icon: 'menu_book', label: 'Karten', match: /^\/admin\/menus/ },
-  { href: '/admin/media', icon: 'photo_library', label: 'Bildarchiv', match: /^\/admin\/media/ },
-  { href: '/admin/qr-codes', icon: 'qr_code_2', label: 'QR-Codes', match: /^\/admin\/qr-codes/ },
-  { href: '/admin/design', icon: 'palette', label: 'Templates', match: /^\/admin\/design/ },
-  { href: '/admin/import', icon: 'upload_file', label: 'CSV-Import', match: /^\/admin\/import/ },
-  { href: '/admin/pdf-creator', icon: 'picture_as_pdf', label: 'PDF-Creator', match: /^\/admin\/pdf-creator/ },
-  { href: '/admin/settings', icon: 'settings', label: 'Einstellungen', match: /^\/admin\/settings/ },
+const navGroups: NavGroup[] = [
+  { title: '', items: [
+    { href: '/admin', icon: 'dashboard', label: 'Dashboard', match: /^\/admin$/ },
+  ]},
+  { title: 'Inhalt', items: [
+    { href: '/admin/items', icon: 'restaurant_menu', label: 'Produkte', match: /^\/admin\/items/ },
+    { href: '/admin/menus', icon: 'menu_book', label: 'Karten', match: /^\/admin\/menus/ },
+    { href: '/admin/media', icon: 'photo_library', label: 'Bildarchiv', match: /^\/admin\/media/ },
+  ]},
+  { title: 'Tools', items: [
+    { href: '/admin/qr-codes', icon: 'qr_code_2', label: 'QR-Codes', match: /^\/admin\/qr-codes/ },
+    { href: '/admin/import', icon: 'upload_file', label: 'CSV-Import', match: /^\/admin\/import/ },
+    { href: '/admin/design', icon: 'palette', label: 'Karten-Design', match: /^\/admin\/design/ },
+    { href: '/admin/pdf-creator', icon: 'picture_as_pdf', label: 'PDF-Creator', match: /^\/admin\/pdf-creator/ },
+  ]},
+  { title: 'Einstellungen', items: [
+    { href: '/admin/settings/users', icon: 'person', label: 'Benutzer', match: /^\/admin\/settings\/users/ },
+    { href: '/admin/settings', icon: 'settings', label: 'Einstellungen', match: /^\/admin\/settings$/ },
+  ]},
 ];
 
 export default function IconBar({ userName, userRole }: { userName: string; userRole: string }) {
@@ -73,41 +83,56 @@ export default function IconBar({ userName, userRole }: { userName: string; user
 
       {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-0.5 px-2 overflow-y-auto">
-        {navItems.map(item => {
-          const active = item.match.test(pathname);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={collapsed ? item.label : undefined}
-              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-fast"
-              style={{
-                backgroundColor: active ? 'var(--color-sidebar-active-bg)' : 'transparent',
-                color: active ? 'var(--color-sidebar-active-text)' : 'var(--color-sidebar-text)',
-                fontWeight: active ? 500 : 400,
-              }}
-              onMouseEnter={e => {
-                if (!active) {
-                  e.currentTarget.style.backgroundColor = 'var(--color-sidebar-hover-bg)';
-                }
-              }}
-              onMouseLeave={e => {
-                if (!active) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              <Icon
-                name={item.icon}
-                size={22}
-                weight={active ? 500 : 400}
-                fill={active}
-                className="flex-shrink-0"
-              />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </Link>
-          );
-        })}
+        {navGroups.map((group, gi) => (
+          <div key={gi}>
+            {group.title && !collapsed && (
+              <div
+                className="pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-center"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                {group.title}
+              </div>
+            )}
+            {group.title && collapsed && gi > 0 && (
+              <div className="my-2 mx-2 border-t" style={{ borderColor: 'var(--color-sidebar-border)' }} />
+            )}
+            {group.items.map(item => {
+              const active = item.match.test(pathname);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={collapsed ? item.label : undefined}
+                  className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-fast"
+                  style={{
+                    backgroundColor: active ? 'var(--color-sidebar-active-bg)' : 'transparent',
+                    color: active ? 'var(--color-sidebar-active-text)' : 'var(--color-sidebar-text)',
+                    fontWeight: active ? 500 : 400,
+                  }}
+                  onMouseEnter={e => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = 'var(--color-sidebar-hover-bg)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <Icon
+                    name={item.icon}
+                    size={22}
+                    weight={active ? 500 : 400}
+                    fill={active}
+                    className="flex-shrink-0"
+                  />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Divider */}
@@ -126,7 +151,7 @@ export default function IconBar({ userName, userRole }: { userName: string; user
             </div>
             <button
               onClick={() => window.location.reload()}
-              title="Neu laden"
+              title="neu laden"
               className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
               style={{ color: 'var(--color-text-muted)' }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-bg-muted)')}
@@ -174,7 +199,7 @@ export default function IconBar({ userName, userRole }: { userName: string; user
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <Icon name="refresh" size={16} />
-                <span>Aktualisieren</span>
+                <span>neu laden</span>
               </button>
               <button
                 onClick={() => { if(confirm('Abmelden?')) window.location.href='/api/auth/signout'; }}
