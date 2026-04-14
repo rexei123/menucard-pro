@@ -1,141 +1,164 @@
-# MenuCard Pro
+# MenuCard Pro — Arbeitsanweisungen für Claude
 
-Digitale Speise-, Getränke- und Weinkarten für Hotel Sonnblick, Saalbach (Österreich).
+Digitale Speise-, Getränke- und Weinkarten für das Hotel Sonnblick, Saalbach (Österreich).
 
 ## Stack
-Next.js 14, TypeScript, Tailwind CSS, Prisma, PostgreSQL, NextAuth, PM2, Nginx
+
+Next.js 14.2 (App Router) · TypeScript 5.7 · Tailwind CSS 3.4 · Prisma 5.22 · PostgreSQL · NextAuth 4.24 · @react-pdf/renderer 4 · Sharp 0.33 · PM2 · Nginx
 
 ## Server
-- **App:** `/var/www/menucard-pro`
-- **DB:** `psql "postgresql://menucard:ccTFFSJtuN7l1dC17PzT8Q@127.0.0.1:5432/menucard_pro"`
-- **Admin:** admin@hotel-sonnblick.at / Sonnblick2026!
+
+- **Domain:** `https://menu.hotel-sonnblick.at`
+- **Server-IP:** 178.104.138.177 (Hetzner CX22, Ubuntu 24.04)
+- **App-Verzeichnis:** `/var/www/menucard-pro`
+- **Datenbank:** `postgresql://menucard:<passwort>@127.0.0.1:5432/menucard_pro` (Passwort in `.env`)
+- **Admin-User:** `admin@hotel-sonnblick.at`
 - **Build & Restart:** `npm run build && pm2 restart menucard-pro`
-- **Nginx:** Reverse proxy → localhost:3000
+- **SSL:** Let's Encrypt, Auto-Renewal aktiv
 
 ## Kommunikation
-- Immer auf **Deutsch** kommunizieren, "Sie"-Form, freundlich-professionell
-- Aus Sicht des Hotels kommunizieren (neutral, nie persönlich)
+
+- Immer auf **Deutsch**, "Sie"-Form, freundlich-professionell
+- Aus Sicht des Hotels kommunizieren (neutral)
 - Kurze bis mittellange Antworten, präzise und informativ
 
 ## Arbeitsweise
-- Dateien direkt editieren, kein Umweg über Scripts
-- Nach Änderungen an Komponenten: `npm run build && pm2 restart menucard-pro`
-- Bei Prisma-Schema-Änderungen: `npx prisma db push` dann Build
-- Immer Backup-Datei erstellen vor größeren Änderungen: `cp datei datei.bak`
-- Teste Änderungen nach dem Build (curl, Browser)
+
+- **Autonom:** Claude beschafft Infos selbst (Scripts, curl, grep), bündelt Schritte in ausführbaren Scripts, macht Selbstkontrolle vor Rückfragen.
+- **Zwei-Shell-Workflow:** Jeder Befehl wird eindeutig markiert als **PowerShell (lokal)** oder **SSH-Terminal (Server)**.
+- **Backup-Prinzip:** Vor Änderungen `cp datei datei.bak`, größere Änderungen als ausführbares Shell-Script.
+- **Build-Zyklus:** Komponenten-/API-Änderung → `npm run build && pm2 restart menucard-pro` → Test (curl oder Playwright).
+- **Prisma-Änderungen:** `npx prisma db push` vor dem Build.
+- **TSX-Dateien:** Bei größeren Änderungen komplett neu schreiben, keine Regex-Replacements.
 
 ## Projektstruktur
+
 ```
 src/
 ├── app/
-│   ├── admin/              # Admin-Bereich
-│   │   ├── design/         # Design-Übersicht
-│   │   └── menus/[id]/design/  # Design-Editor pro Karte
-│   ├── api/v1/             # REST-API
-│   │   ├── menus/[id]/design/  # Design-Config GET/PATCH
-│   │   ├── menus/[id]/pdf/     # PDF-Generierung
-│   │   ├── products/           # Produkt-CRUD
-│   │   ├── placements/         # Kartenzuordnungen
-│   │   ├── qr-codes/           # QR-Code-Verwaltung
-│   │   ├── import/             # CSV-Import
-│   │   ├── translate/          # Auto-Übersetzung
-│   │   ├── media/              # Bilder-Upload
-│   │   └── design-templates/   # Template-Definitionen
-│   ├── api/auth/           # NextAuth
-│   └── [tenant]/[location]/[menu]/  # Öffentliche Gästeansicht
-├── components/admin/
-│   └── design-editor.tsx   # Design-Editor (7 Akkordeons + Live-Vorschau)
+│   ├── (public)/                 # Öffentliche Gäste-Seiten
+│   │   ├── [tenant]/             # z.B. hotel-sonnblick
+│   │   │   └── [location]/       # z.B. restaurant
+│   │   │       └── [menu]/       # Kartenansicht + /item/[itemId]
+│   │   └── q/[code]/             # QR-Short-Code-Redirect
+│   ├── auth/login/               # Login-Seite (NextAuth Custom-Page)
+│   ├── admin/                    # Admin-Bereich (alle authentifiziert)
+│   │   ├── page.tsx              # Dashboard
+│   │   ├── items/                # Produkt-Verwaltung (NICHT /products!)
+│   │   ├── menus/[id]/           # Karten-Editor
+│   │   ├── design/               # Template-Übersicht (SYSTEM + CUSTOM)
+│   │   │   └── [id]/edit/        # Template-Editor (nur CUSTOM editierbar)
+│   │   ├── media/                # Bildarchiv
+│   │   ├── qr-codes/             # QR-Code-Verwaltung
+│   │   ├── import/               # CSV-Import
+│   │   ├── analytics/            # Statistiken
+│   │   ├── pdf-creator/          # PDF-Layouts
+│   │   └── settings/             # allergens, languages, theme, users
+│   └── api/
+│       ├── auth/[...nextauth]/   # NextAuth-Endpoints
+│       └── v1/                   # REST-API (siehe docs/API.md)
+├── components/
+│   ├── admin/                    # admin-spezifisch (19 Komponenten)
+│   ├── templates/                # elegant, modern, classic, minimal Renderer
+│   ├── ui/                       # badge, button, card, icon, input-field
+│   ├── menu-content.tsx          # Öffentliche Kartenansicht
+│   └── language-switcher.tsx
 ├── lib/
-│   ├── prisma.ts           # DB-Client
-│   ├── auth.ts             # NextAuth Config
-│   ├── design-templates/   # Template-Definitionen (elegant/modern/classic/minimal)
-│   └── pdf/                # PDF-Engine
+│   ├── auth.ts                   # NextAuth-Config
+│   ├── prisma.ts                 # DB-Client
+│   ├── design-config-reader.ts   # Template-Config-Merging
+│   ├── design-templates/         # SYSTEM-Template-Definitionen
+│   ├── format-price.ts           # Intl.NumberFormat (de-AT, en-GB)
+│   ├── pdf/                      # @react-pdf/renderer Engine
+│   ├── s3.ts                     # S3-Storage-Adapter
+│   ├── search-suggestions.ts
+│   ├── template-resolver.ts      # SYSTEM + CUSTOM Template-Auflösung
+│   └── utils.ts                  # generateShortCode, cn, etc.
 └── prisma/
-    └── schema.prisma       # Datenbank-Schema
-```
-
-## Datenmodell (Kern)
-```
-Product (322 Produkte)
-├── ProductTranslation (DE+EN)
-├── ProductPrice (Füllmenge × Preisebene, mit EK/Fix/%)
-├── ProductWineProfile
-├── ProductBeverageDetail
-├── ProductAllergen, ProductTag
-├── ProductMedia (Sharp: WebP, thumb/medium/large)
-└── MenuPlacement (Zuordnung zu Karten mit isVisible/sortOrder)
-
-Menu → designConfig (JSON: { digital: {...}, analog: {...} })
-ProductGroup (27, hierarchisch)
-PriceLevel (4): Restaurant, Bar, Room Service, Einkauf
-FillQuantity (18): Flasche 0,75l, 1/8 offen, etc.
+    └── schema.prisma             # 40 Modelle/Enums (siehe docs/DATENMODELL.md)
 ```
 
 ## Design-System
-- 4 Templates: elegant, modern, classic, minimal
-- Design-Config als JSON in `Menu.designConfig`
-- API: GET/PATCH `/api/v1/menus/[id]/design`
-- Editor: `src/components/admin/design-editor.tsx`
-- Templates: `src/lib/design-templates/`
-- "Benutzerdefiniert"-Erkennung wenn Overrides vorhanden
-- Reset-to-Default mit Bestätigungsdialog
 
-## Daten (Stand 12.04.2026)
-- 322 Produkte, 640 Übersetzungen, 298 Preise, 91 Weinprofile, 139 Getränkedetails
-- 9 Karten: 7 Gourmet-Menüs (EVENT), 1 Weinkarte (WINE), 1 Barkarte (BAR)
-- 10 QR-Codes, 27 Produktgruppen
+- **4 SYSTEM-Templates:** elegant, modern, classic, minimal
+- **CUSTOM-Templates:** bis zu 6 gleichzeitig aktiv, via Duplicate/Edit erzeugt
+- **Template-Konfiguration:** JSON in `DesignTemplate.config` (digital + analog)
+- **Route:** Editor unter `/admin/design/[templateId]/edit` (SYSTEM redirected auf `/admin/design`)
+- **API:** `/api/v1/design-templates`, `/api/v1/design-templates/[id]`, `/api/v1/menus/[id]/template`
+- **Komponente:** `src/components/admin/design-editor.tsx` (7 Akkordeons + Live-Vorschau)
 
-## Erledigte Features
-- Admin: Icon-Bar + List-Panel + Workspace, Produkt-Editor, Auto-Translate, Preiskalkulation
-- Bilder-Upload (Sharp/WebP, 3 Größen), Kartenverwaltung Drag&Drop
-- CSV-Import mit Vorschau + Inline-Edit + Neu-Validierung
-- Design-Editor: 7 Akkordeons, Live-Vorschau, Template-Wahl, Reset, Custom-Vorlage
-- Gästeansicht: Kartenansicht, Volltextsuche, Filter, Sprachwechsler DE/EN, Sold-Out
-- Security: Nginx gehärtet, Rate-Limiting, Header, .env geschützt
+## Aktueller Datenstand (14.04.2026)
 
-## Security-Status (12.04.2026)
-- Nginx: .git, .env, prisma, .bak, .sh, .sql blockiert
-- Security-Header: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
-- Rate-Limiting: 10r/s API, 3r/s Login
-- poweredByHeader: false
-- Test-Scripts: `test-bugs.sh`, `test-security.sh` auf dem Server
+| Entität | Anzahl |
+|---|---|
+| Products | 322 |
+| ProductTranslations | 644 (DE + EN) |
+| ProductPrices | 298 |
+| ProductWineProfiles | 91 |
+| ProductBeverageDetails | 137 |
+| Menus | 9 (7 Gourmet EVENT, 1 WINE, 1 BAR) |
+| MenuPlacements | 337 |
+| MenuSections | 65 |
+| DesignTemplates | 5 (4 SYSTEM, 1 CUSTOM "Test 1") |
+| QRCodes | 10 |
+| ProductGroups | 27 (hierarchisch) |
+| PriceLevels | 4 (Restaurant, Bar, Room Service, Einkauf) |
+| FillQuantities | 18 |
+| Locations | 2 · Tenants | 1 · Users | 1 |
 
-## Nächste Schritte
-- Domain/SSL (wartet auf IT)
-- PDF-Export v2
-- Massenänderungen
-- Dark Mode
-- Embed-Code / iFrame-Widget
-- SSH-Key einrichten (dann Root-Login einschränken)
+## Action-Button-Farben (verbindlich)
+
+- **Hinzufügen:** `#22C55E` (green-500, CSS-Variable `--color-add`), Hover `#16A34A`
+- **Entfernen/Löschen:** `var(--color-primary)` (`#DD3C71`), bzw. `var(--color-error)` für destruktive Aktionen
+- Gilt durchgängig im Admin-Backend.
+
+## Security-Status
+
+- Nginx: `.git`, `.env`, `prisma`, `.bak`, `.sh`, `.sql`, `.log`, `node_modules` blockiert
+- Security-Header: `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection`, `Referrer-Policy`
+- Rate-Limiting: 10r/s API, 3r/s Login (Burst 20/5)
+- `poweredByHeader: false`
+- SSL/TLS: Let's Encrypt (menu.hotel-sonnblick.at)
+
+## Test-Infrastruktur
+
+- **Playwright-Script:** `playwright-admin-tests-v4.mjs` im Projektordner
+- **Login-Pfad:** `/auth/login` (Custom-Page, nicht NextAuth-Default)
+- **Selektoren:** `input[name="email"]`, `input[name="password"]`, `button[type="submit"]`
+- **Test-IDs:** In `INVENTAR-*.md` je Stichtag; vor jedem Lauf prüfen, ob Test-IDs noch existieren
 
 ## Technische Learnings
-- `next.config.mjs` (nicht .ts)
-- NextAuth Route: `/api/auth/[...nextauth]/`
-- TypeScript Set: `Array.from(new Set(...))` statt Spread
+
+- `next.config.mjs` (nicht `.ts`)
+- NextAuth-Route: `/api/auth/[...nextauth]/route.ts`
+- TypeScript-Set: `Array.from(new Set(...))` statt Spread
 - Sharp: `.rotate()` für Auto-EXIF, `.webp()` für Konvertierung
-- Nginx upload limit: `/etc/nginx/conf.d/upload.conf` → `client_max_body_size 10M`
+- Nginx-Upload-Limit: `/etc/nginx/conf.d/upload.conf` → `client_max_body_size 10M`
 - Drag & Drop: `useRef` für State in Drop-Handler (useState veraltet in Closures)
-- `.next` Cache löschen bei Problemen: `rm -rf .next`
-- Design-API: Response-Feld heißt `designConfig` (nicht `mergedConfig`)
-- PATCH Design: `{ designConfig: { digital: {...} } }` (nicht `{ digital: {...} }`)
+- `.next` Cache löschen: `rm -rf .next`
+- PATCH Template: `{ templateId: "..." }` an `/api/v1/menus/[id]/template`
 
 ## Backups
-- `/root/menucard-pre-cleanup-20260410.sql`
-- `/root/menucard-backup-20260410.sql`
-- GitHub: rexei123/menucard-pro (main branch)
 
-## Design-Regel: Action-Button-Farben
+- DB-Dumps: `/root/backups-YYYYMMDD/menucard-db-*.sql`
+- Letzter Stand: `/root/backups-20260414/`
+- Git-Tags: `v1.0-stabil` (14.04.2026)
+- GitHub: `rexei123/menucard-pro` (main branch, Token nicht in Remote-URL)
 
-**Hinzufuegen-Buttons: Gruen (hell)**
-- Farbe: `#22C55E` (green-500, CSS-Variable `--color-add`)
-- Hover: `#16A34A` (green-600, CSS-Variable `--color-add-hover`)
-- Beispiele: `+ Artikel`, `+ Preis hinzufuegen`, `+ Neu anlegen`
-- Referenz: gleicher Farbton wie die kleinen Status-Punkte bei Produkten
+## Weiterführende Dokumentation
 
-**Entfernen-/Loeschen-Buttons: Rosa (UI-Primaerfarbe)**
-- Farbe: `var(--color-primary)` (#DD3C71)
-- Oder: `var(--color-error)` fuer destruktive Aktionen
-- Beispiele: `Loeschen`, `Entfernen`, `X` bei Listenpunkten
+- `docs/API.md` — alle 27 API-Routen mit Methoden und Payloads
+- `docs/DATENMODELL.md` — Prisma-Schema vollständig dokumentiert
+- `docs/DEPLOYMENT.md` — Server-Setup, Backup/Restore, Troubleshooting
+- `CHANGELOG.md` — Versionshistorie
+- `README.md` — öffentliche Projektbeschreibung
 
-**Wichtig:** Diese Farblogik gilt im Admin-Backend durchgaengig. Gruen signalisiert "hinzufuegen/bestaetigen", Rosa/Rot signalisiert "entfernen/abbrechen".
+## Nächste Schritte (offen)
 
+- Phase 5: UI/UX-Original-Strategie gegen Original-Briefing fertigstellen
+- Bestellfunktion (vorbereitet, nicht aktiv)
+- Bestandsverwaltung (Mindestbestand, Ausverkauf-Automatik)
+- Happy-Hour / Saisonkarten / Eventkarten
+- Embed-Widget / iFrame
+- Dark Mode
+- SSH-Key-only Login

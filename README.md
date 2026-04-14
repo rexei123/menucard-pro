@@ -1,145 +1,149 @@
 # MenuCard Pro
 
-Digitale Speise-, Getränke- und Weinkarten für das Hotel Sonnblick, Saalbach.
+Digitale Speise-, Getränke- und Weinkarten für das Hotel Sonnblick, Saalbach (Österreich).
 
-Eine mandantenfähige Plattform, die Speise-, Getränke- und Weinkarten per QR-Code und Direktlink bereitstellt – ohne App-Download, in Echtzeit aktualisierbar, mehrsprachig (DE/EN).
+Eine mandantenfähige Plattform, die Speise-, Getränke- und Weinkarten per QR-Code und Direktlink bereitstellt — ohne App-Download, in Echtzeit aktualisierbar, mehrsprachig (Deutsch/Englisch).
 
-## Live
+## Live-Zugänge
 
-- **Gästekarte:** `http://178.104.138.177/hotel-sonnblick/restaurant/`
-- **Admin:** `http://178.104.138.177/admin`
-- **9 Karten** · **322 Produkte** · **640 Übersetzungen** · **91 Weinprofile**
+| Zweck | URL |
+|---|---|
+| Gästekarte | `https://menu.hotel-sonnblick.at/hotel-sonnblick/restaurant/` |
+| Admin-Login | `https://menu.hotel-sonnblick.at/auth/login` |
+| Admin-Dashboard | `https://menu.hotel-sonnblick.at/admin` |
+| QR-Redirect | `https://menu.hotel-sonnblick.at/q/{shortCode}` |
+
+## Kennzahlen
+
+- **322 Produkte** mit 644 Übersetzungen und 298 Preisen
+- **9 Karten:** 7 Gourmet-Menüs, 1 Weinkarte, 1 Barkarte
+- **337 Kartenzuordnungen** (MenuPlacements)
+- **91 Weinprofile**, **137 Getränkedetails**
+- **5 Design-Templates** (4 System, 1 Custom) mit Live-Vorschau
+- **10 QR-Codes**
 
 ## Stack
 
-Next.js 14 · TypeScript · Tailwind CSS · Prisma · PostgreSQL · NextAuth.js · Sharp · PM2 · Nginx
+Next.js 14 · TypeScript · Tailwind CSS · Prisma · PostgreSQL · NextAuth · Sharp · @react-pdf/renderer · PM2 · Nginx
 
 ## Features
 
 ### Gästeansicht
 - Kartenansicht mit Sektionen, Produkten und Preisen
 - Artikeldetail-Seite (alle Produkte klickbar)
-- Volltextsuche und Filter (Weinstil, Land)
-- Sprachwechsler DE/EN
-- QR-Code-Redirect
-- Mobile-optimiert (next/font, Skeleton-Loading)
-- Ausgetrunken-Anzeige (Sold Out)
+- Volltextsuche und Filter (Weinstil, Herkunft, etc.)
+- Sprachwechsler DE/EN mit Fallback-Logik
+- QR-Code-Redirect über Short-Codes
+- Mobile-First, schneller Seitenaufbau
+- Sold-Out-Anzeige
+- 4 Template-Stile: Elegant, Modern, Classic, Minimal
 
 ### Admin
-- Drei-Spalten-Layout: Icon-Bar + List-Panel (resizable) + Workspace
-- Dashboard mit Statistiken
-- Produkt-Editor mit Auto-Translate (MyMemory API, Farbstatus grau/orange/grün)
-- Preiskalkulation (EK → +Fix€ → ×Aufschlag% → =VK, Marge farbcodiert)
-- Weinprofil- und Getränkedetail-Editor
-- Bilder-Upload: Drag & Drop, Sharp-Optimierung (WebP, 3 Größen), Kategorien
-- Kartenverwaltung mit Drag & Drop, Produktpool, Ausgetrunken-Toggle
-- QR-Code-Verwaltung
-- PDF-Export (A4)
+- Drei-Spalten-Layout (Icon-Bar · List-Panel · Workspace)
+- Dashboard mit KPI-Kacheln und Schnellzugriff
+- Produkt-Editor mit Auto-Translate (MyMemory API)
+- Preiskalkulation (EK → Fix€ → %-Aufschlag → VK, Marge farbcodiert)
+- Weinprofil- und Getränkedetail-Editoren
+- Bildarchiv mit Drag & Drop, Sharp-Optimierung (WebP, 3 Größen), Websuche über SearXNG
+- Karten-Editor mit Drag & Drop, Zuordnungs-Pool, Sold-Out-Toggle
+- Design-Editor mit 7 Akkordeons, Live-Vorschau, PDF-Tab, Template-Duplikation
+- QR-Code-Generator mit Branding-Farben und Logo
+- CSV-Import mit Inline-Vorschau und -Bearbeitung
+- PDF-Export (A4) über @react-pdf/renderer
 
 ## Architektur
 
 ### Zentrale Produktdatenbank
 
-Produkte existieren unabhängig von Karten und werden über **MenuPlacement** flexibel zugeordnet:
+Produkte existieren unabhängig von Karten und werden über `MenuPlacement` flexibel zugeordnet:
 
 ```
-Product (322)
+Product
 ├── ProductTranslation (DE + EN)
-├── ProductPrice (Füllmenge × Preisebene, mit Kalkulation)
-├── ProductWineProfile
-├── ProductBeverageDetail
-├── ProductAllergen, ProductTag
-├── ProductMedia (WebP, thumb/medium/large)
+├── ProductPrice (Füllmenge × Preisebene)
+├── ProductWineProfile | ProductBeverageDetail
+├── ProductAllergen, ProductTag, ProductPairing
+├── ProductMedia → Media
 └── MenuPlacement → MenuSection → Menu → Location → Tenant
 ```
 
-Unterstützende Entitäten: ProductGroup (27, hierarchisch), PriceLevel (4), FillQuantity (18), TaxRate (2), Supplier.
+Unterstützende Entitäten: `ProductGroup` (hierarchisch), `PriceLevel`, `FillQuantity`, `TaxRate`, `Supplier`.
 
 ### Projektstruktur
 
 ```
 src/
 ├── app/
-│   ├── (public)/        # Gästeansicht ([tenant]/[location]/[menu])
-│   ├── admin/           # Admin-Bereich (products, menus, qr-codes)
-│   └── api/v1/          # API-Routes (products, placements, translate, media, pdf, qr-codes)
+│   ├── (public)/        # Gästeansicht: [tenant]/[location]/[menu] + q/[code]
+│   ├── auth/login/      # Login (NextAuth Custom-Page)
+│   ├── admin/           # Admin-Bereich
+│   └── api/v1/          # REST-API (27 Endpunkte)
 ├── components/
-│   ├── admin/           # Admin-Komponenten (product-editor, menu-editor, etc.)
-│   └── public/          # Gäste-Komponenten (menu-content, etc.)
-├── lib/                 # Prisma-Client, Auth, Utils
-└── types/               # TypeScript Types
+│   ├── admin/           # Produkt-, Menu-, Design-, QR-Editoren
+│   ├── templates/       # elegant, modern, classic, minimal Renderer
+│   └── ui/              # Wiederverwendbare UI-Bausteine
+├── lib/                 # Auth, Prisma, PDF, Design-Templates, Utils
+└── prisma/              # Schema (40 Modelle/Enums)
 ```
+
+Vollständige Dokumentation: `docs/API.md`, `docs/DATENMODELL.md`, `docs/DEPLOYMENT.md`.
 
 ## Setup (Entwicklung)
 
+Voraussetzungen: Node 22, PostgreSQL 15+, npm 10.
+
 ```bash
+# Repository
+git clone https://github.com/rexei123/menucard-pro.git
+cd menucard-pro
+
 # Abhängigkeiten
 npm install
 
 # Umgebungsvariablen
 cp .env.example .env
+# DATABASE_URL und NEXTAUTH_SECRET setzen
 
 # Datenbank
 npx prisma generate
 npx prisma db push
+npx prisma db seed   # optional: Demo-Daten
 
 # Entwicklungsserver
 npm run dev
 ```
 
-## Deployment (Produktion)
-
-Server: Hetzner CX22, Ubuntu 24.04, Nginx Reverse Proxy → localhost:3000
-
-```bash
-# Build & Restart
-npm run build && pm2 restart menucard-pro
-
-# Prisma Schema synchronisieren
-npx prisma db push
-
-# Logs
-pm2 logs menucard-pro
-
-# Cache leeren bei Problemen
-rm -rf .next && npm run build && pm2 restart menucard-pro
-```
+Der Server läuft unter `http://localhost:3000`.
 
 ## Befehle
 
-| Befehl | Beschreibung |
-|--------|-------------|
+| Befehl | Zweck |
+|---|---|
 | `npm run dev` | Entwicklungsserver |
-| `npm run build` | Production Build |
-| `npm run lint` | ESLint |
-| `npx prisma studio` | Datenbank-Browser |
-| `npx prisma db push` | Schema synchronisieren |
+| `npm run build` | Production-Build |
+| `npm run start` | Production-Server |
+| `npm run lint` | ESLint-Check |
+| `npm run db:generate` | Prisma-Client generieren |
+| `npm run db:push` | Schema in DB spiegeln |
+| `npm run db:studio` | Prisma-Datenbank-Browser |
+| `npm run db:seed` | Demo-Daten einspielen |
 
-## URLs
+## Deployment
 
-| Bereich | URL |
-|---------|-----|
-| Gästekarte | `/hotel-sonnblick/restaurant/{menu-slug}` |
-| Artikeldetail | `/hotel-sonnblick/restaurant/{menu-slug}/item/{id}` |
-| QR-Redirect | `/q/{shortCode}` |
-| Admin | `/admin` |
-| Login | `/auth/login` |
-| PDF-Export | `/api/v1/pdf?tenant=hotel-sonnblick&location=restaurant&menu={slug}&lang=de` |
-| API Products | `/api/v1/products` |
-| API Placements | `/api/v1/placements` |
+Siehe `docs/DEPLOYMENT.md` für die vollständige Server-Setup-Anleitung, Backup-/Restore-Prozeduren und Troubleshooting.
 
-## Design-Regel: Action-Button-Farben
+Schnell-Deployment auf bestehendem Server:
 
-**Hinzufuegen-Buttons: Gruen (hell)**
-- Farbe: `#22C55E` (green-500, CSS-Variable `--color-add`)
-- Hover: `#16A34A` (green-600, CSS-Variable `--color-add-hover`)
-- Beispiele: `+ Artikel`, `+ Preis hinzufuegen`, `+ Neu anlegen`
-- Referenz: gleicher Farbton wie die kleinen Status-Punkte bei Produkten
+```bash
+# SSH auf Server
+cd /var/www/menucard-pro
+git pull
+npm install              # falls Dependencies sich geändert haben
+npx prisma db push       # falls Schema-Änderung
+npm run build
+pm2 restart menucard-pro
+```
 
-**Entfernen-/Loeschen-Buttons: Rosa (UI-Primaerfarbe)**
-- Farbe: `var(--color-primary)` (#DD3C71)
-- Oder: `var(--color-error)` fuer destruktive Aktionen
-- Beispiele: `Loeschen`, `Entfernen`, `X` bei Listenpunkten
+## Lizenz & Kontakt
 
-**Wichtig:** Diese Farblogik gilt im Admin-Backend durchgaengig. Gruen signalisiert "hinzufuegen/bestaetigen", Rosa/Rot signalisiert "entfernen/abbrechen".
-
+Proprietäre Software für Hotel Sonnblick, Saalbach. Kontakt: `hotelsonnblick@gmail.com`.
