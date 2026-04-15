@@ -1,0 +1,95 @@
+/* ============================================================
+ * MenuCard Pro – Public Menu Body Font Override (Runde 3)
+ *
+ * Setzt body / html font-family abhaengig vom aktiven Template.
+ * Das wird benoetigt, weil der RootLayout standardmaessig Inter (font-body)
+ * verwendet und ohne diese Override-Regel die Compliance-Tests body=Inter
+ * messen, obwohl Modern=Montserrat / Minimal=Space Grotesk verlangt sind.
+ *
+ * Voraussetzung: src/components/menu-content.tsx rendert die Wurzel-DIV
+ * mit className="mc-template-root mc-template-${template}".
+ *
+ * Die :has()-Selektoren werden von allen modernen Browsern (Chrome 105+,
+ * Safari 15.4+, Firefox 121+) und damit auch von Playwright/Chromium
+ * (Compliance-Test) unterstuetzt.
+ * ============================================================ */
+
+/* Modern: Montserrat */
+html:has(.mc-template-modern),
+html:has(.mc-template-modern) body {
+  font-family: 'Montserrat', system-ui, -apple-system, sans-serif !important;
+}
+.mc-template-modern,
+.mc-template-modern h1,
+.mc-template-modern h2,
+.mc-template-modern h3,
+.mc-template-modern h4,
+.mc-template-modern h5,
+.mc-template-modern h6,
+.mc-template-modern p,
+.mc-template-modern span,
+.mc-template-modern a,
+.mc-template-modern button,
+.mc-template-modern input,
+.mc-template-modern select {
+  font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+}
+
+/* Minimal: Space Grotesk */
+html:has(.mc-template-minimal),
+html:has(.mc-template-minimal) body {
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif !important;
+}
+.mc-template-minimal,
+.mc-template-minimal h1,
+.mc-template-minimal h2,
+.mc-template-minimal h3,
+.mc-template-minimal h4,
+.mc-template-minimal h5,
+.mc-template-minimal h6,
+.mc-template-minimal p,
+.mc-template-minimal span,
+.mc-template-minimal a,
+.mc-template-minimal button,
+.mc-template-minimal input,
+.mc-template-minimal select {
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+}
+
+/* Classic: Cormorant Garamond (Headlines) + Lato (Body) */
+html:has(.mc-template-classic),
+html:has(.mc-template-classic) body {
+  font-family: 'Lato', system-ui, -apple-system, sans-serif !important;
+}
+.mc-template-classic h1,
+.mc-template-classic h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+.mc-template-classic,
+.mc-template-classic p,
+.mc-template-classic span,
+.mc-template-classic a {
+  font-family: 'Lato', system-ui, -apple-system, sans-serif;
+}
+
+/* Elegant: Playfair Display (Headlines) + Source Sans 3 (Body) */
+html:has(.mc-template-elegant),
+html:has(.mc-template-elegant) body {
+  font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif !important;
+}
+.mc-template-elegant h1,
+.mc-template-elegant h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+.mc-template-elegant,
+.mc-template-elegant p,
+.mc-template-elegant span,
+.mc-template-elegant a {
+  font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+}
+
+/* Wurzel-Container immer Block-Layout */
+.mc-template-root {
+  display: block;
+  min-height: 100vh;
+}

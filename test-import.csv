@@ -1,0 +1,10 @@
+sku;type;name_de;name_en;short_description_de;short_description_en;group;fill_quantity;price_level;price;purchase_price;winery;vintage;grapes;region;country;wine_style;body;sweetness;bottle_size;alcohol;serving_temp;tasting_notes;food_pairing;brand;producer;bev_category;bev_alcohol;carbonated;origin
+TEST-W001;WINE;Zweigelt Reserve;Zweigelt Reserve;Kräftig und fruchtig;Bold and fruity;Getränke;Flasche 0,75l;Restaurant;32.50;10.80;Weingut Umathum;2021;Zweigelt;Neusiedlersee;Österreich;RED;MEDIUM_FULL;DRY;0.75l;13.5;16-18°C;Dunkle Beeren, Schokolade, samtige Tannine;Rinderfilet, Wild, gereifter Käse;;;;;;
+TEST-W001;WINE;Zweigelt Reserve;Zweigelt Reserve;;;Getränke;1/8 offen;Restaurant;5.80;;;;;;;;;;;;;;;;;;;;
+TEST-W002;WINE;Sauvignon Blanc;Sauvignon Blanc;Frisch und aromatisch;Fresh and aromatic;Getränke;Flasche 0,75l;Restaurant;28.00;9.20;Weingut Tement;2023;Sauvignon Blanc;Südsteiermark;Österreich;WHITE;MEDIUM;DRY;0.75l;12.5;8-10°C;Stachelbeere, Holunder, mineralisch;Fisch, Spargel, leichte Salate;;;;;;
+TEST-W002;WINE;Sauvignon Blanc;Sauvignon Blanc;;;Getränke;1/8 offen;Restaurant;5.20;;;;;;;;;;;;;;;;;;;;
+TEST-D001;DRINK;Mojito;Mojito;Klassisch mit frischer Minze;Classic with fresh mint;Getränke;Cocktail;Bar;9.50;2.80;;;;;;;;;;;;;;Bacardi;Bacardi Ltd;COCKTAIL;12;nein;Kuba
+TEST-D002;DRINK;Tegernseer Hell;Tegernseer Hell;Bayerisches Helles;Bavarian Lager;Getränke;0,33l;Bar;4.90;1.60;;;;;;;;;;;;;;Tegernseer;Brauhaus Tegernsee;BEER;4.8;ja;Deutschland
+TEST-D002;DRINK;Tegernseer Hell;Tegernseer Hell;;;Getränke;0,50l;Bar;5.90;1.90;;;;;;;;;;;;;;;;;;;
+TEST-F001;FOOD;Käsespätzle;Cheese Spaetzle;Mit Röstzwiebeln und Salat;With crispy onions and salad;Speisen;Portion;Restaurant;16.90;4.20;;;;;;;;;;;;;;;;;;;
+TEST-F002;FOOD;Kaiserschmarrn;Emperor's Pancake;Mit Zwetschgenröster;With plum compote;Speisen;Portion;Restaurant;14.50;3.80;;;;;;;;;;;;;;;;;;;

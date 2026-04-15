@@ -1,0 +1,29 @@
+410ecdf chore: pre-reorganisation snapshot 2026-04-14
+38c609c UI-Redesign Phase 4c: Bildarchiv Token-Patch (Blau→Rosa) und QR-Code Seite komplett neu gestaltet
+8f4a54d UI-Redesign Phase 4b: Einstellungen-Seite mit Sub-Navigation, Toggles und System-Status
+da078d3 UI-Redesign Phase 4a: Template-Auswahl Seite mit Vergleichstabelle und Aktiv-Badges
+e8f1128 UI-Redesign Phase 3d: Classic Template mit Fine-Dining Nummerierung, Playfair Display und dekorativen Sektions-Headern
+ad520a1 UI-Redesign Phase 3c: Modern Template mit Card-Layout, Highlight-Badges und 2-Spalten Grid
+e32aaf3 feat: UI-Redesign Phase 3b – Minimal Gästeansicht-Template
+6a8bed9 feat: UI-Redesign Phase 3a – Elegant Gästeansicht-Template
+bda96f0 refactor: Alle Emojis durch Material Symbols ersetzt
+c9e15c1 feat: UI-Redesign Phase 2b – Dashboard mit KPI-Kacheln und Schnellzugriff
+ec8ed5b feat: UI-Redesign Phase 1+2 – Design-Token-System und Admin-Sidebar
+4ccf3ce feat: Bildarchiv Phase 4+5 - MediaPicker, Crop-Editor, Product-Media API
+7ba3da5 Bildarchiv Phase 1-3: Upload, Galerie, Websuche mit SearXNG
+505d844 PDF-Export v2: Design-Editor, Vorschau, PDF-Creator, Custom-Vorlagen
+4080b72 CLAUDE.md: Projektdoku für Claude Code
+51c5253 Security: Nginx-Hardening, Header, Rate-Limiting, .env-Schutz, gitignore
+71100ba Design-Editor: Reset-Button, API-Fix, Benutzerdefinierte Vorlage
+cbd9abe feat: editable CSV preview, auto-create fill quantities & product groups
+2499c61 feat: add CSV import, product images in guest view, schema cleanup
+3068248 docs: README auf aktuellen Projektstand aktualisiert (10.04.2026)
+8c43114 Bilder-System: Upload, Drag-Drop, Sharp-Optimierung, Kategorien, Hauptbild, Nginx 10MB, Logout-Button, Neu-laden-Button
+5f72cf4 Fix: Ausgetrunken in Gästekarte, Logout-Button
+5108c6d Menu Editor: Drag-Drop, Produktpool, Filter, Ausgetrunken, Panel-Breiten, Schriftgrößen
+b89b049 Admin: Neues Layout (Icon-Bar, List-Panel, Workspace), Produkt-Editor (Kalkulation, Übersetzung, Rezeptur), Kartenverwaltung, Produktgruppen-Fix, Deduplizierung
+b0ec4d6 Admin Produktverwaltung: Liste, Editor, API, Frontend auf Product/MenuPlacement, UX Guards
+7f10e75 Data Migration: 337 MenuItem → Product completed
+5f0a94c Product Database Schema: 20 neue Tabellen + Stammdaten
+1007ec8 Feature: Sprachwechsler DE/EN, Artikeldetail, Suche/Filter, Mobile-Optimierung, QR-Code Service - Stand 08.04.2026
+c719e81 Initial commit

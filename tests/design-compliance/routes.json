@@ -1,0 +1,205 @@
+{
+  "generatedAt": "2026-04-14T17:27:52.085Z",
+  "adminRoutes": [
+    {
+      "path": "/auth/login",
+      "label": "Login",
+      "needsAuth": false
+    },
+    {
+      "path": "/admin",
+      "label": "Dashboard",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/items",
+      "label": "Produkte",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/menus",
+      "label": "Karten",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/design",
+      "label": "Design",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/media",
+      "label": "Bildarchiv",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/qr-codes",
+      "label": "QR-Codes",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/import",
+      "label": "Import",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/analytics",
+      "label": "Analytics",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/pdf-creator",
+      "label": "PDF-Creator",
+      "needsAuth": true
+    },
+    {
+      "path": "/admin/settings",
+      "label": "Einstellungen",
+      "needsAuth": true
+    }
+  ],
+  "menus": [
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "restaurant",
+      "menu": "amerikanischer-abend",
+      "menuId": "cmnooyat7006ou8ri53p2pszt",
+      "menuType": "EVENT",
+      "publicPath": "/hotel-sonnblick/restaurant/amerikanischer-abend",
+      "itemProductId": "dcadc859-4814-461f-bc9c-3744fb3a5983",
+      "templateId": "cmny7jrhs0000f2mzpigboldv",
+      "templateKey": "elegant",
+      "templateName": "Elegant",
+      "templateSource": "SYSTEM"
+    },
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "restaurant",
+      "menu": "gala-abend",
+      "menuId": "cmnooyaw1008ku8risziqtl05",
+      "menuType": "EVENT",
+      "publicPath": "/hotel-sonnblick/restaurant/gala-abend",
+      "itemProductId": "9ad81304-3aa1-4108-b77e-9db000455696",
+      "templateId": "cmny7jrhs0000f2mzpigboldv",
+      "templateKey": "elegant",
+      "templateName": "Elegant",
+      "templateSource": "SYSTEM"
+    },
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "restaurant",
+      "menu": "schnitzel-abend",
+      "menuId": "cmnooyayj009uu8riaq9d6jn8",
+      "menuType": "EVENT",
+      "publicPath": "/hotel-sonnblick/restaurant/schnitzel-abend",
+      "itemProductId": "193a1529-9c0e-4e95-9370-ec897b822908",
+      "templateId": "cmny7jrhs0000f2mzpigboldv",
+      "templateKey": "elegant",
+      "templateName": "Elegant",
+      "templateSource": "SYSTEM"
+    },
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "restaurant",
+      "menu": "oesterreichischer-abend",
+      "menuId": "cmnooyb2600bqu8riifddr56t",
+      "menuType": "EVENT",
+      "publicPath": "/hotel-sonnblick/restaurant/oesterreichischer-abend",
+      "itemProductId": "f75b72a2-7abe-4e2e-85c1-b352f7c36f30",
+      "templateId": "cmny7jrhs0000f2mzpigboldv",
+      "templateKey": "elegant",
+      "templateName": "Elegant",
+      "templateSource": "SYSTEM"
+    },
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "bar",
+      "menu": "barkarte",
+      "menuId": "cmnop8nca0005c4re5cv88nrd",
+      "menuType": "BAR",
+      "publicPath": "/hotel-sonnblick/bar/barkarte",
+      "itemProductId": "48f82f82-a260-45a3-ae46-58721d3cfcba",
+      "templateId": "cmny9epa900008irm01i5ujpd",
+      "templateKey": "elegant",
+      "templateName": "Test 1",
+      "templateSource": "CUSTOM"
+    },
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "restaurant",
+      "menu": "jaegerabend",
+      "menuId": "cmnooyahm0010u8ri9w6gi6p2",
+      "menuType": "EVENT",
+      "publicPath": "/hotel-sonnblick/restaurant/jaegerabend",
+      "itemProductId": "cd611a34-80e1-4027-a333-a63f0604b818",
+      "templateId": "cmny7jrij0001f2mzf25nnvlj",
+      "templateKey": "modern",
+      "templateName": "Modern",
+      "templateSource": "SYSTEM"
+    },
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "restaurant",
+      "menu": "italienischer-abend",
+      "menuId": "cmnooyalz002wu8rihn3tslhl",
+      "menuType": "EVENT",
+      "publicPath": "/hotel-sonnblick/restaurant/italienischer-abend",
+      "itemProductId": "4172b559-07a2-426e-b5ae-c189536eaecd",
+      "templateId": "cmny7jriu0002f2mze00q10cz",
+      "templateKey": "classic",
+      "templateName": "Klassisch",
+      "templateSource": "SYSTEM"
+    },
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "restaurant",
+      "menu": "heimatabend",
+      "menuId": "cmnooyapm004su8ridifga7mz",
+      "menuType": "EVENT",
+      "publicPath": "/hotel-sonnblick/restaurant/heimatabend",
+      "itemProductId": "193a1529-9c0e-4e95-9370-ec897b822908",
+      "templateId": "cmny7jrj70003f2mzg368ddwh",
+      "templateKey": "minimal",
+      "templateName": "Minimal",
+      "templateSource": "SYSTEM"
+    },
+    {
+      "tenant": "hotel-sonnblick",
+      "location": "restaurant",
+      "menu": "weinkarte",
+      "menuId": "cmnopnyz70001hk6vcxmq6miw",
+      "menuType": "WINE",
+      "publicPath": "/hotel-sonnblick/restaurant/weinkarte",
+      "itemProductId": "f3156908-53f9-488d-bf2a-dc4c2901e8b6",
+      "templateId": "cmny7jrhs0000f2mzpigboldv",
+      "templateKey": "elegant",
+      "templateName": "Elegant",
+      "templateSource": "SYSTEM"
+    }
+  ],
+  "templates": [
+    {
+      "id": "cmny7jrhs0000f2mzpigboldv",
+      "key": "elegant",
+      "name": "Elegant",
+      "source": "SYSTEM"
+    },
+    {
+      "id": "cmny7jrij0001f2mzf25nnvlj",
+      "key": "modern",
+      "name": "Modern",
+      "source": "SYSTEM"
+    },
+    {
+      "id": "cmny7jriu0002f2mze00q10cz",
+      "key": "classic",
+      "name": "Klassisch",
+      "source": "SYSTEM"
+    },
+    {
+      "id": "cmny7jrj70003f2mzg368ddwh",
+      "key": "minimal",
+      "name": "Minimal",
+      "source": "SYSTEM"
+    }
+  ]
+}

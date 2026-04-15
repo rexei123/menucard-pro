@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+body {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  color: #1a1a1a;
+  background-color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.font-montserrat {
+  font-family: "Montserrat", sans-serif;
+}
+
+.font-playfair {
+  font-family: "Playfair Display", serif;
+}
+
+.menu-item-description {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  line-height: 1.6;
+  color: #4a4a4a;
+}
+
+.eyebrow-text {
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.25em;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: #8e8e8e;
+}
+
+.price-tag {
+  font-family: "Playfair Display", serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.item-number {
+  font-family: "Playfair Display", serif;
+  font-size: 0.7rem;
+  color: #d1d1d1;
+  letter-spacing: 0.1em;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .border-subtle {
+    border-color: rgba(0, 0, 0, 0.04);
+  }
+}

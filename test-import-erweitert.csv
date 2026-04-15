@@ -1,0 +1,17 @@
+sku;type;name_de;name_en;short_description_de;short_description_en;group;fill_quantity;price_level;price;purchase_price;winery;vintage;grapes;region;country;wine_style;body;sweetness;bottle_size;alcohol;serving_temp;tasting_notes;food_pairing;brand;producer;bev_category;bev_alcohol;carbonated;origin
+TEST-W101;WINE;Blaufränkisch DAC Reserve;Blaufränkisch DAC Reserve;Intensiv, würzig, langanhaltend;Intense, spicy, long finish;Getränke;Flasche 0,75l;Restaurant;42.00;14.50;Weingut Igler;2020;Blaufränkisch;Mittelburgenland;Österreich;RED;FULL;DRY;0.75l;14.0;16-18°C;Schwarzkirsche, Tabak, Vanille, kräftige Tannine;Wildgulasch, Rindsbraten, Hartkäse;;;;;;
+TEST-W101;WINE;Blaufränkisch DAC Reserve;Blaufränkisch DAC Reserve;;;Getränke;1/4 offen;Restaurant;12.50;;;;;;;;;;;;;;;;;;;;
+TEST-W101;WINE;Blaufränkisch DAC Reserve;Blaufränkisch DAC Reserve;;;Getränke;1/8 offen;Restaurant;6.80;;;;;;;;;;;;;;;;;;;;
+TEST-W102;WINE;"Grüner Veltliner ""Löss""";"Grüner Veltliner ""Loess""";Frisch & fruchtig – Klassiker!;Fresh & fruity – a classic!;Getränke;Flasche 0,75l;Restaurant;24,50;8,20;Weingut Bründlmayer;2023;Grüner Veltliner;Kamptal;Österreich;WHITE;MEDIUM_LIGHT;DRY;0.75l;12,5;8-10°C;Grüner Apfel, Zitrus, weißer Pfeffer;Wiener Schnitzel, Spargel;;;;;;
+TEST-D101;DRINK;Gin Tonic (Hendrick's);Gin & Tonic (Hendrick's);Mit Gurke und Tonic Water;With cucumber and tonic water;Getränke;Cocktail;Bar;12.50;3.80;;;;;;;;;;;;;;Hendrick's;William Grant & Sons;COCKTAIL;15;ja;Schottland
+TEST-D101;DRINK;Gin Tonic (Hendrick's);Gin & Tonic (Hendrick's);;;Getränke;Cocktail;Restaurant;13.90;;;;;;;;;;;;;;;;;;;;
+TEST-D102;DRINK;Almdudler;Almdudler Herbal Lemonade;Österreichische Kräuterlimonade;Austrian herbal lemonade;Getränke;0,33l;Restaurant;3.90;0.95;;;;;;;;;;;;;;Almdudler;Almdudler Limonade A.& S. Klein GmbH;SOFT_DRINK;0;ja;Österreich
+TEST-F101;FOOD;Tiroler Gröstl;;Bratkartoffeln mit Rindfleisch, Spiegelei und Salat;;Speisen;Portion;Restaurant;18.90;5.20;;;;;;;;;;;;;;;;;;;
+TEST-F102;FOOD;Frittatensuppe;Pancake Soup;Klare Rindsuppe mit Frittaten;Clear beef broth with sliced pancakes;Speisen;kleine Portion;Restaurant;6.50;1.80;;;;;;;;;;;;;;;;;;;
+TEST-F102;FOOD;Frittatensuppe;Pancake Soup;;;Speisen;große Portion;Restaurant;8.90;;;;;;;;;;;;;;;;;;;;
+TEST-ERR1;DRINK;Red Bull;Red Bull;Energy Drink;Energy Drink;Getränke;Dose 250ml;Restaurant;4.50;1.60;;;;;;;;;;;;;;Red Bull;Red Bull GmbH;SOFT_DRINK;0;ja;Österreich
+TEST-ERR2;DESSERT;Sachertorte;Sacher Cake;Original Wiener Sachertorte;Original Viennese Sacher Cake;Speisen;Portion;Restaurant;9.80;;;;;;;;;;;;;;;;;;;;
+TEST-ERR3;FOOD;;;;;Speisen;Portion;Restaurant;12.00;;;;;;;;;;;;;;;;;;;;
+TEST-F103;FOOD;Sonnblick Frühstück;Sonnblick Breakfast;Reichhaltiges Bergfrühstück für Zwei;Hearty mountain breakfast for two;Frühstück;Portion;Restaurant;32.00;9.50;;;;;;;;;;;;;;;;;;;
+TEST-D103;DRINK;Wiener Melange;Viennese Coffee;Kaffee mit aufgeschäumter Milch;Coffee with frothed milk;Getränke;Tasse;Restaurant;4.20;0.60;;;;;;;;;;;;;;;;HOT_DRINK;0;nein;Österreich
+TEST-D104;DRINK;Zirben-Schnaps;Pine Schnapps;Hauseigener Zirbenschnaps aus Saalbach;Homemade pine schnapps from Saalbach;Getränke;2cl;Bar;5.50;1.20;;;;;;;;;;;;;;Hauseigen;Hotel Sonnblick;SPIRIT;38;nein;Österreich

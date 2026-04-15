@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+body {
+  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  color: #1a1a1a;
+  background-color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* Base Typography Adjustments */
+p {
+  line-height: 1.6;
+}
+
+/* Custom Utilities for Design Specifics */
+.text-italic-serif {
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+  font-style: italic;
+}
+
+.letter-spacing-widest {
+  letter-spacing: 0.15em;
+}
+
+/* Hide scrollbar for clean mobile feel while keeping functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Subtle gradient for the header area if needed */
+.header-blur {
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Custom shadow for the bottom navigation */
+.shadow-nav {
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Decorative line under main heading */
+.heading-underline {
+  width: 40px;
+  height: 2px;
+  background-color: #d63384; /* Accent pink from design */
+  margin: 1rem auto;
+}

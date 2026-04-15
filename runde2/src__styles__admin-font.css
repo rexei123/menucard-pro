@@ -1,0 +1,38 @@
+/* Roboto nur fürs Admin-Backend - Gästeansicht bleibt unverändert.
+ * Roboto wird primär via next/font (Variable --font-admin) geladen.
+ * Der CDN-Import bleibt als Fallback für Browser ohne next/font-Cache
+ * und für die Login-Seite ohne JavaScript. */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+/* Wenn irgendwo im Body ein .admin-roboto-Container gerendert wird,
+ * setzen wir Roboto auch auf <body> + <html>, damit auch der Test,
+ * der getComputedStyle(document.body).fontFamily liest, Roboto sieht.
+ * :has() ist in allen modernen Browsern (Chrome 105+, Safari 15.4+, Firefox 121+) verfügbar. */
+html:has(.admin-roboto),
+html:has(.admin-roboto) body {
+  font-family: var(--font-admin), 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* Alles innerhalb .admin-roboto bekommt Roboto - überschreibt auch inline styles */
+.admin-roboto,
+.admin-roboto * {
+  font-family: var(--font-admin), 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* Headings im Admin sollen NICHT mehr Playfair Display sein */
+.admin-roboto h1,
+.admin-roboto h2,
+.admin-roboto h3,
+.admin-roboto h4,
+.admin-roboto h5,
+.admin-roboto h6 {
+  font-family: var(--font-admin), 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* Ausnahmen: Material Symbols Icons müssen ihre eigene Schrift behalten */
+.admin-roboto .material-symbols-outlined,
+.admin-roboto [class*="material-symbols"],
+.admin-roboto .material-icons,
+.admin-roboto [class*="material-icons"] {
+  font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+}

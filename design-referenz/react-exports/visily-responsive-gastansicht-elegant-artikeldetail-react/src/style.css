@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+body {
+  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Base Typography Adjustments */
+p {
+  line-height: 1.6;
+  color: #4a4a4a;
+}
+
+/* Custom Utilities for Fine-grained Control */
+.text-serif {
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+}
+
+.text-sans {
+  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+}
+
+.letter-spacing-widest {
+  letter-spacing: 0.2em;
+}
+
+.italic-serif {
+  font-family: "Playfair Display", ui-serif, Georgia, serif;
+  font-style: italic;
+  text-transform: none;
+}
+
+/* Hide scrollbar for clean mobile aesthetic */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Decorative elements */
+.hr-with-star {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #d1d1d1;
+}
+
+.hr-with-star::before,
+.hr-with-star::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #ececec;
+}
+
+.hr-with-star:not(:empty)::before {
+  margin-right: 1.5rem;
+}
+
+.hr-with-star:not(:empty)::after {
+  margin-left: 1.5rem;
+}
+
+/* Custom button hover state for the dark aesthetic */
+.btn-dark-active:active {
+  background-color: #000000;
+  transform: scale(0.98);
+  transition: all 0.1s ease;
+}

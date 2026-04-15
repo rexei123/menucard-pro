@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+body {
+  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  color: #333333;
+  background-color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* The "The Ultimate BBQ..." title uses a bolder weight and slightly tighter tracking */
+.hero-title {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* Description text and labels */
+p {
+  line-height: 1.6;
+  color: #666666;
+}
+
+/* Section headers like "BESCHREIBUNG" and "EXTRAS ANPASSEN" */
+.section-label {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.875rem;
+  color: #333333;
+}
+
+/* Custom Utilities */
+
+/* Glassmorphism for the "Hot" and "Bestseller" badges */
+.glass-badge {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Soft shadow for cards and selection items */
+.soft-shadow {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+/* Custom scrollbar for horizontal icon list if needed */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Price tag styling for the pink accent buttons */
+.price-tag {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Subtle gradient for the main action button */
+.btn-gradient {
+  background: linear-gradient(135deg, #e94e77 0%, #d81b60 100%);
+}
+
+/* Playfair Display usage for specific elegant accents if required by design nuances */
+.elegant-text {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+}
