@@ -1,28 +1,14 @@
-# OS / Editor
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-.~lock.*
-
-# Archives (große Binärdateien nicht ins Repo)
-*.zip
-*.tgz
-*.tar.gz
-
-# Node
+.next/
 node_modules/
-
-# Temporäre Compliance-Bundles (werden pro Lauf neu erzeugt)
-tests/design-compliance/bundle*.tgz
-tests/design-compliance/runde*-extracted/
-tests/design-compliance/snapshots/
-tests/design-compliance/source-dump/
-
-# LibreOffice Lock-Dateien
-.~lock.*#
-
-# Umgebung
 .env
-.env.*
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+dist/
+coverage/
+.DS_Store
+
+# Security: Sensible Dateien ausschließen
+*.bak
+*.sh
+*.sql

@@ -1,0 +1,5 @@
+sku;type;name_de;name_en;short_description_de;short_description_en;group;fill_quantity;price_level;price;purchase_price;winery;vintage;grapes;region;country;wine_style;body;sweetness;bottle_size;alcohol;serving_temp;tasting_notes;food_pairing;brand;producer;bev_category;bev_alcohol;carbonated;origin
+WEIN-001;WINE;Grüner Veltliner Smaragd;Grüner Veltliner Smaragd;Frisch und mineralisch;Fresh and mineral;Getränke;Flasche 0,75l;Restaurant;38.50;12.00;Weingut Hirtzberger;2022;Grüner Veltliner;Wachau;Österreich;WHITE;MEDIUM;DRY;0.75l;13.5;8-10°C;Aromen von grünem Apfel und weißem Pfeffer;Fisch, Wiener Schnitzel;;;;;;
+WEIN-001;WINE;Grüner Veltliner Smaragd;Grüner Veltliner Smaragd;;;Getränke;1/8 offen;Restaurant;6.80;;;;;;;;;;;;;;;;;;;;
+DRINK-001;DRINK;Aperol Spritz;Aperol Spritz;Der Klassiker;The classic;Getränke;Cocktail;Bar;8.90;2.50;;;;;;;;;;;;;;Aperol;Campari Group;COCKTAIL;11;nein;Italien
+FOOD-001;FOOD;Wiener Schnitzel;Wiener Schnitzel;Vom Kalb mit Preiselbeeren;Veal with lingonberries;Speisen;Portion;Restaurant;22.50;6.80;;;;;;;;;;;;;;;;;;;

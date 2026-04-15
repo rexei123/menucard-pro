@@ -1,0 +1,1091 @@
+'use client';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { TabPdfLayout } from './pdf-layout-tab';
+
+// ─── Types ───
+type TypoLevel = { font: string; size: number; weight?: number; color: string; transform?: string; spacing?: number; style?: string };
+type DigitalConfig = {
+  template: string; mood: string; density: string;
+  typography: Record<string, TypoLevel & { format?: string }>;
+  colors: Record<string, any>;
+  icons: Record<string, any>;
+  badges: Record<string, any>;
+  allergens: Record<string, any>;
+  products: Record<string, any>;
+  navigation: Record<string, any>;
+  header: Record<string, any>;
+  footer: Record<string, any>;
+};
+
+type MenuModeProps = {
+  mode?: 'menu';
+  menuId: string;
+  tenantSlug: string;
+  locationSlug: string;
+  menuSlug: string;
+};
+type TemplateModeProps = {
+  mode: 'template';
+  templateId: string;
+  initialName: string;
+  initialBaseType: string;
+  previewUrl: string | null;
+  previewPdfUrl?: string | null;
+};
+type Props = MenuModeProps | TemplateModeProps;
+
+const FONTS = [
+  { label: 'Playfair Display', value: 'Playfair Display', type: 'serif' },
+  { label: 'Cormorant Garamond', value: 'Cormorant Garamond', type: 'serif' },
+  { label: 'Libre Baskerville', value: 'Libre Baskerville', type: 'serif' },
+  { label: 'Source Sans 3', value: 'Source Sans 3', type: 'sans' },
+  { label: 'Inter', value: 'Inter', type: 'sans' },
+  { label: 'Lato', value: 'Lato', type: 'sans' },
+  { label: 'Open Sans', value: 'Open Sans', type: 'sans' },
+  { label: 'Josefin Sans', value: 'Josefin Sans', type: 'display' },
+  { label: 'Raleway', value: 'Raleway', type: 'display' },
+  { label: 'Montserrat', value: 'Montserrat', type: 'display' },
+];
+const TEMPLATES = [
+  { id: 'elegant', name: 'Elegant', desc: 'Serif, warme Töne, Weißraum', icon: 'wine_bar' },
+  { id: 'modern', name: 'Modern', desc: 'Sans-Serif, dunkel, Badges', icon: 'local_bar' },
+  { id: 'classic', name: 'Klassisch', desc: 'Bordüren, zentriert, traditionell', icon: 'restaurant' },
+  { id: 'minimal', name: 'Minimal', desc: 'Max. Lesbarkeit, Listen-Format', icon: 'coffee' },
+];
+const TYPO_LEVELS = [
+  { key: 'h1', label: 'H1 – Karten-Titel', desc: 'z.B. "Weinkarte"' },
+  { key: 'h2', label: 'H2 – Sektions-Titel', desc: 'z.B. "Schaumwein"' },
+  { key: 'h3', label: 'H3 – Produkt-Name', desc: 'z.B. "Grüner Veltliner"' },
+  { key: 'body', label: 'Body – Beschreibung', desc: 'Weinbeschreibung' },
+  { key: 'price', label: 'Preis', desc: 'z.B. "€ 68,10"' },
+  { key: 'meta', label: 'Meta – Zusatzinfo', desc: 'Allergene, Herkunft' },
+];
+const TABS = [
+  { id: 'vorlage', label: 'Vorlage', icon: 'palette' },
+  { id: 'typografie', label: 'Typografie', icon: 'text_fields' },
+  { id: 'farben', label: 'Farben', icon: 'format_color_fill' },
+  { id: 'produkte', label: 'Produkte', icon: 'inventory_2' },
+  { id: 'elemente', label: 'Elemente', icon: 'sell' },
+  { id: 'navigation', label: 'Navigation', icon: 'menu' },
+  { id: 'rahmen', label: 'Kopf & Fuß', icon: 'crop_landscape' },
+  { id: 'pdf', label: 'PDF-Layout', icon: 'picture_as_pdf' },
+];
+const PRIMARY = 'var(--color-primary)';
+const PRIMARY_SOFT = 'rgba(221,60,113,0.08)';
+const PRIMARY_RING = 'rgba(221,60,113,0.15)';
+
+// ─── Small UI helpers ───
+function Label({ children }: { children: React.ReactNode }) {
+  return <label className="block text-xs font-medium text-gray-500 mb-1">{children}</label>;
+}
+function ColorInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)}
+        className="h-8 w-8 cursor-pointer rounded border border-gray-300 p-0.5" />
+      <div className="flex-1">
+        <div className="text-xs text-gray-500">{label}</div>
+        <input type="text" value={value || ''} onChange={e => onChange(e.target.value)}
+          className="w-full text-xs font-mono border-b border-gray-200 py-0.5 outline-none focus:border-gray-400" />
+      </div>
+    </div>
+  );
+}
+function SelectInput({ label, value, options, onChange }: { label: string; value: string; options: { label: string; value: string }[]; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <select value={value} onChange={e => onChange(e.target.value)}
+        className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400">
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+}
+function SliderInput({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit?: string; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <div className="flex justify-between items-baseline">
+        <Label>{label}</Label>
+        <span className="text-xs text-gray-400 font-mono">{value}{unit || ''}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step || 1} value={value} onChange={e => onChange(Number(e.target.value))}
+        className="w-full"
+        style={{ accentColor: 'var(--color-primary)' }} />
+    </div>
+  );
+}
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between cursor-pointer py-1">
+      <span className="text-sm text-gray-700">{label}</span>
+      <button type="button" onClick={() => onChange(!checked)}
+        className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+        style={{ backgroundColor: checked ? PRIMARY : '#D1D5DB' }}>
+        <span className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
+          style={{ transform: checked ? 'translateX(18px)' : 'translateX(2px)' }} />
+      </button>
+    </label>
+  );
+}
+function ConfirmDialog({ open, title, message, confirmLabel, onConfirm, onCancel }: {
+  open: boolean; title: string; message: string; confirmLabel: string;
+  onConfirm: () => void; onCancel: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <span className="material-symbols-outlined text-amber-600" style={{ fontSize: 20 }}>warning</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+              <p className="mt-2 text-sm text-gray-600 leading-relaxed">{message}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 bg-gray-50 px-6 py-3">
+          <button onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50">Abbrechen</button>
+          <button onClick={onConfirm} className="rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ backgroundColor: '#D97706' }}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── API Adapter (mode-aware) ───
+function useApi(props: Props) {
+  return useMemo(() => {
+    if (props.mode === 'template') {
+      return {
+        mode: 'template' as const,
+        load: async () => {
+          const res = await fetch(`/api/v1/design-templates/${props.templateId}`);
+          if (!res.ok) throw new Error('Laden fehlgeschlagen');
+          const data = await res.json();
+          const t = data.template;
+          const digital = (t.config?.digital) || {};
+          const analog = (t.config?.analog) || {};
+          return {
+            digital,
+            analog,
+            overrides: digital,
+            analogOverrides: analog,
+            templateName: digital.template || t.baseType || 'elegant',
+            customTemplates: [],
+            meta: { name: t.name, baseType: t.baseType, type: t.type },
+          };
+        },
+        save: async (patch: any) => {
+          // patch: { digital?: {...}, baseType?, name?, customTemplates? }
+          const body: any = {};
+          if (patch.name !== undefined) body.name = patch.name;
+          if (patch.baseType !== undefined) body.baseType = patch.baseType;
+          if (patch.digital !== undefined || patch.analog !== undefined) {
+            body.config = {};
+            if (patch.digital !== undefined) body.config.digital = patch.digital;
+            if (patch.analog !== undefined) body.config.analog = patch.analog;
+          }
+          const res = await fetch(`/api/v1/design-templates/${props.templateId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Speichern fehlgeschlagen');
+          }
+          return res.json();
+        },
+      };
+    }
+    const p = props as MenuModeProps;
+    return {
+      mode: 'menu' as const,
+      load: async () => {
+        const res = await fetch(`/api/v1/menus/${p.menuId}/design`);
+        if (!res.ok) throw new Error('Laden fehlgeschlagen');
+        const data = await res.json();
+        return {
+          digital: data.designConfig?.digital || data.digital || data,
+          analog: data.designConfig?.analog || {},
+          overrides: data.savedOverrides?.digital || {},
+          analogOverrides: data.savedOverrides?.analog || {},
+          templateName: data.templateName || data.designConfig?.digital?.template || 'elegant',
+          customTemplates: data.customTemplates || [],
+          meta: { name: '', baseType: '', type: 'MENU' },
+        };
+      },
+      save: async (patch: any) => {
+        const body: any = { designConfig: {} };
+        if (patch.digital !== undefined) body.designConfig.digital = patch.digital;
+        if (patch.customTemplates !== undefined) body.designConfig.customTemplates = patch.customTemplates;
+        const res = await fetch(`/api/v1/menus/${p.menuId}/design`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error('Speichern fehlgeschlagen');
+        return res.json();
+      },
+    };
+  }, [props]);
+}
+
+// ─── Main Editor ───
+export default function DesignEditor(props: Props) {
+  const router = useRouter();
+  const api = useApi(props);
+  const isTemplateMode = api.mode === 'template';
+  const previewPdfUrl = isTemplateMode
+    ? ((props as TemplateModeProps).previewPdfUrl ?? null)
+    : null;
+
+  const [config, setConfig] = useState<DigitalConfig | null>(null);
+  const [analogConfig, setAnalogConfig] = useState<any>(null);
+  const [overrides, setOverrides] = useState<any>({});
+  const [analogOverrides, setAnalogOverrides] = useState<any>({});
+  const [templateName, setTemplateName] = useState('elegant');
+  const [customName, setCustomName] = useState('');
+  const [customTemplates, setCustomTemplates] = useState<Array<{name: string; overrides: any; baseTemplate: string}>>([]);
+  const [activeTab, setActiveTab] = useState(TABS[0].id);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<'mobile' | 'desktop' | 'pdf'>('mobile');
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showTemplateSwitch, setShowTemplateSwitch] = useState<string | null>(null);
+  const [templateMetaName, setTemplateMetaName] = useState<string>(isTemplateMode ? (props as TemplateModeProps).initialName : '');
+
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hasCustomOverrides = useMemo(() => {
+    if (!overrides || typeof overrides !== 'object') return false;
+    const keys = Object.keys(overrides).filter(k => k !== 'template');
+    if (keys.length === 0) return false;
+    return keys.some(k => {
+      const val = overrides[k];
+      if (val === null || val === undefined) return false;
+      if (typeof val === 'object' && Object.keys(val).length === 0) return false;
+      return true;
+    });
+  }, [overrides]);
+
+  // Load config
+  useEffect(() => {
+    let active = true;
+    api.load().then(data => {
+      if (!active) return;
+      setConfig(data.digital as DigitalConfig);
+      setAnalogConfig((data as any).analog || {});
+      setOverrides(data.overrides);
+      setAnalogOverrides((data as any).analogOverrides || {});
+      setTemplateName(data.templateName);
+      setCustomName(data.overrides?.customName || '');
+      setCustomTemplates(data.customTemplates);
+      if (isTemplateMode) setTemplateMetaName(data.meta.name);
+      setLoading(false);
+    }).catch(e => {
+      setError(e.message);
+      setLoading(false);
+    });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Debounced save (digital overrides)
+  const scheduleSave = useCallback((newOverrides: any) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        await api.save({ digital: newOverrides });
+        setSavedAt(Date.now());
+        if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = setTimeout(() => {
+          if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+        }, 150);
+      } catch (e: any) {
+        setError(e.message || 'Speichern fehlgeschlagen');
+      } finally {
+        setSaving(false);
+      }
+    }, 800);
+  }, [api]);
+
+  // ─── Analog (PDF) Save + Update ───
+  const scheduleSaveAnalog = useCallback((newAnalogOverrides: any) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        await api.save({ analog: newAnalogOverrides });
+        setSavedAt(Date.now());
+      } catch (e: any) {
+        setError(e.message || 'Speichern fehlgeschlagen');
+      } finally {
+        setSaving(false);
+      }
+    }, 800);
+  }, [api]);
+
+  const updateAnalog = useCallback((path: string, value: any) => {
+    setAnalogConfig((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || {}));
+      const parts = path.split('.');
+      let obj: any = next;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!obj[parts[i]]) obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      return next;
+    });
+    setAnalogOverrides((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || {}));
+      const parts = path.split('.');
+      let obj: any = next;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!obj[parts[i]]) obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      scheduleSaveAnalog(next);
+      return next;
+    });
+  }, [scheduleSaveAnalog]);
+
+  const updateConfig = useCallback((path: string, value: any) => {
+    setConfig(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev));
+      const parts = path.split('.');
+      let obj: any = next;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!obj[parts[i]]) obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      return next;
+    });
+    setOverrides((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || {}));
+      const parts = path.split('.');
+      let obj: any = next;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!obj[parts[i]]) obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      scheduleSave(next);
+      return next;
+    });
+  }, [scheduleSave]);
+
+  // Template switch
+  const handleTemplateClick = useCallback((name: string) => {
+    if (hasCustomOverrides) setShowTemplateSwitch(name);
+    else switchTemplate(name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasCustomOverrides]);
+
+  const switchTemplate = useCallback(async (name: string) => {
+    setShowTemplateSwitch(null);
+    setTemplateName(name);
+    setSaving(true);
+    try {
+      if (isTemplateMode) {
+        await api.save({ baseType: name, digital: { template: name } });
+      } else {
+        await api.save({ digital: { template: name } });
+      }
+      const reloaded = await api.load();
+      setConfig(reloaded.digital as DigitalConfig);
+      setOverrides(reloaded.overrides);
+      setSavedAt(Date.now());
+      if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }, [api, isTemplateMode]);
+
+  const saveAsCustomTemplate = useCallback(async (name: string) => {
+    if (isTemplateMode) return; // not applicable
+    if (customTemplates.length >= 4) return;
+    const tmpl = {
+      name: name || 'Benutzerdefiniert ' + (customTemplates.length + 1),
+      overrides: JSON.parse(JSON.stringify(overrides)),
+      baseTemplate: templateName,
+    };
+    const updated = [...customTemplates, tmpl];
+    setCustomTemplates(updated);
+    try {
+      await api.save({ customTemplates: updated });
+      setSavedAt(Date.now());
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }, [api, customTemplates, overrides, templateName, isTemplateMode]);
+
+  const loadCustomTemplate = useCallback(async (index: number) => {
+    const tmpl = customTemplates[index];
+    if (!tmpl) return;
+    setSaving(true);
+    try {
+      await api.save({ digital: { ...tmpl.overrides, template: tmpl.baseTemplate } });
+      const reloaded = await api.load();
+      setConfig(reloaded.digital as DigitalConfig);
+      setOverrides(tmpl.overrides);
+      setTemplateName(tmpl.baseTemplate);
+      setCustomName(tmpl.name);
+      setSavedAt(Date.now());
+      if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }, [api, customTemplates]);
+
+  const deleteCustomTemplate = useCallback(async (index: number) => {
+    const updated = customTemplates.filter((_, i) => i !== index);
+    setCustomTemplates(updated);
+    try {
+      await api.save({ customTemplates: updated });
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }, [api, customTemplates]);
+
+  const resetToDefaults = useCallback(async () => {
+    setSaving(true);
+    setShowResetDialog(false);
+    try {
+      await api.save({ digital: { template: templateName } });
+      const reloaded = await api.load();
+      setConfig(reloaded.digital as DigitalConfig);
+      setOverrides({ template: templateName });
+      setCustomName('');
+      setSavedAt(Date.now());
+      if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }, [api, templateName]);
+
+  // Template name editing (template-mode only)
+  const updateTemplateMetaName = useCallback(async (newName: string) => {
+    setTemplateMetaName(newName);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving(true);
+      try {
+        await api.save({ name: newName });
+        setSavedAt(Date.now());
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setSaving(false);
+      }
+    }, 800);
+  }, [api]);
+
+  // Keyboard: Strg+S manually triggers save, Esc closes dialogs
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (saveTimerRef.current) {
+          clearTimeout(saveTimerRef.current);
+          saveTimerRef.current = null;
+          scheduleSave(overrides);
+        }
+      }
+      if (e.key === 'Escape') {
+        setShowResetDialog(false);
+        setShowTemplateSwitch(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [overrides, scheduleSave]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-10 w-10 rounded-full border-2 border-gray-200 border-t-transparent animate-spin" style={{ borderTopColor: PRIMARY }} />
+      </div>
+    );
+  }
+  if (!config) return <div className="p-6 text-red-500">Fehler beim Laden der Design-Konfiguration.</div>;
+
+  const previewUrl = isTemplateMode
+    ? (props as TemplateModeProps).previewUrl
+    : `/${(props as MenuModeProps).tenantSlug}/${(props as MenuModeProps).locationSlug}/${(props as MenuModeProps).menuSlug}`;
+
+  // ── Status text ──
+  let statusText = '';
+  let statusTone: 'neutral' | 'active' | 'success' | 'error' = 'neutral';
+  if (error) { statusText = error; statusTone = 'error'; }
+  else if (saving) { statusText = 'Speichert …'; statusTone = 'active'; }
+  else if (savedAt && Date.now() - savedAt < 2000) { statusText = 'Gespeichert'; statusTone = 'success'; }
+  else { statusText = 'Änderungen werden automatisch gespeichert'; statusTone = 'neutral'; }
+
+  return (
+    <div className="flex h-[calc(100vh-64px)] bg-gray-50">
+      {/* LEFT: Editor Panel */}
+      <div className="w-[460px] min-w-[420px] flex flex-col border-r border-gray-100 bg-white">
+
+        {/* TopBar */}
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-100">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <button
+              onClick={() => router.back()}
+              className="rounded-lg p-1.5 hover:bg-gray-100"
+              aria-label="Zurück"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+            </button>
+            <div className="flex-1 min-w-0">
+              {isTemplateMode ? (
+                <input
+                  value={templateMetaName}
+                  onChange={e => updateTemplateMetaName(e.target.value)}
+                  className="w-full text-base font-bold outline-none border-b border-transparent hover:border-gray-200 focus:border-gray-400 py-0.5"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  placeholder="Name der Vorlage"
+                />
+              ) : (
+                <h1 className="text-base font-bold truncate" style={{ fontFamily: "'Playfair Display', serif" }}>Design-Editor</h1>
+              )}
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs">
+                <StatusDot tone={statusTone} />
+                <span className={statusTone === 'error' ? 'text-red-600' : 'text-gray-500'}>{statusText}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowResetDialog(true)}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              title="Alle Anpassungen auf Vorlage-Standard zurücksetzen"
+            >
+              Zurücksetzen
+            </button>
+          </div>
+
+          {/* Tab navigation */}
+          <div className="px-2">
+            <div className="flex flex-wrap gap-1">
+              {TABS.map(t => {
+                const active = activeTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    className="flex items-center gap-1 whitespace-nowrap rounded-t-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+                    style={{
+                      color: active ? PRIMARY : '#6B7280',
+                      borderBottom: active ? `2px solid ${PRIMARY}` : '2px solid transparent',
+                      backgroundColor: active ? PRIMARY_SOFT : 'transparent',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{t.icon}</span>
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Dialogs */}
+        <ConfirmDialog open={showResetDialog} title="Design zurücksetzen?" message="Alle individuellen Anpassungen werden verworfen und die Einstellungen der aktuellen Vorlage wiederhergestellt. Dieser Vorgang kann nicht rückgängig gemacht werden." confirmLabel="Zurücksetzen" onConfirm={resetToDefaults} onCancel={() => setShowResetDialog(false)} />
+        <ConfirmDialog open={showTemplateSwitch !== null} title="Vorlage wechseln?" message="Sie haben individuelle Anpassungen vorgenommen. Beim Wechsel zu einer anderen Vorlage gehen alle Änderungen verloren und werden durch die Standard-Einstellungen der neuen Vorlage ersetzt." confirmLabel="Vorlage wechseln" onConfirm={() => showTemplateSwitch && switchTemplate(showTemplateSwitch)} onCancel={() => setShowTemplateSwitch(null)} />
+
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+          {activeTab === 'vorlage' && (
+            <TabVorlage
+              config={config}
+              templateName={templateName}
+              hasCustomOverrides={hasCustomOverrides}
+              customName={customName}
+              setCustomName={(v: string) => { setCustomName(v); updateConfig('customName', v); }}
+              customTemplates={customTemplates}
+              isTemplateMode={isTemplateMode}
+              onTemplateClick={handleTemplateClick}
+              onLoadCustom={loadCustomTemplate}
+              onDeleteCustom={deleteCustomTemplate}
+              onSaveAsCustom={saveAsCustomTemplate}
+              update={updateConfig}
+            />
+          )}
+          {activeTab === 'typografie' && <TabTypografie config={config} update={updateConfig} />}
+          {activeTab === 'farben' && <TabFarben config={config} update={updateConfig} />}
+          {activeTab === 'produkte' && <TabProdukte config={config} update={updateConfig} />}
+          {activeTab === 'elemente' && <TabElemente config={config} update={updateConfig} />}
+          {activeTab === 'navigation' && <TabNavigation config={config} update={updateConfig} />}
+          {activeTab === 'rahmen' && <TabRahmen config={config} update={updateConfig} />}
+          {activeTab === 'pdf' && isTemplateMode && (
+            <TabPdfLayout analogConfig={analogConfig} update={updateAnalog} />
+          )}
+          {activeTab === 'pdf' && !isTemplateMode && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="font-medium mb-1">PDF-Layout nur in Vorlagen verfügbar</div>
+              PDF-Einstellungen werden zentral in der zugeordneten Design-Vorlage gepflegt.
+              Bitte wechseln Sie in den Bereich <strong>Kartendesign</strong>, um diese Einstellungen zu bearbeiten.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* RIGHT: Preview Panel */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex items-center justify-between border-b border-gray-100 bg-white px-4 py-2.5">
+          <div className="flex flex-wrap gap-1">
+            <PreviewToggle active={previewMode === 'mobile'} onClick={() => setPreviewMode('mobile')} icon="smartphone" label="Handy" />
+            <PreviewToggle active={previewMode === 'desktop'} onClick={() => setPreviewMode('desktop')} icon="desktop_windows" label="Desktop" />
+            {previewPdfUrl && (
+              <PreviewToggle active={previewMode === 'pdf'} onClick={() => setPreviewMode('pdf')} icon="picture_as_pdf" label="PDF" />
+            )}
+          </div>
+          {(previewMode === 'pdf' ? previewPdfUrl : previewUrl) && (
+            <a href={(previewMode === 'pdf' ? previewPdfUrl : previewUrl) || '#'} target="_blank" rel="noopener noreferrer" className="text-xs font-medium flex items-center gap-1 hover:underline" style={{ color: PRIMARY }}>
+              In neuem Tab öffnen
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>open_in_new</span>
+            </a>
+          )}
+        </div>
+        <div className="flex-1 flex items-start justify-center overflow-auto p-6 bg-gray-100">
+          {previewMode === 'pdf' && previewPdfUrl ? (
+            <div className="bg-white shadow-xl rounded-2xl overflow-hidden w-full max-w-[900px]"
+              style={{ height: 'calc(100vh - 180px)' }}>
+              <iframe ref={iframeRef} src={`/pdf-viewer.html?url=${encodeURIComponent(previewPdfUrl || '')}&t=${savedAt || 0}`} className="w-full h-full border-0" title="PDF-Vorschau" />
+            </div>
+          ) : previewUrl ? (
+            <div className={`bg-white shadow-xl rounded-2xl overflow-hidden ${previewMode === 'mobile' ? 'w-[390px]' : 'w-full max-w-[1280px]'}`}
+              style={{ height: previewMode === 'mobile' ? '780px' : 'calc(100vh - 180px)' }}>
+              <iframe ref={iframeRef} src={previewUrl} className="w-full h-full border-0" title="Vorschau" />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center text-gray-500 mt-24">
+              <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#D1D5DB' }}>web_asset_off</span>
+              <p className="mt-3 text-sm">Keine Karte nutzt diese Vorlage aktuell.</p>
+              <p className="text-xs text-gray-400 mt-1">Weisen Sie die Vorlage einer Karte zu, um eine Live-Vorschau zu sehen.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusDot({ tone }: { tone: 'neutral' | 'active' | 'success' | 'error' }) {
+  const color = tone === 'error' ? '#DC2626' : tone === 'success' ? '#10B981' : tone === 'active' ? PRIMARY : '#9CA3AF';
+  return <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color, boxShadow: tone === 'active' ? `0 0 0 3px ${PRIMARY_RING}` : 'none' }} />;
+}
+
+function PreviewToggle({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
+  return (
+    <button onClick={onClick}
+      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+      style={{
+        backgroundColor: active ? PRIMARY : 'transparent',
+        color: active ? 'white' : '#6B7280',
+      }}>
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+// ─── TABS ───
+function TabVorlage({ config, templateName, hasCustomOverrides, customName, setCustomName, customTemplates, isTemplateMode, onTemplateClick, onLoadCustom, onDeleteCustom, onSaveAsCustom, update }: any) {
+  return (
+    <div className="space-y-5">
+      <section>
+        <SectionTitle>Basis-Vorlage</SectionTitle>
+        <p className="text-xs text-gray-500 mb-3">{isTemplateMode ? 'Die Basis, auf der diese Vorlage aufbaut. Ein Wechsel setzt alle Werte auf die neue Basis zurück.' : 'Wählen Sie eine Ausgangs-Vorlage. Alle Anpassungen bauen darauf auf.'}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {TEMPLATES.map((tmpl: any) => {
+            const active = !hasCustomOverrides && templateName === tmpl.id;
+            return (
+              <button key={tmpl.id} onClick={() => onTemplateClick(tmpl.id)}
+                className="rounded-xl border p-3 text-left transition-all"
+                style={{
+                  borderColor: active ? PRIMARY : '#E5E7EB',
+                  backgroundColor: active ? PRIMARY_SOFT : 'white',
+                  boxShadow: active ? `0 0 0 2px ${PRIMARY_RING}` : 'none',
+                }}>
+                <span className="material-symbols-outlined mb-1" style={{ fontSize: 20, color: active ? PRIMARY : '#6B7280' }}>{tmpl.icon}</span>
+                <div className="text-sm font-semibold">{tmpl.name}</div>
+                <div className="text-xs text-gray-500 leading-tight">{tmpl.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {!isTemplateMode && customTemplates?.length > 0 && (
+        <section>
+          <SectionTitle>Eigene Voreinstellungen</SectionTitle>
+          <div className="grid grid-cols-2 gap-2">
+            {customTemplates.map((ct: any, idx: number) => (
+              <div key={idx}
+                className="rounded-xl border border-gray-200 hover:border-gray-300 p-3 text-left cursor-pointer relative group"
+                onClick={() => onLoadCustom(idx)}>
+                <span className="material-symbols-outlined mb-1" style={{ fontSize: 18, color: PRIMARY }}>edit_note</span>
+                <div className="text-sm font-semibold truncate">{ct.name}</div>
+                <div className="text-xs text-gray-500 truncate">Basis: {ct.baseTemplate}</div>
+                <button onClick={e => { e.stopPropagation(); onDeleteCustom(idx); }}
+                  className="absolute top-1.5 right-1.5 hidden group-hover:flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-500 hover:bg-red-100"
+                  title="Löschen">
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!isTemplateMode && hasCustomOverrides && (
+        <section>
+          <div className="rounded-xl border p-3" style={{ borderColor: PRIMARY, backgroundColor: PRIMARY_SOFT }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: PRIMARY }}>edit</span>
+              <span className="text-xs font-semibold" style={{ color: PRIMARY }}>Individuelle Anpassung aktiv</span>
+            </div>
+            <input type="text" value={customName} onChange={e => setCustomName(e.target.value)}
+              placeholder="Name für diese Voreinstellung"
+              className="w-full text-sm font-medium bg-transparent border-b outline-none py-0.5 placeholder-gray-400"
+              style={{ borderColor: 'rgba(221,60,113,0.3)', color: PRIMARY }} />
+            <div className="text-xs mt-1" style={{ color: PRIMARY }}>Basierend auf {templateName}</div>
+            {customTemplates.length < 4 && (
+              <button onClick={() => onSaveAsCustom(customName || 'Benutzerdefiniert ' + (customTemplates.length + 1))}
+                className="mt-3 w-full rounded-lg py-1.5 text-xs font-medium text-white"
+                style={{ backgroundColor: PRIMARY }}>
+                Als Voreinstellung speichern
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section>
+        <SectionTitle>Grundstil</SectionTitle>
+        <div className="space-y-3">
+          <SelectInput label="Stimmung" value={config.mood} onChange={(v: string) => update('mood', v)}
+            options={[{ label: 'Hell', value: 'light' }, { label: 'Warm', value: 'warm' }, { label: 'Dunkel', value: 'dark' }]} />
+          <SelectInput label="Dichte" value={config.density} onChange={(v: string) => update('density', v)}
+            options={[{ label: 'Luftig', value: 'airy' }, { label: 'Normal', value: 'normal' }, { label: 'Kompakt', value: 'compact' }]} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TabTypografie({ config, update }: any) {
+  return (
+    <div className="space-y-4">
+      {TYPO_LEVELS.map(level => {
+        const t = config.typography[level.key] || {};
+        return (
+          <section key={level.key} className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-3">
+            <div>
+              <div className="text-sm font-semibold text-gray-800">{level.label}</div>
+              <div className="text-xs text-gray-500">{level.desc}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <SelectInput label="Schrift" value={t.font || 'Source Sans 3'}
+                onChange={(v: string) => update(`typography.${level.key}.font`, v)}
+                options={FONTS.map(f => ({ label: `${f.label} (${f.type})`, value: f.value }))} />
+              <SliderInput label="Größe" value={t.size || 16} min={8} max={64} unit="px"
+                onChange={(v: number) => update(`typography.${level.key}.size`, v)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <SelectInput label="Gewicht" value={String(t.weight || 400)}
+                onChange={(v: string) => update(`typography.${level.key}.weight`, Number(v))}
+                options={[
+                  { label: 'Light (300)', value: '300' }, { label: 'Normal (400)', value: '400' },
+                  { label: 'Medium (500)', value: '500' }, { label: 'Semi-Bold (600)', value: '600' },
+                  { label: 'Bold (700)', value: '700' }, { label: 'Extra-Bold (800)', value: '800' },
+                ]} />
+              <ColorInput label="Farbe" value={t.color || '#333333'}
+                onChange={(v: string) => update(`typography.${level.key}.color`, v)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <SelectInput label="Transform" value={t.transform || 'none'}
+                onChange={(v: string) => update(`typography.${level.key}.transform`, v)}
+                options={[
+                  { label: 'Keine', value: 'none' }, { label: 'VERSALIEN', value: 'uppercase' },
+                  { label: 'kleinbuchstaben', value: 'lowercase' }, { label: 'Erster Groß', value: 'capitalize' },
+                ]} />
+              <SliderInput label="Spacing" value={(t.spacing || 0) * 100} min={-5} max={20} unit="%"
+                onChange={(v: number) => update(`typography.${level.key}.spacing`, v / 100)} />
+            </div>
+            {level.key === 'body' && (
+              <SelectInput label="Stil" value={t.style || 'normal'}
+                onChange={(v: string) => update(`typography.${level.key}.style`, v)}
+                options={[{ label: 'Normal', value: 'normal' }, { label: 'Kursiv', value: 'italic' }]} />
+            )}
+            <div className="rounded-lg border border-gray-100 bg-white px-3 py-3"
+              style={{ fontFamily: `'${t.font || 'sans-serif'}'`, fontSize: `${Math.min(t.size || 16, 28)}px`, fontWeight: t.weight || 400, color: t.color || '#333', textTransform: (t.transform || 'none') as any, letterSpacing: t.spacing ? `${t.spacing}em` : undefined, fontStyle: t.style || 'normal' }}>
+              {level.key === 'price' ? '€ 68,10' : level.desc}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function TabFarben({ config, update }: any) {
+  return (
+    <div className="space-y-5">
+      <section>
+        <SectionTitle>Grundfarben</SectionTitle>
+        <div className="space-y-3">
+          <ColorInput label="Seiten-Hintergrund" value={config.colors.pageBackground} onChange={(v: string) => update('colors.pageBackground', v)} />
+          <ColorInput label="Kopfbereich Hintergrund" value={config.colors.headerBackground} onChange={(v: string) => update('colors.headerBackground', v)} />
+          <ColorInput label="Kopfbereich Text" value={config.colors.headerText} onChange={(v: string) => update('colors.headerText', v)} />
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Sektionen</SectionTitle>
+        <div className="space-y-3">
+          <ColorInput label="Sektions-Header Hintergrund" value={config.colors.sectionHeaderBg} onChange={(v: string) => update('colors.sectionHeaderBg', v)} />
+          <ColorInput label="Sektions-Linie" value={config.colors.sectionLine} onChange={(v: string) => update('colors.sectionLine', v)} />
+          <SliderInput label="Linienstärke" value={config.colors.sectionLineWidth || 1} min={0} max={5} unit="px" onChange={(v: number) => update('colors.sectionLineWidth', v)} />
+          <SelectInput label="Linienstil" value={config.colors.sectionLineStyle || 'solid'} onChange={(v: string) => update('colors.sectionLineStyle', v)}
+            options={[{ label: 'Durchgezogen', value: 'solid' }, { label: 'Gestrichelt', value: 'dashed' }, { label: 'Doppelt', value: 'double' }, { label: 'Keine', value: 'none' }]} />
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Produkte</SectionTitle>
+        <div className="space-y-3">
+          <ColorInput label="Produkt Hintergrund" value={config.colors.productBg} onChange={(v: string) => update('colors.productBg', v)} />
+          <ColorInput label="Produkt Hover" value={config.colors.productHover} onChange={(v: string) => update('colors.productHover', v)} />
+          <ColorInput label="Trennlinie" value={config.colors.productDivider} onChange={(v: string) => update('colors.productDivider', v)} />
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Preis-Verbindungslinie</SectionTitle>
+        <div className="space-y-3">
+          <SelectInput label="Stil" value={config.colors.priceLine || 'dotted'} onChange={(v: string) => update('colors.priceLine', v)}
+            options={[{ label: 'Gepunktet', value: 'dotted' }, { label: 'Durchgezogen', value: 'solid' }, { label: 'Keine', value: 'none' }]} />
+          <ColorInput label="Farbe" value={config.colors.priceLineColor} onChange={(v: string) => update('colors.priceLineColor', v)} />
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Akzentfarben</SectionTitle>
+        <div className="grid grid-cols-2 gap-3">
+          <ColorInput label="Primär" value={config.colors.accentPrimary} onChange={(v: string) => update('colors.accentPrimary', v)} />
+          <ColorInput label="Empfehlung" value={config.colors.accentRecommend} onChange={(v: string) => update('colors.accentRecommend', v)} />
+          <ColorInput label="Neu" value={config.colors.accentNew} onChange={(v: string) => update('colors.accentNew', v)} />
+          <ColorInput label="Premium" value={config.colors.accentPremium} onChange={(v: string) => update('colors.accentPremium', v)} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TabProdukte({ config, update }: any) {
+  const wineLabels: Record<string, string> = { winery: 'Weingut', vintage: 'Jahrgang', grape: 'Rebsorte', region: 'Region', country: 'Land', alcohol: 'Alkoholgehalt', appellation: 'Appellation' };
+  return (
+    <div className="space-y-5">
+      <section>
+        <SectionTitle>Bilder</SectionTitle>
+        <div className="space-y-3">
+          <Toggle label="Bilder anzeigen" checked={config.products?.showImages ?? true} onChange={(v: boolean) => update('products.showImages', v)} />
+          {config.products?.showImages && (
+            <>
+              <SelectInput label="Stil" value={config.products?.imageStyle || 'color'} onChange={(v: string) => update('products.imageStyle', v)}
+                options={[{ label: 'Farbe', value: 'color' }, { label: 'Schwarzweiß', value: 'grayscale' }, { label: 'Sepia', value: 'sepia' }]} />
+              <SelectInput label="Form" value={config.products?.imageShape || 'rounded'} onChange={(v: string) => update('products.imageShape', v)}
+                options={[{ label: 'Abgerundet', value: 'rounded' }, { label: 'Rund', value: 'round' }, { label: 'Rechteck', value: 'rectangle' }]} />
+              <SliderInput label="Größe" value={config.products?.imageSize || 64} min={32} max={128} unit="px" onChange={(v: number) => update('products.imageSize', v)} />
+              <SelectInput label="Position" value={config.products?.imagePosition || 'left'} onChange={(v: string) => update('products.imagePosition', v)}
+                options={[{ label: 'Links', value: 'left' }, { label: 'Rechts', value: 'right' }]} />
+            </>
+          )}
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Beschreibung</SectionTitle>
+        <div className="space-y-3">
+          <Toggle label="Kurzbeschreibung" checked={config.products?.showShortDesc ?? true} onChange={(v: boolean) => update('products.showShortDesc', v)} />
+          <Toggle label="Langbeschreibung" checked={config.products?.showLongDesc ?? false} onChange={(v: boolean) => update('products.showLongDesc', v)} />
+          <SliderInput label="Max. Zeilen" value={config.products?.descMaxLines || 2} min={1} max={10} onChange={(v: number) => update('products.descMaxLines', v)} />
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Preis</SectionTitle>
+        <div className="space-y-3">
+          <SelectInput label="Position" value={config.products?.pricePosition || 'right'} onChange={(v: string) => update('products.pricePosition', v)}
+            options={[{ label: 'Rechts', value: 'right' }, { label: 'Unter Name', value: 'below-name' }, { label: 'Unter Beschreibung', value: 'below-desc' }]} />
+          <Toggle label="Alle Preise zeigen" checked={config.products?.showAllPrices ?? true} onChange={(v: boolean) => update('products.showAllPrices', v)} />
+          <Toggle label="Füllmenge zeigen" checked={config.products?.showFillQuantity ?? true} onChange={(v: boolean) => update('products.showFillQuantity', v)} />
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Weindetails</SectionTitle>
+        <div className="space-y-1">
+          {['winery', 'vintage', 'grape', 'region', 'country', 'alcohol', 'appellation'].map(detail => (
+            <Toggle key={detail} label={wineLabels[detail] || detail}
+              checked={(config.products?.wineDetails || []).includes(detail)}
+              onChange={(checked: boolean) => {
+                const current = config.products?.wineDetails || [];
+                const next = checked ? [...current, detail] : current.filter((d: string) => d !== detail);
+                update('products.wineDetails', next);
+              }} />
+          ))}
+          <div className="pt-2">
+            <SelectInput label="Position" value={config.products?.wineDetailPosition || 'below'} onChange={(v: string) => update('products.wineDetailPosition', v)}
+              options={[{ label: 'Unter Name', value: 'below' }, { label: 'Aufklappbar', value: 'collapsible' }, { label: 'Nur Detailseite', value: 'detail-only' }]} />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TabElemente({ config, update }: any) {
+  return (
+    <div className="space-y-5">
+      <section>
+        <SectionTitle>Icons</SectionTitle>
+        <SelectInput label="Icon-Stil" value={config.icons?.style || 'outlined'} onChange={(v: string) => update('icons.style', v)}
+          options={[{ label: 'Emoji-Icons', value: 'emoji' }, { label: 'Linien-Icons', value: 'outlined' }, { label: 'Ausgefüllt', value: 'filled' }, { label: 'Keine', value: 'none' }]} />
+      </section>
+      <section>
+        <SectionTitle>Badges</SectionTitle>
+        <div className="space-y-3">
+          <SelectInput label="Badge-Stil" value={config.badges?.style || 'pill'} onChange={(v: string) => update('badges.style', v)}
+            options={[{ label: 'Pill-Tag', value: 'pill' }, { label: 'Farbiger Punkt', value: 'dot' }, { label: 'Icon', value: 'icon' }, { label: 'Farbiger Rand', value: 'bordered' }]} />
+          <div>
+            <Label>Badges anzeigen</Label>
+            <div className="space-y-1 mt-1">
+              {['recommendation', 'new', 'premium', 'vegetarian', 'vegan', 'bio'].map(badge => (
+                <Toggle key={badge} label={badge.charAt(0).toUpperCase() + badge.slice(1)}
+                  checked={(config.badges?.show || []).includes(badge)}
+                  onChange={(checked: boolean) => {
+                    const current = config.badges?.show || [];
+                    const next = checked ? [...current, badge] : current.filter((b: string) => b !== badge);
+                    update('badges.show', next);
+                  }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Allergene</SectionTitle>
+        <div className="space-y-3">
+          <SelectInput label="Position" value={config.allergens?.position || 'product'} onChange={(v: string) => update('allergens.position', v)}
+            options={[{ label: 'Am Produkt', value: 'product' }, { label: 'Am Seitenende', value: 'footer' }, { label: 'Aus', value: 'hidden' }]} />
+          <SelectInput label="Stil" value={config.allergens?.style || 'numbers'} onChange={(v: string) => update('allergens.style', v)}
+            options={[{ label: 'Nummern', value: 'numbers' }, { label: 'Abkürzungen', value: 'abbreviations' }, { label: 'Icons', value: 'icons' }]} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TabNavigation({ config, update }: any) {
+  return (
+    <div className="space-y-5">
+      <section>
+        <SectionTitle>Inhaltsverzeichnis</SectionTitle>
+        <div className="space-y-3">
+          <Toggle label="Inhaltsverzeichnis anzeigen" checked={config.navigation?.showToc ?? true} onChange={(v: boolean) => update('navigation.showToc', v)} />
+          {config.navigation?.showToc && (
+            <>
+              <SelectInput label="Position" value={config.navigation?.tocPosition || 'sticky'} onChange={(v: string) => update('navigation.tocPosition', v)}
+                options={[{ label: 'Oben unter Header', value: 'top' }, { label: 'Sticky', value: 'sticky' }, { label: 'Dropdown', value: 'dropdown' }]} />
+              <SelectInput label="Stil" value={config.navigation?.tocStyle || 'pills'} onChange={(v: string) => update('navigation.tocStyle', v)}
+                options={[{ label: 'Pill-Buttons', value: 'pills' }, { label: 'Tabs', value: 'tabs' }, { label: 'Einfache Liste', value: 'list' }]} />
+            </>
+          )}
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Verhalten</SectionTitle>
+        <div className="space-y-1">
+          <Toggle label="Sticky Navigation" checked={config.navigation?.stickyNav ?? true} onChange={(v: boolean) => update('navigation.stickyNav', v)} />
+          <Toggle label="Smooth Scroll" checked={config.navigation?.smoothScroll ?? true} onChange={(v: boolean) => update('navigation.smoothScroll', v)} />
+          <Toggle label="Aktive Sektion hervorheben" checked={config.navigation?.highlightActive ?? true} onChange={(v: boolean) => update('navigation.highlightActive', v)} />
+          <Toggle label="'Nach oben' Button" checked={config.navigation?.showBackToTop ?? true} onChange={(v: boolean) => update('navigation.showBackToTop', v)} />
+          <Toggle label="Leere Sektionen ausblenden" checked={config.navigation?.hideEmptySections ?? true} onChange={(v: boolean) => update('navigation.hideEmptySections', v)} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TabRahmen({ config, update }: any) {
+  return (
+    <div className="space-y-5">
+      <section>
+        <SectionTitle>Kopfbereich</SectionTitle>
+        <div className="space-y-3">
+          <SelectInput label="Logo Position" value={config.header?.logoPosition || 'center'} onChange={(v: string) => update('header.logoPosition', v)}
+            options={[{ label: 'Links', value: 'left' }, { label: 'Zentriert', value: 'center' }, { label: 'Rechts', value: 'right' }]} />
+          <SliderInput label="Logo Größe" value={config.header?.logoSize || 120} min={40} max={240} unit="px" onChange={(v: number) => update('header.logoSize', v)} />
+          <div>
+            <Label>Titel (leer = Kartenname)</Label>
+            <input type="text" value={config.header?.title || ''} placeholder="Kartenname wird verwendet"
+              onChange={e => update('header.title', e.target.value || null)}
+              className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400" />
+          </div>
+          <div>
+            <Label>Untertitel</Label>
+            <input type="text" value={config.header?.subtitle || ''} placeholder="z.B. Saison 2025/26"
+              onChange={e => update('header.subtitle', e.target.value || null)}
+              className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400" />
+          </div>
+          <SliderInput label="Overlay Opacity" value={(config.header?.overlayOpacity || 0.6) * 100} min={0} max={100} unit="%" onChange={(v: number) => update('header.overlayOpacity', v / 100)} />
+          <SelectInput label="Header-Höhe" value={config.header?.height || 'normal'} onChange={(v: string) => update('header.height', v)}
+            options={[
+              { label: 'Klein (nur Logo+Titel)', value: 'small' },
+              { label: 'Normal (Logo+Titel+Untertitel)', value: 'normal' },
+              { label: 'Groß (Vollbild mit Hintergrundbild)', value: 'large' },
+            ]} />
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Fußzeile</SectionTitle>
+        <div className="space-y-3">
+          <Toggle label="Fußzeile anzeigen" checked={config.footer?.show ?? true} onChange={(v: boolean) => update('footer.show', v)} />
+          {config.footer?.show && (
+            <>
+              <div>
+                <Label>Fußzeilen-Text</Label>
+                <input type="text" value={config.footer?.text || ''} onChange={e => update('footer.text', e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400" />
+              </div>
+              <Toggle label="Allergen-Hinweis" checked={config.footer?.showAllergenNote ?? true} onChange={(v: boolean) => update('footer.showAllergenNote', v)} />
+              <Toggle label="Preishinweis" checked={config.footer?.showPriceNote ?? true} onChange={(v: boolean) => update('footer.showPriceNote', v)} />
+            </>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">{children}</h3>;
+}

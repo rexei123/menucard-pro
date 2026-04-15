@@ -1,0 +1,16 @@
+export const EU_ALLERGENS = [
+  { code: 'A', icon: '🌾', translations: { de: { name: 'Glutenhaltiges Getreide', description: 'Weizen, Roggen, Gerste, Hafer, Dinkel' }, en: { name: 'Cereals containing gluten', description: 'Wheat, rye, barley, oats, spelt' } } },
+  { code: 'B', icon: '🦐', translations: { de: { name: 'Krebstiere', description: '' }, en: { name: 'Crustaceans', description: '' } } },
+  { code: 'C', icon: '🥚', translations: { de: { name: 'Eier', description: '' }, en: { name: 'Eggs', description: '' } } },
+  { code: 'D', icon: '🐟', translations: { de: { name: 'Fisch', description: '' }, en: { name: 'Fish', description: '' } } },
+  { code: 'E', icon: '🥜', translations: { de: { name: 'Erdnuesse', description: '' }, en: { name: 'Peanuts', description: '' } } },
+  { code: 'F', icon: '🫘', translations: { de: { name: 'Soja', description: '' }, en: { name: 'Soybeans', description: '' } } },
+  { code: 'G', icon: '🥛', translations: { de: { name: 'Milch', description: 'einschliesslich Laktose' }, en: { name: 'Milk', description: 'including lactose' } } },
+  { code: 'H', icon: '🌰', translations: { de: { name: 'Schalenfruechte', description: 'Mandeln, Haselnuesse, Walnuesse, Cashew, Pecan, Para, Pistazien, Macadamia' }, en: { name: 'Tree nuts', description: '' } } },
+  { code: 'L', icon: '🥬', translations: { de: { name: 'Sellerie', description: '' }, en: { name: 'Celery', description: '' } } },
+  { code: 'M', icon: '🫒', translations: { de: { name: 'Senf', description: '' }, en: { name: 'Mustard', description: '' } } },
+  { code: 'N', icon: '🌱', translations: { de: { name: 'Sesamsamen', description: '' }, en: { name: 'Sesame seeds', description: '' } } },
+  { code: 'O', icon: '🧪', translations: { de: { name: 'Schwefeldioxid und Sulphite', description: '> 10 mg/kg oder 10 mg/l' }, en: { name: 'Sulphur dioxide and sulphites', description: '' } } },
+  { code: 'P', icon: '🫛', translations: { de: { name: 'Lupinen', description: '' }, en: { name: 'Lupin', description: '' } } },
+  { code: 'R', icon: '🐚', translations: { de: { name: 'Weichtiere', description: '' }, en: { name: 'Molluscs', description: '' } } },
+];

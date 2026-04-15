@@ -1,0 +1,16 @@
+/* Roboto nur fürs Admin-Backend - Gästeansicht bleibt unverändert */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+/* Alles innerhalb .admin-roboto bekommt Roboto - überschreibt auch inline styles */
+.admin-roboto,
+.admin-roboto * {
+  font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* Ausnahmen: Material Symbols Icons müssen ihre eigene Schrift behalten */
+.admin-roboto .material-symbols-outlined,
+.admin-roboto [class*="material-symbols"],
+.admin-roboto .material-icons,
+.admin-roboto [class*="material-icons"] {
+  font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+}
