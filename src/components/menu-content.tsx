@@ -6,11 +6,11 @@ import { ModernSection } from './templates/modern-renderer';
 import { ClassicSection } from './templates/classic-renderer';
 
 type PriceVariant = { id: string; label: string | null; price: number; volume: string | null; isDefault: boolean };
-type Translation = { languageCode: string; name: string; shortDescription?: string | null; longDescription?: string | null };
-type AllergenData = { allergen: { id: string; icon?: string | null; translations: { languageCode: string; name: string }[] } };
-type TagData = { tag: { id: string; icon?: string | null; color?: string | null; translations: { languageCode: string; name: string }[] } };
-type WineProfile = { winery?: string | null; vintage?: number | null; grapeVarieties?: string[]; region?: string | null; country?: string | null; appellation?: string | null; style?: string | null; body?: string | null; sweetness?: string | null };
-type Item = { id: string; isHighlight: boolean; highlightType?: string | null; isSoldOut: boolean; image?: string | null; translations: Translation[]; priceVariants: PriceVariant[]; allergens: AllergenData[]; tags: TagData[]; wineProfile?: WineProfile | null };
+type Translation = { language?: string; languageCode?: string; name: string; shortDescription?: string | null; longDescription?: string | null };
+type AllergenData = { allergen: { id: string; icon?: string | null; translations: { language?: string; languageCode?: string; name: string }[] } };
+type TagData = { tag: { id: string; icon?: string | null; color?: string | null; translations: { language?: string; languageCode?: string; name: string }[] } };
+type WineProfile = { winery?: string | null; vintage?: number | null; aging?: string | null; tastingNotes?: string | null; servingTemp?: string | null; foodPairing?: string[] | null; certification?: string | null; grapeVarieties?: string[]; region?: string | null; country?: string | null; appellation?: string | null; style?: string | null; body?: string | null; sweetness?: string | null };
+type Item = { id: string; highlightType?: string | null; isSoldOut: boolean; image?: string | null; translations: Translation[]; priceVariants: PriceVariant[]; allergens: AllergenData[]; tags: TagData[]; wineProfile?: WineProfile | null };
 type Section = { id: string; slug: string; icon?: string | null; translations: Translation[]; items: Item[] };
 type DigitalConfigProp = {
   template: string; mood: string; density: string;
@@ -27,10 +27,9 @@ type MenuContentProps = {
 const hlLabels: Record<string, Record<string, string>> = {
   RECOMMENDATION: { de: 'Empfehlung', en: 'Recommended' },
   NEW: { de: 'Neu', en: 'New' },
-  POPULAR: { de: 'Beliebt', en: 'Popular' },
+  BESTSELLER: { de: 'Bestseller', en: 'Bestseller' },
   PREMIUM: { de: 'Premium', en: 'Premium' },
-  SEASONAL: { de: 'Saison', en: 'Seasonal' },
-  CHEFS_CHOICE: { de: "Chef's Choice", en: "Chef's Choice" },
+  SIGNATURE: { de: 'Signature', en: 'Signature' },
 };
 const styleLabels: Record<string, Record<string, string>> = {
   RED: { de: 'Rotwein', en: 'Red' }, WHITE: { de: 'Weißwein', en: 'White' },
@@ -61,9 +60,9 @@ export default function MenuContent(props: MenuContentProps) {
   const [countryFilter, setCountryFilter] = useState('');
   const [activeSection, setActiveSection] = useState('');
 
-  const t = (translations: { languageCode: string; [key: string]: any }[], field: string = 'name') => {
-    const found = translations.find(tr => tr.languageCode === lang);
-    const fb = translations.find(tr => tr.languageCode === 'de');
+  const t = (translations: { language?: string; languageCode?: string; [key: string]: any }[], field: string = 'name') => {
+    const found = translations.find(tr => (tr.language || tr.languageCode) === lang);
+    const fb = translations.find(tr => (tr.language || tr.languageCode) === 'de');
     return (found as any)?.[field] || (fb as any)?.[field] || '';
   };
 
@@ -231,7 +230,7 @@ export default function MenuContent(props: MenuContentProps) {
               >
                 {iName}
               </h3>
-              {item.isHighlight && item.highlightType && (
+              {item.highlightType && item.highlightType !== 'NONE' && (
                 <span
                   className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
                   style={{ backgroundColor: 'var(--color-primary, #DD3C71)' }}
@@ -363,7 +362,7 @@ export default function MenuContent(props: MenuContentProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 style={{ fontFamily: 'var(--mc-h3-font)', fontSize: 'var(--mc-h3-size)', fontWeight: 'var(--mc-h3-weight)' as any, color: 'var(--mc-h3-color)' }}>{iName}</h3>
-              {item.isHighlight && item.highlightType && (
+              {item.highlightType && item.highlightType !== 'NONE' && (
                 <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: accentColor }}>{hlLabels[item.highlightType]?.[lang] || ''}</span>
               )}
               {item.isSoldOut && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-600">{uiLabels.soldOut[lang]}</span>}

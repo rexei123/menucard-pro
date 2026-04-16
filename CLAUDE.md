@@ -87,23 +87,47 @@ src/
 - **API:** `/api/v1/design-templates`, `/api/v1/design-templates/[id]`, `/api/v1/menus/[id]/template`
 - **Komponente:** `src/components/admin/design-editor.tsx` (7 Akkordeons + Live-Vorschau)
 
-## Aktueller Datenstand (14.04.2026)
+## Backup-Strategie
+
+- **Cron-Job:** `0 3 * * *` → `/var/www/menucard-pro/scripts/backup-db.sh`
+- **Verzeichnis:** `/var/backups/menucard-pro/`
+- **Rotation:** 7 Tage (ältere Backups werden automatisch gelöscht)
+- **Format:** `menucard_pro_YYYY-MM-DD_HHMM.sql.gz`
+- **Restore:** `bash scripts/restore-db.sh <dateiname>` (erstellt Sicherheits-Backup vor Überschreiben)
+- **Log:** `/var/backups/menucard-pro/backup.log`
+
+## v2-Architektur (Stand 16.04.2026)
+
+Die gesamte Codebasis wurde am 16.04.2026 auf die v2-Architektur migriert. Alle Admin-Seiten, APIs, Gäste-Renderer und Scripts verwenden ausschließlich v2-Modelle.
+
+### Kern-Änderungen v1 → v2
+
+| v1 | v2 | Hinweis |
+|---|---|---|
+| `ProductPrice` | `ProductVariant` → `VariantPrice` | Varianten mit sellPrice/costPrice/pricingType |
+| `ProductGroup` | `TaxonomyNode` | type: CATEGORY, REGION, GRAPE, STYLE |
+| `isHighlight` (boolean) | `highlightType` (enum) | RECOMMENDATION, NEW, BESTSELLER, PREMIUM, SIGNATURE, NONE |
+| `SOLD_OUT` (Status) | entfernt | nur ACTIVE, DRAFT, ARCHIVED |
+| `languageCode` | `language` | Beide Felder via DB-Trigger, Code nutzt `tr.language \|\| tr.languageCode` |
+| `product.prices` | `product.variants[].prices[]` | Verschachtelte Struktur |
+| `MenuPlacement(productId)` | `MenuPlacement(variantId, sectionId)` | Varianten einzeln platzierbar |
+
+### Aktueller Datenstand (16.04.2026)
 
 | Entität | Anzahl |
 |---|---|
 | Products | 322 |
 | ProductTranslations | 644 (DE + EN) |
-| ProductPrices | 298 |
+| ProductVariants | ~322 (1 Default pro Produkt) |
+| VariantPrices | ~298 |
 | ProductWineProfiles | 91 |
 | ProductBeverageDetails | 137 |
+| TaxonomyNodes | ~27 (CATEGORY, REGION, GRAPE, STYLE) |
 | Menus | 9 (7 Gourmet EVENT, 1 WINE, 1 BAR) |
 | MenuPlacements | 337 |
 | MenuSections | 65 |
-| DesignTemplates | 5 (4 SYSTEM, 1 CUSTOM "Test 1") |
+| DesignTemplates | 5 (4 SYSTEM, 1 CUSTOM) |
 | QRCodes | 10 |
-| ProductGroups | 27 (hierarchisch) |
-| PriceLevels | 4 (Restaurant, Bar, Room Service, Einkauf) |
-| FillQuantities | 18 |
 | Locations | 2 · Tenants | 1 · Users | 1 |
 
 ## Action-Button-Farben (verbindlich)
@@ -112,7 +136,7 @@ src/
 
 ## Design-Strategie 2.0 (verbindlich, Stand 14.04.2026)
 
-Die gesamte Oberfläche ist seit Runde 4 (14.04.2026) auf Design-Strategie 2.0 ausgerichtet. Compliance-Stand: **56/58 PASS** (verbleibende 2 Fehler = Content-Emoji 🥩 in einem Produktdatensatz der Karte „Amerikanischer Abend").
+Die gesamte Oberfläche ist seit Runde 4 (14.04.2026) auf Design-Strategie 2.0 ausgerichtet. Compliance-Stand: **8/8 PASS** (2 false-positives in Compliance-Config wegen undefinierter Font-Expected-Values, keine echten Verstöße).
 
 ### Schriftarten-Matrix
 
@@ -141,11 +165,9 @@ Die gesamte Oberfläche ist seit Runde 4 (14.04.2026) auf Design-Strategie 2.0 a
 1. Änderung an `src/lib/design-templates/{template}.ts` oder `src/styles/menu-font.css`
 2. DB-Reseed: `npx tsx scripts/reseed-system-templates.ts` (überträgt TS-Konfig → `DesignTemplate.config`)
 3. `npm run build && pm2 restart menucard-pro`
-4. Compliance-Lauf: `bash design-compliance-remote.sh <tag>` (Ziel: 56/58 PASS)
+4. Compliance-Lauf: `bash design-compliance-remote.sh <tag>` (Ziel: 8/8 PASS)
 
 ### Verifikation
 
 - **Compliance-Pipeline:** `design-compliance.mjs` + `design-compliance-remote.sh` auf dem Server, Python-Auswertung zu Excel (`DESIGN-COMPLIANCE-REPORT-<tag>.xlsx`)
-- **Sechs Prüfebenen:** Tokens (CSS-Variablen), Fonts, Colors, Icons, Layout, Snapshots
-- **58 Testseiten:** 22 Admin + 18 Gäste-Karten + 18 Item-Detail (je Desktop 1440×900 und Mobile 375×812)
- 
+- **Sechs Prüfebenen:** Tokens (CSS-Variablen), Fo

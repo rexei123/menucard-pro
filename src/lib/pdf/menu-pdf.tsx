@@ -16,13 +16,17 @@ type ProductData = {
   winery?: string;
   wineryLocation?: string;
   vintage?: number;
+  aging?: string;
+  tastingNotes?: string;
+  servingTemp?: string;
+  foodPairing?: string[];
+  certification?: string;
   grapeVarieties?: string[];
   region?: string;
   country?: string;
   appellation?: string;
   style?: string;
   image?: string;
-  isHighlight?: boolean;
   highlightType?: string;
 };
 type SectionData = {

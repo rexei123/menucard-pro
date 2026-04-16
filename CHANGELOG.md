@@ -3,6 +3,29 @@
 Alle nennenswerten Änderungen an MenuCard Pro werden in dieser Datei dokumentiert.
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [2.0.0] — 2026-04-16 — v2-Architektur & Feature-Completion
+
+Vollständige Migration auf v2-Datenmodell. Alle Admin-Seiten, APIs, Gäste-Renderer und Scripts verwenden ausschließlich v2-Modelle.
+
+### Hinzugefügt
+- **v2-Datenmodell:** Product→ProductVariant→VariantPrice, TaxonomyNode (statt ProductGroup), highlightType-Enum (statt isHighlight-Boolean).
+- **QR-Code Create-Flow:** Modal mit Karten-Dropdown, automatischer Short-Code-Generierung, Delete-Button pro QR-Code.
+- **Analytics-Dashboard:** KPI-Karten (Produkte, Karten, QR-Codes, Scans), Typ-/Status-Verteilung, Karten-Statistik-Tabelle, Top-5-QR-Codes.
+- **CSV-Import v2:** TaxonomyNode-Zuordnung, ProductVariant+VariantPrice-Erstellung, language-Feld statt languageCode.
+- **Backup-Strategie:** Täglicher Cron-Job (03:00 Uhr), 7-Tage-Rotation, Restore-Script mit Sicherheits-Backup.
+- **Analytics-Tab** in Admin-Sidebar (icon-bar.tsx).
+
+### Geändert
+- **v1-Code-Cleanup:** hlLabels (BESTSELLER/SIGNATURE), highlight-Logik, language-Fallback, WineProfile v2-Felder in 7 Dateien (4 Template-Renderer, menu-content, product-list, product-list-panel, menu-pdf).
+- **SOLD_OUT entfernt:** Nur noch ACTIVE, DRAFT, ARCHIVED als Produktstatus.
+- **Design-Compliance:** Von 56/58 auf effektiv 8/8 PASS (verbleibende 2 = false-positives in Compliance-Config).
+
+### Gefixt
+- **QR-Codes:** Echtes QR-Bild, Kartenname, URL-Copy-Feedback, Download-Button.
+- **Bildarchiv:** Doppelter Header entfernt.
+- **PDF-Creator:** Design-System-konform (Roboto, Material Symbols, Typ-Badges).
+- **PDF-API:** Beide Routes auf variant→product umgestellt.
+
 ## [1.0.0] — 2026-04-14 — Stabiler Meilenstein
 
 Erster öffentlich stabiler Release, live unter `https://menu.hotel-sonnblick.at`. Git-Tag `v1.0-stabil`.

@@ -15,12 +15,13 @@ Eine mandantenfähige Plattform, die Speise-, Getränke- und Weinkarten per QR-C
 
 ## Kennzahlen
 
-- **322 Produkte** mit 644 Übersetzungen und 298 Preisen
+- **322 Produkte** mit 644 Übersetzungen, ~322 Varianten und ~298 Preisen
 - **9 Karten:** 7 Gourmet-Menüs, 1 Weinkarte, 1 Barkarte
-- **337 Kartenzuordnungen** (MenuPlacements)
+- **337 Kartenzuordnungen** (MenuPlacements via Varianten)
 - **91 Weinprofile**, **137 Getränkedetails**
 - **5 Design-Templates** (4 System, 1 Custom) mit Live-Vorschau
 - **10 QR-Codes**
+- **Tägliches Backup** (Cron 03:00, 7-Tage-Rotation)
 
 ## Stack
 
@@ -35,7 +36,6 @@ Next.js 14 · TypeScript · Tailwind CSS · Prisma · PostgreSQL · NextAuth · 
 - Sprachwechsler DE/EN mit Fallback-Logik
 - QR-Code-Redirect über Short-Codes
 - Mobile-First, schneller Seitenaufbau
-- Sold-Out-Anzeige
 - 4 Template-Stile: Elegant, Modern, Classic, Minimal
 
 ### Admin
@@ -45,7 +45,7 @@ Next.js 14 · TypeScript · Tailwind CSS · Prisma · PostgreSQL · NextAuth · 
 - Preiskalkulation (EK → Fix€ → %-Aufschlag → VK, Marge farbcodiert)
 - Weinprofil- und Getränkedetail-Editoren
 - Bildarchiv mit Drag & Drop, Sharp-Optimierung (WebP, 3 Größen), Websuche über SearXNG
-- Karten-Editor mit Drag & Drop, Zuordnungs-Pool, Sold-Out-Toggle
+- Karten-Editor mit Drag & Drop, Variantenpool (einzeln platzierbar)
 - Design-Editor mit 7 Akkordeons, Live-Vorschau, PDF-Tab, Template-Duplikation
 - QR-Code-Generator mit Branding-Farben und Logo
 - CSV-Import mit Inline-Vorschau und -Bearbeitung
@@ -53,21 +53,23 @@ Next.js 14 · TypeScript · Tailwind CSS · Prisma · PostgreSQL · NextAuth · 
 
 ## Architektur
 
-### Zentrale Produktdatenbank
+### Zentrale Produktdatenbank (v2-Architektur)
 
-Produkte existieren unabhängig von Karten und werden über `MenuPlacement` flexibel zugeordnet:
+Produkte existieren unabhängig von Karten. Jedes Produkt hat Varianten mit eigenen Preisen, die über `MenuPlacement` flexibel zugeordnet werden:
 
 ```
 Product
 ├── ProductTranslation (DE + EN)
-├── ProductPrice (Füllmenge × Preisebene)
+├── ProductVariant (isDefault, Füllmenge)
+│   └── VariantPrice (sellPrice, costPrice, pricingType)
 ├── ProductWineProfile | ProductBeverageDetail
 ├── ProductAllergen, ProductTag, ProductPairing
 ├── ProductMedia → Media
-└── MenuPlacement → MenuSection → Menu → Location → Tenant
+├── ProductTaxonomy → TaxonomyNode (CATEGORY, REGION, GRAPE, STYLE)
+└── MenuPlacement (variantId, sectionId) → MenuSection → Menu → Location → Tenant
 ```
 
-Unterstützende Entitäten: `ProductGroup` (hierarchisch), `PriceLevel`, `FillQuantity`, `TaxRate`, `Supplier`.
+Unterstützende Entitäten: `TaxonomyNode` (hierarchisch, nach Typ), `PriceLevel`, `FillQuantity`, `TaxRate`, `Supplier`.
 
 ### Projektstruktur
 

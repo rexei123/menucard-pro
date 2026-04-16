@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 type Product = {
   id: string; sku: string | null; type: string; status: string;
-  isHighlight: boolean; name: string; nameEn: string; shortDesc: string;
+  name: string; nameEn: string; shortDesc: string;
   groupName: string; groupSlug: string; parentGroupName: string;
   mainPrice: number | null; mainPriceLabel: string; priceCount: number;
   winery: string | null; vintage: number | null; region: string | null;
@@ -15,8 +15,8 @@ type Product = {
 type GroupOption = { slug: string; name: string; parentName: string | null; hasChildren: boolean };
 
 const typeLabels: Record<string, string> = { WINE: 'Wein', DRINK: 'Getränk', FOOD: 'Speise', OTHER: 'Andere' };
-const statusLabels: Record<string, string> = { ACTIVE: 'Aktiv', SOLD_OUT: 'Ausverkauft', ARCHIVED: 'Archiv', DRAFT: 'Entwurf' };
-const statusColors: Record<string, string> = { ACTIVE: 'bg-green-100 text-green-700', SOLD_OUT: 'bg-red-100 text-red-600', ARCHIVED: 'bg-gray-100 text-gray-500', DRAFT: 'bg-yellow-100 text-yellow-700' };
+const statusLabels: Record<string, string> = { ACTIVE: 'Aktiv', ARCHIVED: 'Archiv', DRAFT: 'Entwurf' };
+const statusColors: Record<string, string> = { ACTIVE: 'bg-green-100 text-green-700', ARCHIVED: 'bg-gray-100 text-gray-500', DRAFT: 'bg-yellow-100 text-yellow-700' };
 
 function formatEur(price: number): string {
   return new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR' }).format(price);

@@ -22,7 +22,6 @@ const typeBadge: Record<string, { letter: string; cls: string }> = {
 
 const statusDot: Record<string, string> = {
   ACTIVE: 'bg-green-400',
-  SOLD_OUT: 'bg-red-400',
   ARCHIVED: 'bg-gray-300',
   DRAFT: 'bg-yellow-400',
 };
@@ -137,7 +136,6 @@ export default function ProductListPanel({ products, groups }: { products: Produ
             <option value="">Status</option>
             <option value="ACTIVE">Aktiv</option>
             <option value="DRAFT">Entwurf</option>
-            <option value="SOLD_OUT">Ausverkauft</option>
             <option value="ARCHIVED">Archiv</option>
           </select>
         </div>

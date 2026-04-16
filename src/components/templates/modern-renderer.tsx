@@ -2,20 +2,19 @@
 import Link from 'next/link';
 
 type PriceVariant = { id: string; label: string | null; price: number; volume: string | null; isDefault: boolean };
-type Translation = { languageCode: string; name: string; shortDescription?: string | null; longDescription?: string | null };
-type AllergenData = { allergen: { id: string; icon?: string | null; translations: { languageCode: string; name: string }[] } };
-type TagData = { tag: { id: string; icon?: string | null; color?: string | null; translations: { languageCode: string; name: string }[] } };
-type WineProfile = { winery?: string | null; vintage?: number | null; grapeVarieties?: string[]; region?: string | null; country?: string | null; appellation?: string | null; style?: string | null; body?: string | null; sweetness?: string | null };
-type Item = { id: string; isHighlight: boolean; highlightType?: string | null; isSoldOut: boolean; image?: string | null; translations: Translation[]; priceVariants: PriceVariant[]; allergens: AllergenData[]; tags: TagData[]; wineProfile?: WineProfile | null };
+type Translation = { language?: string; languageCode?: string; name: string; shortDescription?: string | null; longDescription?: string | null };
+type AllergenData = { allergen: { id: string; icon?: string | null; translations: { language?: string; languageCode?: string; name: string }[] } };
+type TagData = { tag: { id: string; icon?: string | null; color?: string | null; translations: { language?: string; languageCode?: string; name: string }[] } };
+type WineProfile = { winery?: string | null; vintage?: number | null; aging?: string | null; tastingNotes?: string | null; servingTemp?: string | null; foodPairing?: string[] | null; certification?: string | null; grapeVarieties?: string[]; region?: string | null; country?: string | null; appellation?: string | null; style?: string | null; body?: string | null; sweetness?: string | null };
+type Item = { id: string; highlightType?: string | null; isSoldOut: boolean; image?: string | null; translations: Translation[]; priceVariants: PriceVariant[]; allergens: AllergenData[]; tags: TagData[]; wineProfile?: WineProfile | null };
 type Section = { id: string; slug: string; icon?: string | null; translations: Translation[]; items: Item[] };
 
 const hlLabels: Record<string, Record<string, string>> = {
   RECOMMENDATION: { de: 'Empfehlung', en: 'Recommended' },
   NEW: { de: 'Neu', en: 'New' },
-  POPULAR: { de: 'Beliebt', en: 'Popular' },
+  BESTSELLER: { de: 'Bestseller', en: 'Bestseller' },
   PREMIUM: { de: 'Premium', en: 'Premium' },
-  SEASONAL: { de: 'Saison', en: 'Seasonal' },
-  CHEFS_CHOICE: { de: "Chef's Choice", en: "Chef's Choice" },
+  SIGNATURE: { de: 'Signature', en: 'Signature' },
 };
 
 const soldOutLabel: Record<string, string> = { de: 'Ausverkauft', en: 'Sold out' };
@@ -51,14 +50,14 @@ export function ModernItem({ item, lang, priceLocale, detailHref, showShortDesc,
           <img src={item.image} alt="" className="w-full h-full object-cover" loading="lazy" />
           <div className="absolute top-0 left-0 w-full h-12 bg-gradient-to-b from-black/30 to-transparent" />
           {/* Tag oben links */}
-          {item.isHighlight && item.highlightType && (
+          {item.highlightType && item.highlightType !== 'NONE' && (
             <div
               className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full shadow-sm"
               style={{
                 backgroundColor: item.highlightType === 'NEW' ? '#DD3C71'
-                  : item.highlightType === 'POPULAR' ? '#F59E0B'
+                  : item.highlightType === 'BESTSELLER' ? '#F59E0B'
                   : 'rgba(255,255,255,0.9)',
-                color: ['NEW', 'POPULAR', 'PREMIUM'].includes(item.highlightType || '') ? '#FFF' : '#171A1F',
+                color: ['NEW', 'BESTSELLER', 'PREMIUM'].includes(item.highlightType || '') ? '#FFF' : '#171A1F',
               }}
             >
               <span className="text-[10px] font-bold uppercase tracking-wider">
