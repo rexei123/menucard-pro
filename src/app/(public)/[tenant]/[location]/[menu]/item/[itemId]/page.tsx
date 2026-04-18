@@ -86,7 +86,8 @@ export default async function ItemDetailPage({
   const sectionSlug = placement?.section?.slug || '';
 
   const theme = await prisma.theme.findFirst({ where: { tenantId: tenant.id, isActive: true } });
-  const accentColor = theme?.accentColor || '#8B6914';
+  const themeCfg: any = theme?.config ?? {};
+  const accentColor = themeCfg.accentColor || '#8B6914';
   const langParam = lang === 'en' ? '?lang=en' : '';
   const priceLocale = lang === 'en' ? 'en-GB' : 'de-AT';
 
@@ -98,7 +99,7 @@ export default async function ItemDetailPage({
   const wp = product.wineProfile;
 
   return (
-    <div className="min-h-screen pb-16" style={{ background: theme?.backgroundColor || '#FAFAF8', color: theme?.textColor || '#1a1a1a' }}>
+    <div className="min-h-screen pb-16" style={{ background: themeCfg.backgroundColor || '#FAFAF8', color: themeCfg.textColor || '#1a1a1a' }}>
       <header className="border-b px-4 py-4">
         <Link
           href={`/${params.tenant}/${params.location}/${params.menu}${langParam}${sectionSlug ? '#' + sectionSlug : ''}`}
@@ -207,9 +208,13 @@ export default async function ItemDetailPage({
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider opacity-40">{ui.allergens[lang]}</h2>
             <div className="flex flex-wrap gap-2">
               {product.allergens.map((a: any) => (
-                <span key={a.allergen.id} className="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
-                  {a.allergen.icon && <span className="mr-1">{a.allergen.icon}</span>}
-                  {t(a.allergen.translations)}
+                <span key={a.allergen.id} className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
+                  {a.allergen.icon && (
+                    <span className="material-symbols-outlined" style={{ fontSize: 14, lineHeight: 1 }}>
+                      {a.allergen.icon}
+                    </span>
+                  )}
+                  <span>{t(a.allergen.translations)}</span>
                 </span>
               ))}
             </div>

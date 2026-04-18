@@ -24,7 +24,7 @@ export default async function LocationPage({
     return (found?.[field] || fb?.[field]) ?? '';
   };
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: params.tenant, isActive: true } });
+  const tenant = await prisma.tenant.findUnique({ where: { slug: params.tenant } });
   if (!tenant) return notFound();
 
   const location = await prisma.location.findUnique({
@@ -32,7 +32,7 @@ export default async function LocationPage({
     include: {
       translations: true,
       menus: {
-        where: { isActive: true, isArchived: false },
+        where: { status: { not: 'ARCHIVED' } },
         orderBy: { sortOrder: 'asc' },
         include: {
           translations: true,

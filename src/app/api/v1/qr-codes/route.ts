@@ -10,21 +10,34 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const tid = session.user.tenantId;
 
-  // v2: QR-Codes koennen locationId ODER menuId haben
+  // Standorte des Mandanten ermitteln (QRCode hat locationId, aber keine Prisma-Relation "location")
+  const tenantLocations = await prisma.location.findMany({
+    where: { tenantId: tid },
+    select: { id: true, name: true, slug: true, tenantId: true },
+  });
+  const tenantLocationIds = tenantLocations.map((l) => l.id);
+  const locationMap = new Map(tenantLocations.map((l) => [l.id, l]));
+
   const qrCodes = await prisma.qRCode.findMany({
     where: {
       OR: [
-        { location: { tenantId: tid } },
+        { locationId: { in: tenantLocationIds } },
         { menu: { location: { tenantId: tid } } },
       ],
     },
     include: {
-      location: true,
       menu: { include: { translations: true, location: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
-  return NextResponse.json(qrCodes);
+
+  // location-Objekt aus Map nachtragen (API-Kompatibilitaet zum alten Format)
+  const enriched = qrCodes.map((qr) => ({
+    ...qr,
+    location: qr.locationId ? locationMap.get(qr.locationId) || null : null,
+  }));
+
+  return NextResponse.json(enriched);
 }
 
 export async function POST(req: NextRequest) {
@@ -64,9 +77,14 @@ export async function POST(req: NextRequest) {
       config: body.config || null,
     },
     include: {
-      location: true,
       menu: { include: { translations: true, location: true } },
     },
   });
-  return NextResponse.json(qrCode, { status: 201 });
+
+  // location-Objekt nachtragen
+  const location = qrCode.locationId
+    ? await prisma.location.findUnique({ where: { id: qrCode.locationId } })
+    : null;
+
+  return NextResponse.json({ ...qrCode, location }, { status: 201 });
 }

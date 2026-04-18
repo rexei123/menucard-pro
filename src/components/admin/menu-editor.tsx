@@ -4,15 +4,70 @@ import { useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import TemplatePickerDrawer from './template-picker-drawer';
 
-type Placement = { id: string; productId: string; name: string; winery: string | null; vintage: number | null; price: number | null; type: string; sortOrder: number; isVisible: boolean };
-type Section = { id: string; slug: string; name: string; icon: string | null; placements: Placement[] };
-type BrowserProduct = { id: string; name: string; type: string; groupName: string; groupSlug: string; price: number | null; winery: string | null; vintage: number | null; status: string };
-type MenuInfo = { id: string; name: string; slug: string; type: string; locationName: string; isActive: boolean; publicUrl: string; templateId: string | null; qrCodes: { id: string; label: string | null; shortCode: string }[]; sections: Section[] };
+// v2: Placement referenziert variantId statt productId
+type Placement = {
+  id: string;
+  variantId: string;
+  productId: string;
+  name: string;
+  variantLabel: string | null;
+  winery: string | null;
+  vintage: number | null;
+  price: number | null;
+  type: string;
+  sortOrder: number;
+  isVisible: boolean;
+};
 
-const TB: Record<string, { l: string; c: string }> = { WINE: { l: 'W', c: 'bg-purple-100 text-purple-700' }, DRINK: { l: 'G', c: 'bg-blue-100 text-blue-700' }, FOOD: { l: 'S', c: 'bg-orange-100 text-orange-700' }, OTHER: { l: '?', c: 'bg-gray-100 text-gray-600' } };
+type Section = {
+  id: string;
+  slug: string;
+  name: string;
+  icon: string | null;
+  placements: Placement[];
+};
+
+// v2: BrowserProduct ist eine Variante (id = variantId)
+type BrowserProduct = {
+  id: string;        // variantId
+  productId: string;
+  name: string;
+  variantLabel: string | null;
+  isDefault: boolean;
+  type: string;
+  groupName: string;
+  groupSlug: string;
+  price: number | null;
+  winery: string | null;
+  vintage: number | null;
+  status: string;
+};
+
+type MenuInfo = {
+  id: string;
+  name: string;
+  slug: string;
+  type: string;
+  locationName: string;
+  isActive: boolean;
+  publicUrl: string;
+  templateId: string | null;
+  qrCodes: { id: string; label: string | null; shortCode: string }[];
+  sections: Section[];
+};
+
+// v2: Mehr Typ-Badges
+const TB: Record<string, { l: string; c: string }> = {
+  WINE:    { l: 'W', c: 'bg-purple-100 text-purple-700' },
+  DRINK:   { l: 'G', c: 'bg-blue-100 text-blue-700' },
+  FOOD:    { l: 'S', c: 'bg-orange-100 text-orange-700' },
+  SPIRIT:  { l: 'SP', c: 'bg-amber-100 text-amber-700' },
+  BEER:    { l: 'B', c: 'bg-yellow-100 text-yellow-700' },
+  COFFEE:  { l: 'K', c: 'bg-stone-100 text-stone-700' },
+  OTHER:   { l: '?', c: 'bg-gray-100 text-gray-600' },
+};
 const fmtEur = (p: number) => new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR' }).format(p);
 
-// Drop-Indicator style (UI-Design-konform, rosa)
 const dropIndicatorActive = {
   background: 'linear-gradient(90deg, rgba(221,60,113,0.08), rgba(221,60,113,0.18))',
   border: '2px dashed var(--color-primary)',
@@ -33,11 +88,13 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
   const [statusFilter, setStatusFilter] = useState('');
   const [poolWidth, setPoolWidth] = useState(500);
   const [resizing, setResizing] = useState(false);
-  const dragRef = useRef<{ productId: string; fromSection: string | null } | null>(null);
+  // v2: dragRef speichert variantId
+  const dragRef = useRef<{ variantId: string; fromSection: string | null } | null>(null);
 
-  const assignedIds = useMemo(() => {
+  // v2: Zugewiesene Varianten-IDs
+  const assignedVariantIds = useMemo(() => {
     const s = new Set<string>();
-    sections.forEach(sec => sec.placements.forEach(p => s.add(p.productId)));
+    sections.forEach(sec => sec.placements.forEach(p => s.add(p.variantId)));
     return s;
   }, [sections]);
 
@@ -51,28 +108,33 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
   const available = useMemo(() => {
     const q = query.toLowerCase().trim();
     return allProducts.filter(p => {
-      if (assignedIds.has(p.id)) return false;
+      if (assignedVariantIds.has(p.id)) return false;
       if (typeFilter && p.type !== typeFilter) return false;
       if (groupFilter && p.groupSlug !== groupFilter) return false;
       if (statusFilter && p.status !== statusFilter) return false;
-      if (q && !`${p.name} ${p.groupName} ${p.winery || ''}`.toLowerCase().includes(q)) return false;
+      if (q && !`${p.name} ${p.variantLabel || ''} ${p.groupName} ${p.winery || ''}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [allProducts, assignedIds, query, typeFilter, groupFilter, statusFilter]);
+  }, [allProducts, assignedVariantIds, query, typeFilter, groupFilter, statusFilter]);
 
-  // API
-  const apiAdd = async (sectionId: string, productId: string, sortOrder: number) => {
-    const res = await fetch('/api/v1/placements', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ menuSectionId: sectionId, productId, sortOrder }) });
+  // v2 API: sectionId + variantId
+  const apiAdd = async (sectionId: string, variantId: string, sortOrder: number) => {
+    const res = await fetch('/api/v1/placements', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sectionId, variantId, sortOrder }),
+    });
     return res.ok ? await res.json() : null;
   };
   const apiRemove = async (id: string) => { await fetch(`/api/v1/placements/${id}`, { method: 'DELETE', credentials: 'include' }); };
   const apiPatch = async (id: string, data: any) => { await fetch(`/api/v1/placements/${id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); };
 
-  // Drag
-  const startDrag = (e: React.DragEvent, productId: string, fromSection: string | null) => {
-    dragRef.current = { productId, fromSection };
+  // Drag — v2: variantId statt productId
+  const startDrag = (e: React.DragEvent, variantId: string, fromSection: string | null) => {
+    dragRef.current = { variantId, fromSection };
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', productId);
+    e.dataTransfer.setData('text/plain', variantId);
   };
 
   const endDrag = () => {
@@ -101,16 +163,17 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
     setInsertAt(null);
     const drag = dragRef.current;
     if (!drag || !ins) return;
-    const { productId, fromSection } = drag;
+    const { variantId, fromSection } = drag;
     const sid = ins.sid;
     const idx = ins.idx;
 
     const sec = sections.find(s => s.id === sid);
-    const existingHere = sec?.placements.find(p => p.productId === productId);
+    const existingHere = sec?.placements.find(p => p.variantId === variantId);
     if (existingHere && fromSection === sid) {
+      // Nur sortieren innerhalb der selben Sektion
       setSections(prev => prev.map(s => {
         if (s.id !== sid) return s;
-        const without = s.placements.filter(p => p.productId !== productId);
+        const without = s.placements.filter(p => p.variantId !== variantId);
         const adjustedIdx = idx > s.placements.indexOf(existingHere) ? idx - 1 : idx;
         without.splice(adjustedIdx, 0, existingHere);
         return { ...s, placements: without.map((p, i) => ({ ...p, sortOrder: i })) };
@@ -119,20 +182,33 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
       return;
     }
 
+    // Von anderer Sektion: erst entfernen
     if (fromSection) {
       let moving: Placement | null = null;
-      for (const s of sections) { const f = s.placements.find(p => p.productId === productId); if (f) { moving = f; break; } }
+      for (const s of sections) { const f = s.placements.find(p => p.variantId === variantId); if (f) { moving = f; break; } }
       if (moving) {
         await apiRemove(moving.id);
-        setSections(prev => prev.map(s => s.id === fromSection ? { ...s, placements: s.placements.filter(p => p.productId !== productId) } : s));
+        setSections(prev => prev.map(s => s.id === fromSection ? { ...s, placements: s.placements.filter(p => p.variantId !== variantId) } : s));
       }
     }
 
-    const prod = allProducts.find(p => p.id === productId);
+    const prod = allProducts.find(p => p.id === variantId);
     if (!prod) { endDrag(); return; }
-    const pl = await apiAdd(sid, productId, idx);
+    const pl = await apiAdd(sid, variantId, idx);
     if (pl) {
-      const np: Placement = { id: pl.id, productId: prod.id, name: prod.name, winery: prod.winery, vintage: prod.vintage, price: prod.price, type: prod.type, sortOrder: idx, isVisible: true };
+      const np: Placement = {
+        id: pl.id,
+        variantId: prod.id,
+        productId: prod.productId,
+        name: prod.name,
+        variantLabel: prod.variantLabel,
+        winery: prod.winery,
+        vintage: prod.vintage,
+        price: prod.price,
+        type: prod.type,
+        sortOrder: idx,
+        isVisible: true,
+      };
       setSections(prev => prev.map(s => {
         if (s.id !== sid) return s;
         const pls = [...s.placements];
@@ -150,21 +226,33 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
     if (!drag || !drag.fromSection) { endDrag(); return; }
     let pl: Placement | null = null;
     let sid: string | null = null;
-    for (const s of sections) { const f = s.placements.find(p => p.productId === drag.productId); if (f) { pl = f; sid = s.id; break; } }
+    for (const s of sections) { const f = s.placements.find(p => p.variantId === drag.variantId); if (f) { pl = f; sid = s.id; break; } }
     if (pl && sid) {
       await apiRemove(pl.id);
-      setSections(prev => prev.map(s => s.id === sid ? { ...s, placements: s.placements.filter(p => p.productId !== drag.productId) } : s));
+      setSections(prev => prev.map(s => s.id === sid ? { ...s, placements: s.placements.filter(p => p.variantId !== drag.variantId) } : s));
     }
     endDrag();
   };
 
-  const clickAdd = async (productId: string, sectionId: string) => {
-    const prod = allProducts.find(p => p.id === productId);
+  const clickAdd = async (variantId: string, sectionId: string) => {
+    const prod = allProducts.find(p => p.id === variantId);
     if (!prod) return;
     const sec = sections.find(s => s.id === sectionId);
-    const pl = await apiAdd(sectionId, productId, sec?.placements.length || 0);
+    const pl = await apiAdd(sectionId, variantId, sec?.placements.length || 0);
     if (pl) {
-      const np: Placement = { id: pl.id, productId: prod.id, name: prod.name, winery: prod.winery, vintage: prod.vintage, price: prod.price, type: prod.type, sortOrder: sec?.placements.length || 0, isVisible: true };
+      const np: Placement = {
+        id: pl.id,
+        variantId: prod.id,
+        productId: prod.productId,
+        name: prod.name,
+        variantLabel: prod.variantLabel,
+        winery: prod.winery,
+        vintage: prod.vintage,
+        price: prod.price,
+        type: prod.type,
+        sortOrder: sec?.placements.length || 0,
+        isVisible: true,
+      };
       setSections(prev => prev.map(s => s.id === sectionId ? { ...s, placements: [...s.placements, np] } : s));
     }
   };
@@ -193,13 +281,13 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
   const total = sections.reduce((s, sec) => s + sec.placements.length, 0);
 
   return (
-    <div className="flex flex-1 h-full -m-6">
+    <div className="flex flex-1 h-full -m-6" style={{ fontFamily: "'Roboto', sans-serif" }}>
       {/* LEFT: Card Editor */}
       <div className="flex-1 overflow-y-auto p-6 min-w-0">
         <div className="max-w-3xl space-y-4">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>{menu.name}</h1>
+              <h1 className="text-3xl font-bold">{menu.name}</h1>
               <p className="text-base text-gray-400 mt-1">{menu.locationName} &middot; {menu.type} &middot; {sections.length} Sektionen &middot; {total} Produkte</p>
             </div>
             <div className="flex gap-2">
@@ -270,7 +358,7 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
                         ...(activeInsert ? dropIndicatorActive : { background: 'transparent', border: 'none', margin: 0 }),
                       }}
                     />
-                    <div draggable onDragStart={e => startDrag(e, pl.productId, sec.id)} onDragEnd={endDrag} onDragOver={e => overItem(e, sec.id, i)} onDrop={dropAtInsert}
+                    <div draggable onDragStart={e => startDrag(e, pl.variantId, sec.id)} onDragEnd={endDrag} onDragOver={e => overItem(e, sec.id, i)} onDrop={dropAtInsert}
                       className={`flex items-center justify-between px-4 py-2.5 border-b last:border-0 cursor-grab active:cursor-grabbing transition-all duration-150 group ${!pl.isVisible ? 'bg-red-50/30' : 'hover:bg-gray-50/50'}`}>
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <span className="text-gray-300 cursor-grab group-hover:text-gray-500">&#x283F;</span>
@@ -280,12 +368,14 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
                             <Link
                               href={`/admin/items/${pl.productId}`}
                               className={`text-base font-medium truncate transition-colors ${!pl.isVisible ? 'text-gray-400 line-through' : 'text-gray-800'}`}
-                              style={!pl.isVisible ? {} : undefined}
                               onMouseEnter={e => { if (pl.isVisible) e.currentTarget.style.color = 'var(--color-primary)'; }}
                               onMouseLeave={e => { if (pl.isVisible) e.currentTarget.style.color = ''; }}
                             >
                               {pl.name}
                             </Link>
+                            {pl.variantLabel && (
+                              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 flex-shrink-0">{pl.variantLabel}</span>
+                            )}
                             {!pl.isVisible && <span className="bg-red-100 text-red-600 text-sm font-bold px-1.5 py-0.5 rounded flex-shrink-0">AUSGETRUNKEN</span>}
                           </div>
                           {pl.winery && <p className="text-sm text-gray-400">{pl.winery}{pl.vintage ? ` ${pl.vintage}` : ''}</p>}
@@ -332,7 +422,7 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
         </div>
       </div>
 
-      {/* RIGHT: Product Pool */}
+      {/* RIGHT: Product/Variant Pool */}
       <div onDragOver={e => { e.preventDefault(); if (dragRef.current?.fromSection) setBrowserDrop(true); }}
         onDragLeave={() => setBrowserDrop(false)} onDrop={dropBrowser}
         className={`relative flex flex-col border-l transition-colors flex-shrink-0 ${browserDrop ? 'bg-red-50 border-l-2 border-l-red-400' : 'bg-white'}`} style={{ width: poolWidth }}>
@@ -348,11 +438,11 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
         />
         <div className="border-b px-3 py-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-700">{browserDrop ? 'Hier ablegen = Entfernen' : 'Produktpool'}</h2>
+            <h2 className="text-base font-semibold text-gray-700">{browserDrop ? 'Hier ablegen = Entfernen' : 'Variantenpool'}</h2>
             <span className="text-sm text-gray-400">{available.length}</span>
           </div>
           <div className="relative">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-30"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 opacity-30" style={{ fontSize: 16 }}>search</span>
             <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Suchen..." className="w-full rounded-lg border bg-gray-50 py-1.5 pl-8 pr-2 text-sm outline-none focus:border-gray-400 focus:bg-white" />
           </div>
           <div className="mt-2 flex gap-1.5">
@@ -361,6 +451,9 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
               <option value="WINE">Wein</option>
               <option value="DRINK">Getraenk</option>
               <option value="FOOD">Speise</option>
+              <option value="SPIRIT">Spirituose</option>
+              <option value="BEER">Bier</option>
+              <option value="COFFEE">Kaffee</option>
             </select>
             <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} className="flex-1 rounded border bg-gray-50 px-1.5 py-1 text-sm outline-none">
               <option value="">Alle Gruppen</option>
@@ -370,7 +463,7 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
               <option value="">Status</option>
               <option value="ACTIVE">Aktiv</option>
               <option value="DRAFT">Entwurf</option>
-              <option value="SOLD_OUT">Ausverkauft</option>
+              <option value="ARCHIVED">Archiviert</option>
             </select>
           </div>
         </div>
@@ -384,7 +477,10 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
                 <span className="text-gray-300 text-sm group-hover:text-gray-500">&#x283F;</span>
                 <span className={`flex-shrink-0 rounded px-1 py-0.5 text-sm font-bold ${b.c}`}>{b.l}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
+                    {p.variantLabel && <span className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-500 flex-shrink-0">{p.variantLabel}</span>}
+                  </div>
                   <p className="text-sm text-gray-400 truncate">{p.groupName}{p.winery ? ` \u00B7 ${p.winery}` : ''}</p>
                 </div>
                 {p.price !== null && <span className="text-sm font-semibold text-gray-500 tabular-nums flex-shrink-0">{fmtEur(p.price)}</span>}
@@ -397,7 +493,7 @@ export default function MenuEditor({ menu, allProducts, groups }: { menu: MenuIn
               </div>
             );
           })}
-          {available.length === 0 && <div className="px-4 py-8 text-center text-sm text-gray-400">{assignedIds.size === allProducts.length ? 'Alle Produkte zugeordnet' : 'Keine Treffer'}</div>}
+          {available.length === 0 && <div className="px-4 py-8 text-center text-sm text-gray-400">{assignedVariantIds.size === allProducts.length ? 'Alle Varianten zugeordnet' : 'Keine Treffer'}</div>}
         </div>
       </div>
     </div>

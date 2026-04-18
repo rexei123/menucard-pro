@@ -102,7 +102,7 @@ function MediaGrid({ category }: { category: 'PHOTO' | 'LOGO' }) {
             placeholder="Nach Name filtern..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
         </div>
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
@@ -153,10 +153,22 @@ function MediaGrid({ category }: { category: 'PHOTO' | 'LOGO' }) {
               >
                 <div className="relative aspect-square bg-gray-100">
                   <img
-                    src={m.thumbnailUrl || m.url}
+                    src={m.thumbnailUrl || m.formats?.thumb?.url || m.url}
                     alt={m.title}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      // Fallback-Kette: thumbnailUrl → formats.thumb → formats.original → url → Platzhalter
+                      if (img.src.includes('/thumb/') && m.formats?.original?.url) {
+                        img.src = m.formats.original.url;
+                      } else if (m.url && !img.src.endsWith(m.url)) {
+                        img.src = m.url;
+                      } else {
+                        img.style.display = 'none';
+                        img.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-[#999]"><span class="material-symbols-outlined" style="font-size:32px">broken_image</span></div>';
+                      }
+                    }}
                   />
                   {m.width && m.height && (
                     <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
@@ -173,7 +185,7 @@ function MediaGrid({ category }: { category: 'PHOTO' | 'LOGO' }) {
                   <p className="text-xs font-medium truncate" title={m.title}>{m.title}</p>
                   <div className="flex items-center justify-between mt-1">
                     {m.products.length > 0 && m.products[0]?.mediaType && (
-                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] bg-pink-50 text-[#C42D60] px-1.5 py-0.5 rounded">
                         {m.products[0].mediaType}
                       </span>
                     )}
@@ -270,7 +282,7 @@ function UploadTab({ onUploaded }: { onUploaded: () => void }) {
           input.click();
         }}
         className={'border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ' +
-          (isDragOver ? 'border-amber-500 bg-amber-50' : 'border-[#DEE1E6] hover:border-amber-400 hover:bg-amber-50/50')
+          (isDragOver ? 'border-[#DD3C71] bg-pink-50' : 'border-[#DEE1E6] hover:border-[#DD3C71] hover:bg-pink-50/50')
         }
       >
         <div className="text-4xl mb-3">&#x1F4F8;</div>
@@ -295,7 +307,7 @@ function UploadTab({ onUploaded }: { onUploaded: () => void }) {
           {files.map((item, i) => (
             <div key={i} className="flex items-center gap-3 p-2 bg-[#F9FAFB] rounded-lg">
               <span className="text-lg">
-                {item.status === 'done' ? '\u2705' : item.status === 'error' ? '\u274C' : item.status === 'uploading' ? '\u23F3' : '\uD83D\uDCC4'}
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: item.status === 'done' ? '#22C55E' : item.status === 'error' ? '#EF4444' : '#999' }}>{item.status === 'done' ? 'check_circle' : item.status === 'error' ? 'error' : item.status === 'uploading' ? 'hourglass_top' : 'description'}</span>
               </span>
               <span className="flex-1 text-sm truncate">{item.file.name}</span>
               <span className="text-xs text-[#999]">{(item.file.size / 1024).toFixed(0)} KB</span>
@@ -310,7 +322,7 @@ function UploadTab({ onUploaded }: { onUploaded: () => void }) {
             </span>
             {pendingCount > 0 && (
               <button onClick={uploadAll}
-                className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700">
+                className="px-4 py-2 bg-[#DD3C71] text-white rounded-lg text-sm font-medium hover:bg-[#C42D60]">
                 {pendingCount} {pendingCount === 1 ? 'Bild' : 'Bilder'} hochladen
               </button>
             )}
@@ -383,26 +395,42 @@ function WebSearchTab({ onImported }: { onImported: () => void }) {
     setImporting(true);
     const items = Array.from(selected).map(i => results[i]).filter(Boolean);
     let ok = 0;
+    let lastError = '';
     for (const item of items) {
       try {
+        const importUrl = item.fullUrl || item.url;
+        if (!importUrl) { lastError = 'Keine Bild-URL vorhanden'; continue; }
         const res = await fetch('/api/v1/media/web-import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            url: item.fullUrl,
+            url: importUrl,
             source: source.toUpperCase(),
             sourceAuthor: item.author,
-            sourceUrl: item.sourceUrl,
+            sourceUrl: item.sourceUrl || item.pageUrl,
             category: 'PHOTO',
           }),
         });
-        if (res.ok) ok++;
-      } catch (e) { console.error(e); }
+        if (res.ok) {
+          ok++;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          lastError = errData.details || errData.error || `HTTP ${res.status}`;
+          console.error('Import error:', errData);
+        }
+      } catch (e: any) {
+        lastError = e.message;
+        console.error('Import fetch error:', e);
+      }
     }
     setImporting(false);
     setSelected(new Set());
     if (ok > 0) onImported();
-    alert(ok + ' Bild' + (ok > 1 ? 'er' : '') + ' importiert!');
+    if (ok === 0 && items.length > 0) {
+      alert('Import fehlgeschlagen: ' + lastError);
+    } else {
+      alert(ok + ' Bild' + (ok > 1 ? 'er' : '') + ' importiert!' + (lastError && ok < items.length ? '\n' + (items.length - ok) + ' fehlgeschlagen: ' + lastError : ''));
+    }
   }
 
   const selectedCount = selected.size;
@@ -413,9 +441,9 @@ function WebSearchTab({ onImported }: { onImported: () => void }) {
         <input type="text" placeholder="z.B. wine bottle, hotel restaurant..."
           value={query} onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && doSearch(1)}
-          className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+          className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
         <button onClick={() => doSearch(1)} disabled={loading || !query.trim()}
-          className="px-5 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+          className="px-5 py-2 bg-[#DD3C71] text-white rounded-lg text-sm font-medium hover:bg-[#C42D60] disabled:opacity-50">
           {loading ? '...' : 'Suchen'}
         </button>
       </div>
@@ -429,10 +457,10 @@ function WebSearchTab({ onImported }: { onImported: () => void }) {
             onClick={() => setSource(s.id)}
             className={'px-4 py-2.5 rounded-lg text-sm font-medium border-2 transition-all ' +
               (source === s.id
-                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                ? 'border-[#DD3C71] bg-pink-50 text-[#DD3C71]'
                 : s.available || s.free
-                  ? 'border-[#E5E7EB] bg-white text-[#565D6D] hover:border-amber-300 hover:bg-amber-50/50'
-                  : 'border-gray-100 bg-[#F9FAFB] text-[#999] hover:border-amber-200 hover:bg-amber-50/30 cursor-pointer')
+                  ? 'border-[#E5E7EB] bg-white text-[#565D6D] hover:border-pink-300 hover:bg-pink-50/50'
+                  : 'border-gray-100 bg-[#F9FAFB] text-[#999] hover:border-pink-200 hover:bg-pink-50/30 cursor-pointer')
             }>
             {s.label || s.name}
             {(s.free) && <span className="ml-1.5 text-xs text-green-600">(frei)</span>}
@@ -450,15 +478,23 @@ function WebSearchTab({ onImported }: { onImported: () => void }) {
         </div>
       ) : results.length > 0 ? (
         <>
-          <p className="text-sm text-[#565D6D] mb-3">{total} Ergebnisse - Seite {page}</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm text-[#565D6D]">{total} Ergebnisse - Seite {page}</p>
+            {selectedCount > 0 && (
+              <button onClick={importSelected} disabled={importing}
+                className="px-5 py-2 bg-[#DD3C71] text-white rounded-lg text-sm font-medium hover:bg-[#C42D60] disabled:opacity-50">
+                {importing ? 'Importiere...' : selectedCount + ' uebernehmen'}
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {results.map((r, idx) => (
               <div key={r.id} onClick={() => toggleSelect(idx)}
                 className={'cursor-pointer border-2 rounded-lg overflow-hidden transition-all ' +
-                  (selected.has(idx) ? 'border-amber-500 ring-2 ring-amber-200' : 'border-transparent hover:border-[#DEE1E6]')}>
+                  (selected.has(idx) ? 'border-[#DD3C71] ring-2 ring-pink-200' : 'border-transparent hover:border-[#DEE1E6]')}>
                 <div className="relative aspect-square bg-gray-100">
                   <img src={r.previewUrl} alt={r.tags} className="w-full h-full object-cover" loading="lazy" />
-                  {selected.has(idx) && <div className="absolute top-2 right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs">+</div>}
+                  {selected.has(idx) && <div className="absolute top-2 right-2 w-6 h-6 bg-[#DD3C71] rounded-full flex items-center justify-center text-white text-xs">+</div>}
                 </div>
                 <div className="p-1.5">
                   <p className="text-[10px] text-[#565D6D] truncate">{r.author}</p>
@@ -474,7 +510,7 @@ function WebSearchTab({ onImported }: { onImported: () => void }) {
             </div>
             {selectedCount > 0 && (
               <button onClick={importSelected} disabled={importing}
-                className="px-5 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+                className="px-5 py-2 bg-[#DD3C71] text-white rounded-lg text-sm font-medium hover:bg-[#C42D60] disabled:opacity-50">
                 {importing ? 'Importiere...' : selectedCount + ' uebernehmen'}
               </button>
             )}
@@ -492,14 +528,14 @@ export default function MediaArchive() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const tabs = [
-    { id: 'photos' as const, icon: '\uD83D\uDCF7', label: 'Fotos' },
-    { id: 'logos' as const, icon: '\uD83C\uDFF7\uFE0F', label: 'Logos' },
-    { id: 'upload' as const, icon: '\uD83D\uDCE4', label: 'Hochladen' },
-    { id: 'web' as const, icon: '\uD83C\uDF10', label: 'Websuche' },
+    { id: 'photos' as const, icon: 'photo_library', label: 'Fotos' },
+    { id: 'logos' as const, icon: 'branding_watermark', label: 'Logos' },
+    { id: 'upload' as const, icon: 'cloud_upload', label: 'Hochladen' },
+    { id: 'web' as const, icon: 'travel_explore', label: 'Websuche' },
   ];
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto">
+    <div className="p-6 max-w-[1400px] mx-auto" style={{ fontFamily: "'Roboto', sans-serif" }}>
       <h1 className="text-2xl font-bold text-[#171A1F] mb-6">Bildarchiv</h1>
 
       {/* Tabs */}
@@ -508,13 +544,14 @@ export default function MediaArchive() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={'px-5 py-3 text-sm font-medium border-b-2 transition-colors ' +
-              (activeTab === tab.id
-                ? 'border-amber-600 text-amber-700'
-                : 'border-transparent text-[#565D6D] hover:text-[#171A1F] hover:border-[#DEE1E6]')
-            }
+            className="px-5 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5"
+            style={{
+              borderBottomColor: activeTab === tab.id ? '#DD3C71' : 'transparent',
+              color: activeTab === tab.id ? '#DD3C71' : '#565D6D',
+            }}
           >
-            {tab.icon} {tab.label}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{tab.icon}</span>
+            {tab.label}
           </button>
         ))}
       </div>

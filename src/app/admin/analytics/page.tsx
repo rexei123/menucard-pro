@@ -20,20 +20,27 @@ export default async function AnalyticsPage() {
       include: {
         translations: true,
         location: true,
-        sections: { where: { isActive: true }, include: { _count: { select: { placements: true } } } },
+        sections: { include: { _count: { select: { placements: true } } } },
       },
     }),
-    prisma.qRCode.findMany({
-      where: {
-        OR: [
-          { location: { tenantId: tid } },
-          { menu: { location: { tenantId: tid } } },
-        ],
-      },
-      select: { id: true, shortCode: true, scans: true, isActive: true, menuId: true, createdAt: true },
-    }),
+    (async () => {
+      const locIds = await prisma.location.findMany({
+        where: { tenantId: tid },
+        select: { id: true },
+      });
+      const locIdSet = locIds.map(l => l.id);
+      return prisma.qRCode.findMany({
+        where: {
+          OR: [
+            { locationId: { in: locIdSet } },
+            { menu: { location: { tenantId: tid } } },
+          ],
+        },
+        select: { id: true, shortCode: true, scans: true, isActive: true, menuId: true, createdAt: true },
+      });
+    })(),
     prisma.menuSection.findMany({
-      where: { menu: { location: { tenantId: tid } }, isActive: true },
+      where: { menu: { location: { tenantId: tid } } },
       select: { id: true },
     }),
     prisma.productVariant.findMany({

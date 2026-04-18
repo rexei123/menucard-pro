@@ -238,7 +238,7 @@ export default async function MenuPage({
           )}
           <Link href={`/${tenant.slug}/${location.slug}${langParam}`}
             className="text-xs uppercase tracking-widest"
-            style={{ opacity: 0.4 }}>
+            style={{ opacity: 0.7, color: 'var(--mc-header-text)' }}>
             {tenant.name}
           </Link>
           <h1 className="mt-2" style={{
@@ -247,9 +247,10 @@ export default async function MenuPage({
             fontWeight: 'var(--mc-h1-weight)' as any,
             letterSpacing: 'var(--mc-h1-spacing)',
             textTransform: (digitalConfig.typography.h1.transform || 'none') as any,
+            color: 'var(--mc-h1-color)',
           }}>{menuName}</h1>
           {subtitle && (
-            <p className="mt-1 text-sm" style={{ opacity: 0.6 }}>{subtitle}</p>
+            <p className="mt-1 text-sm" style={{ opacity: 0.8, color: 'var(--mc-header-text)' }}>{subtitle}</p>
           )}
         </div>
       </header>

@@ -29,7 +29,8 @@ export default async function MenusLayout({ children }: { children: React.ReactN
     locationName: m.location.name,
     sectionCount: m.sections.length,
     itemCount: m.sections.reduce((sum: number, s: any) => sum + s._count.placements, 0),
-    isActive: m.isActive,
+    isActive: m.status === 'ACTIVE',
+    status: m.status,
   }));
 
   return (

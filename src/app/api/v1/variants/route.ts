@@ -4,6 +4,58 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+// GET /api/v1/variants — Listen-Endpoint fuer alle Varianten des Mandanten
+// Query-Parameter:
+//   ?productId=<id>     nur Varianten eines Produkts
+//   ?isDefault=true     nur Default-Varianten
+//   ?q=<search>         sucht in label/sku
+//   ?limit/offset       Pagination (default 200 / 0)
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const tid = session.user.tenantId;
+
+  const url = new URL(req.url);
+  const productId = url.searchParams.get('productId');
+  const isDefault = url.searchParams.get('isDefault');
+  const q = url.searchParams.get('q');
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '200'), 500);
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  const where: any = { product: { tenantId: tid } };
+  if (productId) where.productId = productId;
+  if (isDefault === 'true') where.isDefault = true;
+  if (isDefault === 'false') where.isDefault = false;
+  if (q) {
+    where.OR = [
+      { label: { contains: q, mode: 'insensitive' } },
+      { sku: { contains: q, mode: 'insensitive' } },
+    ];
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.productVariant.findMany({
+      where,
+      include: {
+        product: {
+          select: {
+            id: true, sku: true, type: true, status: true,
+            translations: { select: { language: true, languageCode: true, name: true } },
+          },
+        },
+        fillQuantity: true,
+        prices: { include: { priceLevel: true } },
+      },
+      orderBy: [{ productId: 'asc' }, { sortOrder: 'asc' }],
+      take: limit,
+      skip: offset,
+    }),
+    prisma.productVariant.count({ where }),
+  ]);
+
+  return NextResponse.json({ items, total, limit, offset });
+}
+
 // POST /api/v1/variants — Neue Variante zu einem Produkt hinzufügen
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);

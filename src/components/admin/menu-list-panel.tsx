@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 type MenuItem = {
@@ -17,12 +17,32 @@ const typeIcons: Record<string, string> = {
   DAILY_SPECIAL: 'star', SEASONAL: 'eco',
 };
 
+const MENU_TYPES: { value: string; label: string }[] = [
+  { value: 'FOOD', label: 'Speisekarte' },
+  { value: 'WINE', label: 'Weinkarte' },
+  { value: 'BAR', label: 'Barkarte' },
+  { value: 'DRINKS', label: 'Getraenkekarte' },
+  { value: 'BREAKFAST', label: 'Fruehstueckskarte' },
+  { value: 'EVENT', label: 'Eventkarte' },
+  { value: 'ROOM_SERVICE', label: 'Roomservice' },
+  { value: 'SPA', label: 'Spa-Karte' },
+  { value: 'MINIBAR', label: 'Minibar' },
+  { value: 'DAILY_SPECIAL', label: 'Tageskarte' },
+  { value: 'SEASONAL', label: 'Saisonkarte' },
+];
+
 export default function MenuListPanel({ menus }: { menus: MenuItem[] }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [width, setWidth] = useState(420);
   const [dragging, setDragging] = useState(false);
   const activeId = pathname.split('/admin/menus/')[1] || '';
   const [query, setQuery] = useState('');
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: '', nameEn: '', type: 'FOOD' });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -41,11 +61,49 @@ export default function MenuListPanel({ menus }: { menus: MenuItem[] }) {
     document.addEventListener('mouseup', onUp);
   };
 
+  const handleCreate = async () => {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const res = await fetch('/api/v1/menus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createForm),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Fehler' }));
+        throw new Error(err.error || 'Fehler beim Anlegen');
+      }
+      const menu = await res.json();
+      setShowCreate(false);
+      setCreateForm({ name: '', nameEn: '', type: 'FOOD' });
+      router.refresh();
+      router.push(`/admin/menus/${menu.id}`);
+    } catch (e: any) {
+      setCreateError(e.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="relative flex h-full flex-shrink-0 flex-col border-r bg-white" style={{ width }}>
       <div className="border-b px-3 py-3">
-        <h2 className="text-base font-semibold text-gray-700">Karten</h2>
-        <p className="text-sm text-gray-400 mt-0.5">{menus.length} Karten</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-700">Karten</h2>
+            <p className="text-sm text-gray-400 mt-0.5">{menus.length} Karten</p>
+          </div>
+          <button
+            onClick={() => { setShowCreate(true); setCreateError(null); }}
+            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors"
+            style={{ backgroundColor: '#22C55E' }}
+            title="Neue Karte anlegen"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+            Neu
+          </button>
+        </div>
         <div className="relative mt-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-30"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Suchen..." className="w-full rounded-lg border bg-gray-50 py-1.5 pl-8 pr-2 text-sm outline-none focus:border-gray-400 focus:bg-white" />
@@ -90,6 +148,73 @@ export default function MenuListPanel({ menus }: { menus: MenuItem[] }) {
           );
         })}
       </div>
+
+      {showCreate && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowCreate(false)}
+          style={{ fontFamily: "'Roboto', sans-serif" }}
+        >
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h2 className="mb-4 text-lg font-bold">Neue Karte anlegen</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Name (Deutsch)</label>
+                <input
+                  type="text"
+                  value={createForm.name}
+                  onChange={e => setCreateForm({ ...createForm, name: e.target.value })}
+                  placeholder="z.B. Sommer-Abendkarte"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-pink-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Name (Englisch, optional)</label>
+                <input
+                  type="text"
+                  value={createForm.nameEn}
+                  onChange={e => setCreateForm({ ...createForm, nameEn: e.target.value })}
+                  placeholder="e.g. Summer Dinner Menu"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-pink-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Kartentyp</label>
+                <select
+                  value={createForm.type}
+                  onChange={e => setCreateForm({ ...createForm, type: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-pink-500 focus:outline-none"
+                >
+                  {MENU_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {createError && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {createError}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setShowCreate(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={creating || !createForm.name.trim()}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                style={{ backgroundColor: '#22C55E' }}
+              >
+                {creating ? 'Lege an…' : 'Anlegen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div
         onMouseDown={startResize}

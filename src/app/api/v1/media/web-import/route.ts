@@ -11,13 +11,42 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { url, source, sourceAuthor, sourceUrl, category } = await req.json();
+  const { url, source: rawSource, sourceAuthor, sourceUrl, category } = await req.json();
   if (!url) return NextResponse.json({ error: 'URL required' }, { status: 400 });
 
+  // MediaSource-Enum: UPLOAD, PIXABAY, PEXELS, WEB
+  const validSources = ['UPLOAD', 'PIXABAY', 'PEXELS', 'WEB'];
+  const source = validSources.includes(rawSource) ? rawSource : 'WEB';
+
   try {
-    // Bild herunterladen
-    const imgRes = await fetch(url);
-    if (!imgRes.ok) throw new Error('Download failed');
+    // Bild herunterladen (mit User-Agent, Timeout und Redirect-Handling)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    let imgRes: Response;
+    try {
+      imgRes = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+        },
+        redirect: 'follow',
+      });
+    } catch (fetchErr: any) {
+      console.error('Web import fetch error:', fetchErr.message, 'URL:', url);
+      return NextResponse.json({ error: 'Download failed', details: fetchErr.message, url }, { status: 500 });
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (!imgRes.ok) {
+      console.error('Web import HTTP error:', imgRes.status, imgRes.statusText, 'URL:', url);
+      return NextResponse.json({ error: 'Download failed', status: imgRes.status, statusText: imgRes.statusText, url }, { status: 500 });
+    }
+    const contentType = imgRes.headers.get('content-type') || '';
+    if (!contentType.startsWith('image/') && !contentType.includes('octet-stream')) {
+      console.error('Web import wrong content-type:', contentType, 'URL:', url);
+      return NextResponse.json({ error: 'Not an image', contentType, url }, { status: 400 });
+    }
     const buffer = Buffer.from(await imgRes.arrayBuffer());
 
     if (buffer.length > 10 * 1024 * 1024) {

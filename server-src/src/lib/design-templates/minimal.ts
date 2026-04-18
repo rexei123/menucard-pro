@@ -1,0 +1,88 @@
+import { DesignConfig } from './index';
+
+/**
+ * MINIMAL Template – Design Strategie 2.0
+ * Headlines + Body: Space Grotesk
+ * Reduzierte Farbpalette, kein Bild, kompaktes Layout.
+ */
+export const minimalTemplate: DesignConfig = {
+  digital: {
+    template: 'minimal',
+    mood: 'light',
+    density: 'compact',
+    typography: {
+      h1: { font: 'Space Grotesk', size: 28, weight: 700, color: '#111111', transform: 'none', spacing: -0.01 },
+      h2: { font: 'Space Grotesk', size: 18, weight: 600, color: '#333333', transform: 'uppercase', spacing: 0.06 },
+      h3: { font: 'Space Grotesk', size: 15, weight: 600, color: '#222222' },
+      body: { font: 'Space Grotesk', size: 13, weight: 400, color: '#888888', style: 'normal' },
+      price: { font: 'Space Grotesk', size: 15, weight: 700, color: '#111111', format: '{price} €' },
+      meta: { font: 'Space Grotesk', size: 11, color: '#BBBBBB' },
+    },
+    colors: {
+      pageBackground: '#FFFFFF',
+      headerBackground: '#FFFFFF',
+      headerText: '#111111',
+      sectionHeaderBg: 'transparent',
+      sectionLine: '#EEEEEE',
+      sectionLineWidth: 1,
+      sectionLineStyle: 'solid',
+      productBg: 'transparent',
+      productHover: '#F8F8F8',
+      productDivider: '#F0F0F0',
+      priceLine: 'none',
+      priceLineColor: 'transparent',
+      accentPrimary: '#111111',
+      accentRecommend: '#E8C547',
+      accentNew: '#22C55E',
+      accentPremium: '#EF4444',
+    },
+    icons: { style: 'none', sectionIcons: {} },
+    badges: { show: ['recommendation'], style: 'dot' },
+    allergens: { position: 'footer', style: 'abbreviations' },
+    products: {
+      showImages: false, imageStyle: 'color', imageShape: 'rectangle', imageSize: 48, imagePosition: 'left',
+      showShortDesc: false, showLongDesc: false, descMaxLines: 1,
+      pricePosition: 'right', currency: '€', priceFormat: '{price} €', showAllPrices: true, showFillQuantity: true,
+      wineDetails: ['vintage', 'grape'], wineDetailPosition: 'inline',
+      drinkDetails: [],
+    },
+    navigation: { showToc: false, tocPosition: 'top', tocStyle: 'list', stickyNav: false, smoothScroll: true, highlightActive: false, showBackToTop: false, hideEmptySections: true },
+    header: { logo: null, logoPosition: 'left', logoSize: 60, title: null, subtitle: null, backgroundImage: null, overlayOpacity: 0, height: 'small' },
+    footer: { show: false, text: '', showAllergenNote: true, showPriceNote: false },
+  },
+  analog: {
+    template: 'minimal',
+    hierarchy: [
+      { level: 'KATEGORIE', newPage: false, showText: false, showHeader: true },
+      { level: 'PRODUKT', newPage: false, showText: false, showHeader: false },
+    ],
+    content: { groups: ['all'], showTitlePage: false, showToc: false, showLegend: false, showQrPage: false, freePages: [], interPages: false },
+    language: { primary: 'de', secondary: '', secondaryScope: 'none', descriptionLang: 'primary' },
+    page: { format: 'A5', orientation: 'portrait', margins: 'narrow', customMargins: null, bleed: false, pageNumbers: false, pageNumberStart: 1, countTitlePage: false },
+    titlePage: { logo: null, logoBgColor: '#FFFFFF', logoBgImage: null, logoPosition: 'center', logoSize: 100, quote: null, quoteEN: null, quoteAuthor: null, quoteFont: 'Space Grotesk', freeBlocks: [] },
+    toc: { depth: 'category', lineStyle: 'none', bilingual: false, indented: false, position: 'afterTitle' },
+    typography: {
+      sectionTitle: { font: 'Space Grotesk', size: 20, weight: 700, color: '#111111' },
+      subCategory: { font: 'Space Grotesk', size: 12, weight: 600, color: '#555555' },
+      subGrouping: { font: 'Space Grotesk', size: 14, weight: 600, color: '#333333' },
+      productName: { font: 'Space Grotesk', size: 11, weight: 600, color: '#000000' },
+      winery: { font: 'Space Grotesk', size: 9, color: '#999999' },
+      description: { font: 'Space Grotesk', size: 9, color: '#777777', align: 'left', lineHeight: 1.3 },
+      price: { font: 'Space Grotesk', size: 11, weight: 700, color: '#000000' },
+    },
+    colors: { pageBg: '#FFFFFF', textMain: '#111111', accent: '#111111', priceColor: '#000000', footerColor: '#BBBBBB' },
+    productLayout: {
+      nameLineShow: [],
+      wineryShow: [],
+      descDE: false, descEN: false, descLayout: 'stacked', descAlign: 'left', descMaxChars: 0,
+      priceFormat: '{price} €', multiplePrices: 'inline',
+      spacing: 'compact', dividerLine: false,
+    },
+    images: { show: false, position: 'none', maxPerRow: 0, height: 0, style: 'color', typeFilter: [] },
+    headerFooter: {
+      header: { repeatSectionName: false, font: 'Space Grotesk', dividerLine: false },
+      footer: { show: false, textLeft: '', textCenter: '', textRight: '', dividerLine: false },
+    },
+    pageBreaks: { newPagePerMainCategory: false, noOrphanProducts: true, minProductsAfterHeader: 1, keepImagesWithText: true },
+  },
+};

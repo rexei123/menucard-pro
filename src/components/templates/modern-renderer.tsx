@@ -159,11 +159,11 @@ export function ModernSection({ section, lang, priceLocale, tenantSlug, location
       <div className="flex items-center gap-4 mb-6">
         <h2
           className="text-xl font-black uppercase tracking-tight whitespace-nowrap"
-          style={{ fontFamily: "'Montserrat', sans-serif", color: '#171A1F' }}
+          style={{ fontFamily: "'Montserrat', sans-serif", color: 'var(--mc-h2-color, #171A1F)' }}
         >
           {sName}
         </h2>
-        <div className="h-1 flex-1 rounded-full" style={{ backgroundColor: '#F3F3F6' }} />
+        <div className="h-1 flex-1 rounded-full" style={{ backgroundColor: 'var(--mc-section-line, #F3F3F6)' }} />
       </div>
 
       {/* Grid */}

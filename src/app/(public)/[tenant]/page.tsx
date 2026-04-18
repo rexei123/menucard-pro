@@ -19,14 +19,25 @@ export default async function TenantPage({
   };
 
   const tenant = await prisma.tenant.findUnique({
-    where: { slug: params.tenant, isActive: true },
+    where: { slug: params.tenant },
     include: {
       themes: { where: { isActive: true }, take: 1 },
-      locations: { where: { isActive: true }, orderBy: { sortOrder: 'asc' }, include: { translations: true, menus: { where: { isActive: true, isArchived: false }, include: { translations: true } } } },
+      locations: {
+        orderBy: { createdAt: 'asc' },
+        include: {
+          translations: true,
+          menus: {
+            where: { status: { not: 'ARCHIVED' } },
+            orderBy: { sortOrder: 'asc' },
+            include: { translations: true },
+          },
+        },
+      },
     },
   });
   if (!tenant) return notFound();
   const theme = tenant.themes[0];
+  const themeCfg: any = theme?.config ?? {};
   const langParam = lang === 'en' ? '?lang=en' : '';
   const menuLabel = (n: number) =>
     lang === 'en'
@@ -34,7 +45,7 @@ export default async function TenantPage({
       : (n === 1 ? 'Karte' : 'Karten');
 
   return (
-    <div className="min-h-screen" style={{ background: theme?.backgroundColor || '#FAFAF8' }}>
+    <div className="min-h-screen" style={{ background: themeCfg.backgroundColor || '#FAFAF8' }}>
       <header className="border-b px-6 py-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight" style={{fontFamily: "'Playfair Display', serif"}}>{tenant.name}</h1>
       </header>

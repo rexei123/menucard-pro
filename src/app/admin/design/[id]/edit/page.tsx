@@ -13,7 +13,7 @@ export default async function TemplateEditPage({ params }: { params: { id: strin
     include: {
       menus: {
         take: 1,
-        where: { isActive: true },
+        where: { status: 'ACTIVE' },
         include: { location: { include: { tenant: true } } },
       },
     },

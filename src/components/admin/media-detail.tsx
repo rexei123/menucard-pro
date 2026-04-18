@@ -101,7 +101,7 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
   return (
     <div className="p-6 max-w-[1200px] mx-auto">
       {/* Header */}
-      <button onClick={() => router.push('/admin/media')} className="text-sm text-amber-600 hover:underline mb-4 block">
+      <button onClick={() => router.push('/admin/media')} className="text-sm text-[#DD3C71] hover:underline mb-4 block">
         ← Zurück zum Archiv
       </button>
 
@@ -113,6 +113,17 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
               src={formats.original?.url || media.url}
               alt={media.alt || media.title || ''}
               className="w-full h-auto max-h-[500px] object-contain"
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                if (media.url && !img.src.endsWith(media.url)) {
+                  img.src = media.url;
+                } else if (media.thumbnailUrl && !img.src.endsWith(media.thumbnailUrl)) {
+                  img.src = media.thumbnailUrl;
+                } else {
+                  img.style.display = 'none';
+                  img.parentElement!.innerHTML = '<div class="w-full h-[300px] flex flex-col items-center justify-center text-[#999]"><span class="material-symbols-outlined" style="font-size:48px">broken_image</span><p class="text-sm mt-2">Bild nicht gefunden</p></div>';
+                }
+              }}
             />
           </div>
 
@@ -127,6 +138,11 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
                     alt={key}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      img.style.display = 'none';
+                      img.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-[#999]"><span class="material-symbols-outlined" style="font-size:20px">broken_image</span></div>';
+                    }}
                   />
                 </div>
                 <p className="text-[10px] text-center text-[#565D6D] mt-1">
@@ -138,7 +154,7 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
                 {key !== 'original' && key !== 'thumb' && (
                   <button
                     onClick={() => setCropFormat(key)}
-                    className="mt-1 w-full text-[10px] text-amber-600 hover:text-amber-800"
+                    className="mt-1 w-full text-[10px] text-[#DD3C71] hover:text-[#C42D60]"
                   >
                     Zuschneiden
                   </button>
@@ -154,14 +170,14 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
             <label className="text-sm font-medium text-[#171A1F] block mb-1">Titel</label>
             <input
               type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#DD3C71]"
             />
           </div>
           <div>
             <label className="text-sm font-medium text-[#171A1F] block mb-1">Alt-Text</label>
             <input
               type="text" value={alt} onChange={(e) => setAlt(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#DD3C71]"
             />
           </div>
           <div>
@@ -197,7 +213,7 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
               <div className="space-y-1">
                 {media.productMedia.map(pm => (
                   <div key={pm.id} className="flex items-center gap-2 text-sm p-2 bg-[#F9FAFB] rounded">
-                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">{pm.mediaType}</span>
+                    <span className="text-[10px] bg-[#DD3C71]/10 text-[#DD3C71] px-1.5 py-0.5 rounded">{pm.mediaType}</span>
                     <span>{pm.product.translations[0]?.name || 'Unbenannt'}</span>
                   </div>
                 ))}
@@ -208,7 +224,7 @@ export default function MediaDetail({ mediaId }: { mediaId: string }) {
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t">
             <button onClick={save} disabled={saving}
-              className="px-5 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+              className="px-5 py-2 bg-[#DD3C71] text-white rounded-lg text-sm font-medium hover:bg-[#C42D60] disabled:opacity-50">
               {saving ? 'Speichere...' : 'Speichern'}
             </button>
             <button onClick={() => deleteMedia(false)}

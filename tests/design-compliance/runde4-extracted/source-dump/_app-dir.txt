@@ -1,0 +1,13 @@
+total 48
+drwxr-xr-x  6 root root 4096 Apr 14 17:55 .
+dr-x------ 13 root root 4096 Apr 13 10:35 ..
+drwxr-xr-x 11 root root 4096 Apr 14 09:21 admin
+drwxr-xr-x  4 root root 4096 Apr  7 13:30 api
+drwxr-xr-x  4 root root 4096 Apr  6 08:50 auth
+-rw-r--r--  1 root root 3453 Apr 13 18:21 globals.css
+-rw-r--r--  1 root root 2565 Apr 14 17:55 layout.tsx
+-rw-r--r--  1 root root 2025 Apr 14 17:38 layout.tsx.bak.runde1
+-rw-r--r--  1 root root 2219 Apr 14 17:55 layout.tsx.bak.runde2
+-rw-r--r--  1 root root  546 Apr  6 08:50 not-found.tsx
+-rw-r--r--  1 root root  980 Apr 14 14:13 page.tsx
+drwxr-xr-x  4 root root 4096 Apr  6 08:50 (public)

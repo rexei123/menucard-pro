@@ -1,0 +1,89 @@
+import { DesignConfig } from './index';
+
+/**
+ * MODERN Template – Design Strategie 2.0
+ * Headlines + Body: Montserrat
+ * Akzent: #DD3C71 (Pink), Highlight: #E8C547 (Gold)
+ * Dark UI mit warmem Akzent.
+ */
+export const modernTemplate: DesignConfig = {
+  digital: {
+    template: 'modern',
+    mood: 'dark',
+    density: 'normal',
+    typography: {
+      h1: { font: 'Montserrat', size: 36, weight: 800, color: '#FFFFFF', transform: 'none', spacing: -0.02 },
+      h2: { font: 'Montserrat', size: 20, weight: 700, color: '#E8C547', transform: 'uppercase', spacing: 0.08 },
+      h3: { font: 'Montserrat', size: 16, weight: 600, color: '#F0F0F0' },
+      body: { font: 'Montserrat', size: 14, weight: 400, color: '#AAAAAA', style: 'normal' },
+      price: { font: 'Montserrat', size: 18, weight: 800, color: '#E8C547', format: '{price} €' },
+      meta: { font: 'Montserrat', size: 11, color: '#888888' },
+    },
+    colors: {
+      pageBackground: '#1A1A2E',
+      headerBackground: '#16213E',
+      headerText: '#E8C547',
+      sectionHeaderBg: '#16213E',
+      sectionLine: '#E8C547',
+      sectionLineWidth: 2,
+      sectionLineStyle: 'solid',
+      productBg: 'transparent',
+      productHover: '#16213E',
+      productDivider: '#2A2A4A',
+      priceLine: 'none',
+      priceLineColor: 'transparent',
+      accentPrimary: '#E8C547',
+      accentRecommend: '#E8C547',
+      accentNew: '#4ECDC4',
+      accentPremium: '#FF6B6B',
+    },
+    icons: { style: 'emoji', sectionIcons: {} },
+    badges: { show: ['recommendation', 'new', 'premium'], style: 'pill' },
+    allergens: { position: 'footer', style: 'numbers' },
+    products: {
+      showImages: true, imageStyle: 'color', imageShape: 'rounded', imageSize: 80, imagePosition: 'left',
+      showShortDesc: true, showLongDesc: false, descMaxLines: 2,
+      pricePosition: 'right', currency: '€', priceFormat: '{price} €', showAllPrices: true, showFillQuantity: true,
+      wineDetails: ['winery', 'vintage', 'grape'], wineDetailPosition: 'below',
+      drinkDetails: ['alcohol'],
+    },
+    navigation: { showToc: true, tocPosition: 'top', tocStyle: 'tabs', stickyNav: true, smoothScroll: true, highlightActive: true, showBackToTop: true, hideEmptySections: true },
+    header: { logo: null, logoPosition: 'left', logoSize: 80, title: null, subtitle: null, backgroundImage: null, overlayOpacity: 0.8, height: 'small' },
+    footer: { show: true, text: 'Hotel Sonnblick · Saalbach', showAllergenNote: true, showPriceNote: true },
+  },
+  analog: {
+    template: 'modern',
+    hierarchy: [
+      { level: 'KATEGORIE', newPage: true, showText: false, showHeader: true },
+      { level: 'PRODUKT', newPage: false, showText: true, showHeader: false },
+    ],
+    content: { groups: ['all'], showTitlePage: true, showToc: false, showLegend: false, showQrPage: true, freePages: [], interPages: false },
+    language: { primary: 'de', secondary: 'en', secondaryScope: 'productNames', descriptionLang: 'primary' },
+    page: { format: 'A4', orientation: 'portrait', margins: 'normal', customMargins: null, bleed: false, pageNumbers: true, pageNumberStart: 1, countTitlePage: false },
+    titlePage: { logo: null, logoBgColor: '#1A1A2E', logoBgImage: null, logoPosition: 'center', logoSize: 180, quote: null, quoteEN: null, quoteAuthor: null, quoteFont: 'Montserrat', freeBlocks: [] },
+    toc: { depth: 'category', lineStyle: 'solid', bilingual: false, indented: false, position: 'afterTitle' },
+    typography: {
+      sectionTitle: { font: 'Montserrat', size: 28, weight: 800, color: '#1A1A2E' },
+      subCategory: { font: 'Montserrat', size: 13, weight: 700, color: '#555555' },
+      subGrouping: { font: 'Montserrat', size: 16, weight: 600, color: '#333333' },
+      productName: { font: 'Montserrat', size: 12, weight: 600, color: '#000000' },
+      winery: { font: 'Montserrat', size: 10, color: '#777777' },
+      description: { font: 'Montserrat', size: 10, color: '#555555', align: 'left', lineHeight: 1.3 },
+      price: { font: 'Montserrat', size: 12, weight: 800, color: '#000000' },
+    },
+    colors: { pageBg: '#FFFFFF', textMain: '#333333', accent: '#1A1A2E', priceColor: '#000000', footerColor: '#999999' },
+    productLayout: {
+      nameLineShow: ['style', 'icons'],
+      wineryShow: ['winery'],
+      descDE: true, descEN: false, descLayout: 'stacked', descAlign: 'left', descMaxChars: 150,
+      priceFormat: '{fill}  {price} €', multiplePrices: 'stacked',
+      spacing: 'compact', dividerLine: true,
+    },
+    images: { show: true, position: 'inline', maxPerRow: 1, height: 80, style: 'color', typeFilter: ['BOTTLE'] },
+    headerFooter: {
+      header: { repeatSectionName: true, font: 'Montserrat', dividerLine: false },
+      footer: { show: true, textLeft: 'Alle Preise inkl. Steuern', textCenter: '', textRight: '{pageNumber}', dividerLine: false },
+    },
+    pageBreaks: { newPagePerMainCategory: true, noOrphanProducts: true, minProductsAfterHeader: 2, keepImagesWithText: true },
+  },
+};
