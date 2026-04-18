@@ -134,11 +134,12 @@ PGPASSWORD="$PROD_PASS" psql -h "$STAGING_HOST" -p "$STAGING_PORT_DB" \
     -U "$PROD_USER" -d "$STAGING_DB" -v ON_ERROR_STOP=1 <<SQL
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA public;
+ALTER SCHEMA public OWNER TO $STAGING_USER;
 GRANT ALL ON SCHEMA public TO $STAGING_USER;
 GRANT ALL ON SCHEMA public TO public;
 SQL
 unset PGPASSWORD
-ok "Staging-Schema 'public' neu erstellt, Rechte fuer $STAGING_USER gesetzt"
+ok "Staging-Schema 'public' neu erstellt (Owner: $STAGING_USER)"
 
 # -----------------------------------------------------------------------------
 # 6. Dump in Staging restaurieren (als Staging-User -> Tabellen gehoeren ihm)
