@@ -47,9 +47,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (typeof body.baseType === 'string') data.baseType = body.baseType;
   if (body.config !== undefined) data.config = deepMergeTpl((template.config as any) || {}, body.config);
 
-  // Namenskollision
+  // Namenskollision (name ist nicht unique - findFirst + NOT id)
   if (data.name && data.name !== template.name) {
-    const conflict = await prisma.designTemplate.findUnique({ where: { name: data.name } });
+    const conflict = await prisma.designTemplate.findFirst({
+      where: { name: data.name, NOT: { id: params.id } },
+    });
     if (conflict) return NextResponse.json({ error: 'Name bereits vergeben.' }, { status: 409 });
   }
 

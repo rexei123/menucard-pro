@@ -45,19 +45,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Namens-Kollision
-  const existing = await prisma.designTemplate.findUnique({ where: { name } });
+  // Namens-Kollision (name ist in v2 nicht unique, wir verhindern Duplikate trotzdem)
+  const existing = await prisma.designTemplate.findFirst({ where: { name } });
   if (existing) {
     return NextResponse.json({ error: 'Eine Vorlage mit diesem Namen existiert bereits.' }, { status: 409 });
+  }
+
+  // Eindeutigen key aus dem Namen generieren (slug-artig)
+  const baseKey = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'template';
+  let key = baseKey;
+  let keyCounter = 2;
+  while (await prisma.designTemplate.findUnique({ where: { key } })) {
+    key = `${baseKey}-${keyCounter}`;
+    keyCounter++;
+    if (keyCounter > 50) break;
   }
 
   const template = await prisma.designTemplate.create({
     data: {
       name,
+      key,
       type: 'CUSTOM',
       baseType,
       config,
-      createdBy: session.user?.email ?? null,
     },
   });
 
