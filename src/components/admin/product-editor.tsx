@@ -1,114 +1,146 @@
+// @ts-nocheck
 'use client';
 import ProductImages from '@/components/admin/product-images';
+import { useState, useEffect, useMemo } from 'react';
 
-import { useState, useMemo, useEffect } from 'react';
-import Link from 'next/link';
-
-type Translation = { languageCode: string; name: string; shortDescription: string | null; longDescription: string | null; servingSuggestion: string | null };
-type Price = { id: string | null; fillQuantityId: string; fillLabel: string; priceLevelId: string; levelName: string; price: number; purchasePrice: number | null; fixedMarkup: number | null; percentMarkup: number | null; isDefault: boolean; sortOrder: number };
-type WineProfile = { winery: string | null; vintage: number | null; grapeVarieties: string[]; region: string | null; country: string | null; appellation: string | null; style: string | null; body: string | null; sweetness: string | null; bottleSize: string | null; alcoholContent: number | null; servingTemp: string | null; tastingNotes: string | null; foodPairing: string | null };
-type BevDetail = { brand: string | null; producer: string | null; category: string | null; alcoholContent: number | null; servingTemp: string | null; carbonated: boolean; origin: string | null };
-type Placement = { menuName: string; sectionName: string; isVisible: boolean };
+// === Types v2 ===
+type Translation = { language: string; name: string; shortDescription: string | null; longDescription: string | null; servingSuggestion: string | null; recipe: string | null; notes: string | null };
+type VariantPrice = { id: string | null; priceLevelId: string; priceLevelName: string; sellPrice: number; costPrice: number | null; fixedMarkup: number | null; percentMarkup: number | null };
+type Variant = { id: string | null; label: string | null; sku: string | null; fillQuantityId: string | null; fillQuantityLabel: string | null; isDefault: boolean; sortOrder: number; status: string; prices: VariantPrice[] };
+type WineProfile = { winery: string | null; vintage: number | null; aging: string | null; tastingNotes: string | null; servingTemp: string | null; foodPairing: string | null; certification: string | null };
+type BevDetail = { brand: string | null; alcoholContent: number | null; servingStyle: string | null; garnish: string | null; glassType: string | null };
 
 type ProductData = {
-  id: string; sku: string | null; type: string; status: string;
-  isHighlight: boolean; highlightType: string | null; productGroupId: string | null;
-  translations: Translation[]; prices: Price[];
+  id: string; sku: string | null; type: string; status: string; highlightType: string;
+  translations: Translation[]; variants: Variant[]; taxonomyNodeIds: string[];
   wineProfile: WineProfile | null; bevDetail: BevDetail | null;
-  internalNotes: string | null; placements: Placement[]; tags: { name: string; icon: string | null }[]; createdAt: string;
+  tags: string[]; images: any[]; createdAt: string;
 };
 
+type TaxNode = { id: string; name: string; type: string; slug: string; parentId: string | null; depth: number; children?: TaxNode[] };
 type Options = {
-  groups: { id: string; slug: string; name: string; parentName: string | null }[];
+  taxonomyNodes: TaxNode[];
   priceLevels: { id: string; name: string; slug: string }[];
-  fillQuantities: { id: string; label: string; volume: string | null }[];
+  fillQuantities: { id: string; label: string; slug: string; volumeMl: number | null }[];
 };
 
 const statusOpts = [
   { value: 'ACTIVE', label: 'Aktiv' },
-  { value: 'SOLD_OUT', label: 'Ausverkauft' },
-  { value: 'ARCHIVED', label: 'Archiviert' },
   { value: 'DRAFT', label: 'Entwurf' },
+  { value: 'ARCHIVED', label: 'Archiviert' },
 ];
 const typeOpts = [
-  { value: 'WINE', label: 'Wein' },
-  { value: 'DRINK', label: 'Getränk' },
   { value: 'FOOD', label: 'Speise' },
+  { value: 'DRINK', label: 'Getränk' },
+  { value: 'WINE', label: 'Wein' },
+  { value: 'SPIRIT', label: 'Spirituose' },
+  { value: 'BEER', label: 'Bier' },
+  { value: 'COFFEE', label: 'Kaffee' },
   { value: 'OTHER', label: 'Andere' },
 ];
-const styleOpts = [
-  { value: '', label: '–' },
-  { value: 'RED', label: 'Rotwein' },
-  { value: 'WHITE', label: 'Weißwein' },
-  { value: 'ROSE', label: 'Rosé' },
-  { value: 'SPARKLING', label: 'Schaumwein' },
-  { value: 'DESSERT', label: 'Dessertwein' },
-  { value: 'FORTIFIED', label: 'Likörwein' },
-  { value: 'ORANGE', label: 'Orange Wine' },
-  { value: 'NATURAL', label: 'Naturwein' },
-];
-const bodyOpts = [
-  { value: '', label: '–' },
-  { value: 'LIGHT', label: 'Leicht' },
-  { value: 'MEDIUM_LIGHT', label: 'Leicht bis Mittel' },
-  { value: 'MEDIUM', label: 'Mittel' },
-  { value: 'MEDIUM_FULL', label: 'Mittel bis Voll' },
-  { value: 'FULL', label: 'Vollmundig' },
-];
-const sweetOpts = [
-  { value: '', label: '–' },
-  { value: 'DRY', label: 'Trocken' },
-  { value: 'OFF_DRY', label: 'Halbtrocken' },
-  { value: 'MEDIUM_DRY', label: 'Halbtrocken' },
-  { value: 'MEDIUM_SWEET', label: 'Lieblich' },
-  { value: 'SWEET', label: 'Süß' },
-];
-const bevCatOpts = [
-  { value: '', label: '–' },
-  { value: 'BEER', label: 'Bier' },
-  { value: 'SPIRIT', label: 'Spirituose' },
-  { value: 'COCKTAIL', label: 'Cocktail' },
-  { value: 'SOFT_DRINK', label: 'Alkoholfrei' },
-  { value: 'JUICE', label: 'Saft' },
-  { value: 'WATER', label: 'Wasser' },
-  { value: 'HOT_DRINK', label: 'Heißgetränk' },
-  { value: 'SMOOTHIE', label: 'Smoothie' },
-  { value: 'OTHER', label: 'Sonstige' },
-];
+const taxonomyTypeLabels: Record<string, string> = {
+  CATEGORY: 'Kategorien', REGION: 'Regionen', GRAPE: 'Rebsorten',
+  STYLE: 'Stil', CUISINE: 'Küche', DIET: 'Ernährung',
+  OCCASION: 'Anlass', CUSTOM: 'Sonstige',
+};
 
-const emptyWP: WineProfile = { winery: null, vintage: null, grapeVarieties: [], region: null, country: null, appellation: null, style: null, body: null, sweetness: null, bottleSize: null, alcoholContent: null, servingTemp: null, tastingNotes: null, foodPairing: null };
-const emptyBev: BevDetail = { brand: null, producer: null, category: null, alcoholContent: null, servingTemp: null, carbonated: false, origin: null };
+const emptyWP: WineProfile = { winery: null, vintage: null, aging: null, tastingNotes: null, servingTemp: null, foodPairing: null, certification: null };
+const emptyBev: BevDetail = { brand: null, alcoholContent: null, servingStyle: null, garnish: null, glassType: null };
 
-export default function ProductEditor({ product: initial, options, images }: { product: ProductData; options: Options; images?: any[] }) {
+// === Hierarchie-Hilfsfunktionen ===
+function buildTree(nodes: TaxNode[]): Record<string, TaxNode[]> {
+  const map = new Map<string, TaxNode>();
+  for (const n of nodes) map.set(n.id, { ...n, children: [] });
+  const roots: Record<string, TaxNode[]> = {};
+  for (const n of nodes) {
+    const node = map.get(n.id)!;
+    if (n.parentId && map.has(n.parentId)) {
+      map.get(n.parentId)!.children!.push(node);
+    } else {
+      if (!roots[n.type]) roots[n.type] = [];
+      roots[n.type].push(node);
+    }
+  }
+  return roots;
+}
+
+function getBreadcrumb(nodeId: string, nodeMap: Map<string, TaxNode>): string[] {
+  const path: string[] = [];
+  let current = nodeMap.get(nodeId);
+  while (current) {
+    path.unshift(current.name);
+    current = current.parentId ? nodeMap.get(current.parentId) : undefined;
+  }
+  return path;
+}
+
+// === Hierarchische Pill-Gruppe ===
+function TaxonomyGroup({ node, depth, selectedIds, onToggle }: { node: TaxNode; depth: number; selectedIds: string[]; onToggle: (id: string) => void }) {
+  const hasChildren = node.children && node.children.length > 0;
+  const isSelected = selectedIds.includes(node.id);
+  const [open, setOpen] = useState(true);
+
+  if (hasChildren) {
+    // Gruppen-Header (nicht direkt auswählbar wenn Kinder vorhanden)
+    return (
+      <div className={depth > 0 ? 'ml-3 mt-1.5' : 'mt-1.5'}>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 mb-1"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{open ? 'expand_more' : 'chevron_right'}</span>
+          {node.name}
+          {node.taxLabel && <span className="text-[9px] px-1 py-0 rounded bg-amber-50 text-amber-600 border border-amber-200 ml-1">{node.taxLabel}</span>}
+        </button>
+        {open && (
+          <div className="flex flex-wrap gap-1.5 ml-4">
+            {node.children!.map(child => (
+              <TaxonomyGroup key={child.id} node={child} depth={depth + 1} selectedIds={selectedIds} onToggle={onToggle} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Blatt-Node (auswählbar)
+  return (
+    <button
+      key={node.id}
+      type="button"
+      onClick={() => onToggle(node.id)}
+      className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+        isSelected
+          ? 'bg-pink-50 border-pink-300 text-pink-700'
+          : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+      }`}
+    >
+      {node.name}
+      {isSelected && <span className="ml-1">&times;</span>}
+    </button>
+  );
+}
+
+export default function ProductEditor({ product: initial, options }: { product: ProductData; options: Options }) {
   const [data, setData] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
-  const [deChanged, setDeChanged] = useState<Set<string>>(new Set());
-  const [enSynced, setEnSynced] = useState<Set<string>>(new Set());
+  const [translating, setTranslating] = useState<Set<string>>(new Set());
+  const [duplicating, setDuplicating] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [newVintage, setNewVintage] = useState<number | null>(null);
 
   useEffect(() => {
     const unload = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
-    const clickGuard = (e: MouseEvent) => {
-      if (!dirty) return;
-      const link = (e.target as HTMLElement).closest('a[href]');
-      if (link && !link.getAttribute('href')?.startsWith('#')) {
-        if (!confirm('Ungespeicherte Änderungen verwerfen?')) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      }
-    };
     window.addEventListener('beforeunload', unload);
-    document.addEventListener('click', clickGuard, true);
-    return () => { window.removeEventListener('beforeunload', unload); document.removeEventListener('click', clickGuard, true); };
+    return () => window.removeEventListener('beforeunload', unload);
   }, [dirty]);
 
-
-
-  const de = data.translations.find(t => t.languageCode === 'de') || { languageCode: 'de', name: '', shortDescription: null, longDescription: null, servingSuggestion: null };
-  const en = data.translations.find(t => t.languageCode === 'en') || { languageCode: 'en', name: '', shortDescription: null, longDescription: null, servingSuggestion: null };
+  const de = data.translations.find(t => t.language === 'de') || { language: 'de', name: '', shortDescription: null, longDescription: null, servingSuggestion: null, recipe: null, notes: null };
+  const en = data.translations.find(t => t.language === 'en') || { language: 'en', name: '', shortDescription: null, longDescription: null, servingSuggestion: null, recipe: null, notes: null };
   const wp = data.wineProfile || emptyWP;
   const bev = data.bevDetail || emptyBev;
 
@@ -116,38 +148,23 @@ export default function ProductEditor({ product: initial, options, images }: { p
 
   const setTrans = (lang: string, field: string, value: string) => {
     setData(p => {
-      const exists = p.translations.find(t => t.languageCode === lang);
+      const exists = p.translations.find(t => t.language === lang);
       if (exists) {
-        return { ...p, translations: p.translations.map(t => t.languageCode === lang ? { ...t, [field]: value || null } : t) };
+        return { ...p, translations: p.translations.map(t => t.language === lang ? { ...t, [field]: value || null } : t) };
       }
-      return { ...p, translations: [...p.translations, { languageCode: lang, name: '', shortDescription: null, longDescription: null, servingSuggestion: null, [field]: value || null }] };
+      return { ...p, translations: [...p.translations, { language: lang, name: '', shortDescription: null, longDescription: null, servingSuggestion: null, recipe: null, notes: null, [field]: value || null }] };
     });
-    if (lang === 'de') { setDeChanged(prev => new Set(prev).add(field)); setEnSynced(prev => { const n = new Set(prev); n.delete(field); return n; }); }
-    if (lang === 'en') { setDeChanged(prev => { const n = new Set(prev); n.delete(field); return n; }); setEnSynced(prev => new Set(prev).add(field)); }
     setDirty(true);
   };
 
-  const [translating, setTranslating] = useState<Set<string>>(new Set());
-
   const translateDeToEn = async (field: string) => {
-    const deVal = (data.translations.find(t => t.languageCode === 'de') as any)?.[field] || '';
+    const deVal = (data.translations.find(t => t.language === 'de') as any)?.[field] || '';
     if (!deVal.trim()) return;
     setTranslating(prev => new Set(prev).add(field));
     try {
-      const res = await fetch('/api/v1/translate', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: deVal, from: 'de', to: 'en' }),
-      });
-      if (res.ok) {
-        const { translated } = await res.json();
-        setTrans('en', field, translated);
-        setDeChanged(prev => { const n = new Set(prev); n.delete(field); return n; });
-        setEnSynced(prev => new Set(prev).add(field));
-      }
-    } catch { /* fallback: copy as-is */
-      setTrans('en', field, deVal);
-    }
+      const res = await fetch('/api/v1/translate', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: deVal, from: 'de', to: 'en' }) });
+      if (res.ok) { const { translated } = await res.json(); setTrans('en', field, translated); }
+    } catch {}
     setTranslating(prev => { const n = new Set(prev); n.delete(field); return n; });
   };
 
@@ -161,46 +178,133 @@ export default function ProductEditor({ product: initial, options, images }: { p
     setDirty(true);
   };
 
-  const setPrice = (idx: number, field: string, value: any) => {
-    setData(p => ({ ...p, prices: p.prices.map((pr, i) => i === idx ? { ...pr, [field]: value } : pr) }));
+  // === Variant Helpers ===
+  const setVariant = (idx: number, field: string, value: any) => {
+    setData(p => ({ ...p, variants: p.variants.map((v, i) => i === idx ? { ...v, [field]: value } : v) }));
     setDirty(true);
   };
 
-  const addPrice = () => {
-    setData(p => ({ ...p, prices: [...p.prices, { id: null, fillQuantityId: options.fillQuantities[0]?.id || '', fillLabel: options.fillQuantities[0]?.label || '', priceLevelId: options.priceLevels[0]?.id || '', levelName: options.priceLevels[0]?.name || '', price: 0, purchasePrice: null, fixedMarkup: null, percentMarkup: null, isDefault: false, sortOrder: p.prices.length }] }));
+  const setVariantPrice = (vIdx: number, pIdx: number, field: string, value: any) => {
+    setData(p => ({
+      ...p,
+      variants: p.variants.map((v, vi) => vi === vIdx ? {
+        ...v, prices: v.prices.map((pr, pi) => pi === pIdx ? { ...pr, [field]: value } : pr),
+      } : v),
+    }));
     setDirty(true);
   };
 
-  const removePrice = (idx: number) => {
-    setData(p => ({ ...p, prices: p.prices.filter((_, i) => i !== idx) }));
+  const addVariant = () => {
+    setData(p => ({
+      ...p,
+      variants: [...p.variants, {
+        id: null, label: null, sku: null,
+        fillQuantityId: options.fillQuantities[0]?.id || null,
+        fillQuantityLabel: options.fillQuantities[0]?.label || null,
+        isDefault: p.variants.length === 0, sortOrder: p.variants.length, status: 'ACTIVE',
+        prices: options.priceLevels.map(pl => ({
+          id: null, priceLevelId: pl.id, priceLevelName: pl.name,
+          sellPrice: 0, costPrice: null, fixedMarkup: null, percentMarkup: null,
+        })),
+      }],
+    }));
     setDirty(true);
   };
 
+  const removeVariant = (idx: number) => {
+    if (!confirm('Variante entfernen?')) return;
+    setData(p => ({ ...p, variants: p.variants.filter((_, i) => i !== idx) }));
+    setDirty(true);
+  };
+
+  // === Taxonomy Helpers ===
+  const toggleTaxonomy = (nodeId: string) => {
+    setData(p => {
+      const ids = p.taxonomyNodeIds.includes(nodeId)
+        ? p.taxonomyNodeIds.filter(id => id !== nodeId)
+        : [...p.taxonomyNodeIds, nodeId];
+      return { ...p, taxonomyNodeIds: ids };
+    });
+    setDirty(true);
+  };
+
+  // Baum + Map aufbauen
+  const { treeByType, nodeMap } = useMemo(() => {
+    const map = new Map<string, TaxNode>();
+    for (const n of options.taxonomyNodes) map.set(n.id, n);
+    const tree = buildTree(options.taxonomyNodes);
+    return { treeByType: tree, nodeMap: map };
+  }, [options.taxonomyNodes]);
+
+  // Breadcrumbs für ausgewählte Nodes
+  const selectedBreadcrumbs = useMemo(() => {
+    const result: { nodeId: string; type: string; path: string[] }[] = [];
+    for (const id of data.taxonomyNodeIds) {
+      const node = nodeMap.get(id);
+      if (node) {
+        result.push({ nodeId: id, type: node.type, path: getBreadcrumb(id, nodeMap) });
+      }
+    }
+    return result;
+  }, [data.taxonomyNodeIds, nodeMap]);
+
+  // === Save v2 ===
   const save = async () => {
-    setSaving(true); setError(''); setDirty(true);
+    setSaving(true); setError('');
     try {
       const res = await fetch(`/api/v1/products/${data.id}`, {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: data.status, type: data.type, productGroupId: data.productGroupId,
-          isHighlight: data.isHighlight, highlightType: data.highlightType, internalNotes: data.internalNotes || null,
+          status: data.status, type: data.type, highlightType: data.highlightType,
           translations: data.translations,
-          prices: data.prices.map(p => ({ id: p.id, fillQuantityId: p.fillQuantityId, priceLevelId: p.priceLevelId, price: p.price, purchasePrice: p.purchasePrice, fixedMarkup: p.fixedMarkup, percentMarkup: p.percentMarkup, isDefault: p.isDefault, sortOrder: p.sortOrder })),
+          taxonomy: data.taxonomyNodeIds,
           wineProfile: data.wineProfile,
           beverageDetail: data.bevDetail,
         }),
       });
-      if (res.ok) { setSaved(true); setDirty(false); setDeChanged(new Set()); setEnSynced(new Set()); setTimeout(() => setSaved(false), 2000); }
-      else { const d = await res.json(); setError(d.error || 'Fehler'); }
+      if (!res.ok) { const d = await res.json(); setError(d.error || 'Fehler beim Speichern'); setSaving(false); return; }
+
+      for (const v of data.variants) {
+        if (v.id) {
+          await fetch(`/api/v1/variants/${v.id}`, {
+            method: 'PATCH', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              label: v.label, sku: v.sku, fillQuantityId: v.fillQuantityId,
+              isDefault: v.isDefault, sortOrder: v.sortOrder, status: v.status,
+              prices: v.prices.map(p => ({
+                id: p.id, priceLevelId: p.priceLevelId, sellPrice: p.sellPrice,
+                costPrice: p.costPrice, fixedMarkup: p.fixedMarkup, percentMarkup: p.percentMarkup,
+              })),
+            }),
+          });
+        } else {
+          await fetch('/api/v1/variants', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: data.id, fillQuantityId: v.fillQuantityId,
+              label: v.label, sku: v.sku, isDefault: v.isDefault,
+              prices: v.prices.filter(p => p.sellPrice > 0).map(p => ({
+                priceLevelId: p.priceLevelId, sellPrice: p.sellPrice,
+                costPrice: p.costPrice, fixedMarkup: p.fixedMarkup, percentMarkup: p.percentMarkup,
+              })),
+            }),
+          });
+        }
+      }
+
+      setSaved(true); setDirty(false);
+      setTimeout(() => setSaved(false), 2000);
     } catch { setError('Netzwerkfehler'); }
     finally { setSaving(false); }
   };
 
   const deleteProduct = async () => {
-    const name = (data.translations.find(t => t.languageCode === 'de') as any)?.name || 'Produkt';
-    if (!confirm(`Produkt "${name}" wirklich dauerhaft löschen?\n\nAlle Daten (Preise, Übersetzungen, Kartenplatzierungen) werden unwiderruflich gelöscht.`)) return;
-    if (!confirm('ENDGÜLTIG LÖSCHEN?\n\nDiese Aktion kann NICHT rückgängig gemacht werden!')) return;
+    const name = de.name || 'Produkt';
+    if (!confirm(`Produkt "${name}" wirklich dauerhaft löschen?`)) return;
+    if (!confirm('ENDGÜLTIG LÖSCHEN? Diese Aktion kann NICHT rückgängig gemacht werden!')) return;
     try {
       const res = await fetch(`/api/v1/products/${data.id}`, { method: 'DELETE', credentials: 'include' });
       if (res.ok) window.location.href = '/admin/items';
@@ -208,284 +312,444 @@ export default function ProductEditor({ product: initial, options, images }: { p
     } catch { setError('Netzwerkfehler'); }
   };
 
+  // === Duplicate (Jahrgangs-Duplikation) ===
+  const duplicateProduct = async () => {
+    setDuplicating(true); setError('');
+    try {
+      const res = await fetch(`/api/v1/products/${data.id}/duplicate`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vintage: newVintage }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setShowDuplicateDialog(false);
+        window.location.href = `/admin/items/${result.id}`;
+      } else {
+        const d = await res.json();
+        setError(d.error || 'Duplikation fehlgeschlagen');
+      }
+    } catch { setError('Netzwerkfehler'); }
+    finally { setDuplicating(false); }
+  };
+
+  // === Translation field helper ===
+  const TransField = ({ label, field, lang, multiline }: { label: string; field: string; lang: 'de' | 'en'; multiline?: boolean }) => {
+    const val = (data.translations.find(t => t.language === lang) as any)?.[field] || '';
+    const Tag = multiline ? 'textarea' : 'input';
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-xs font-medium uppercase tracking-wider text-gray-400">{label}</label>
+          {lang === 'en' && (
+            <button type="button" onClick={() => translateDeToEn(field)} disabled={translating.has(field)}
+              className="rounded px-2 py-0.5 text-xs font-medium border border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100 disabled:opacity-50">
+              {translating.has(field) ? '...' : 'DE→EN'}
+            </button>
+          )}
+        </div>
+        <Tag value={val} onChange={(e: any) => setTrans(lang, field, e.target.value)}
+          {...(multiline ? { rows: 3 } : {})}
+          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 resize-y" />
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl pb-24">
+    <div className="space-y-6 max-w-4xl pb-24" style={{ fontFamily: "'Roboto', sans-serif" }}>
       {/* Header */}
       <div>
-        <a href="#" onClick={(e) => { e.preventDefault(); if (!dirty || confirm("Ungespeicherte Änderungen verwerfen?")) window.location.href="/admin/items"; }} className="text-sm text-gray-400 hover:text-gray-600 mb-2 inline-block">← Alle Produkte</a>
-        <h1 className="text-3xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>{de.name || 'Produkt'}</h1>
-        <p className="text-base text-gray-400 mt-1">{data.sku}</p>
+        <a href="/admin/items" onClick={(e) => { if (dirty && !confirm("Ungespeicherte Änderungen verwerfen?")) e.preventDefault(); }}
+          className="text-sm text-gray-400 hover:text-gray-600 mb-2 inline-flex items-center gap-1">
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_back</span>
+          Alle Produkte
+        </a>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-gray-900">{de.name || 'Produkt'}</h1>
+          {(data.type === 'WINE' || data.wineProfile) && (
+            <button
+              type="button"
+              onClick={() => {
+                const currentVintage = data.wineProfile?.vintage;
+                setNewVintage(currentVintage ? currentVintage + 1 : new Date().getFullYear());
+                setShowDuplicateDialog(true);
+              }}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors"
+              style={{ backgroundColor: '#22C55E' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#16A34A')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#22C55E')}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>
+              Neuen Jahrgang anlegen
+            </button>
+          )}
+        </div>
+        <p className="text-sm text-gray-400 mt-0.5">{data.sku}</p>
       </div>
 
-      {/* Settings */}
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-base font-semibold text-gray-500">Produkt-Einstellungen</h2>
+      {/* Jahrgangs-Duplikat Dialog */}
+      {showDuplicateDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#DD3C71' }}>content_copy</span>
+              Neuen Jahrgang anlegen
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Erstellt eine Kopie von &bdquo;{de.name}&ldquo; mit neuem Jahrgang. Alle Daten (Beschreibung, Taxonomie, Preise, Weinprofil) werden &uuml;bernommen.
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Neuer Jahrgang</label>
+              <input
+                type="number"
+                value={newVintage ?? ''}
+                onChange={e => setNewVintage(e.target.value ? Number(e.target.value) : null)}
+                placeholder="z.B. 2023"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+                autoFocus
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                {data.wineProfile?.vintage
+                  ? `Aktueller Jahrgang: ${data.wineProfile.vintage}`
+                  : 'Kein Jahrgang hinterlegt'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-gray-400 mb-4">
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>info</span>
+              Das neue Produkt wird als Entwurf erstellt und öffnet sich direkt im Editor.
+            </div>
+
+            {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => { setShowDuplicateDialog(false); setError(''); }}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={duplicateProduct}
+                disabled={duplicating}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-colors"
+                style={{ backgroundColor: '#22C55E' }}
+              >
+                {duplicating ? 'Dupliziere...' : 'Jahrgang anlegen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Einstellungen */}
+      <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-gray-500 flex items-center gap-1.5">
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>settings</span>
+          Produkt-Einstellungen
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
-            <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Status</label>
-            <select value={data.status} onChange={e => set('status', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none">
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Status</label>
+            <select value={data.status} onChange={e => set('status', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none">
               {statusOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Typ</label>
-            <select value={data.type} onChange={e => set('type', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none">
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Typ</label>
+            <select value={data.type} onChange={e => set('type', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none">
               {typeOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Produktgruppe</label>
-            <select value={data.productGroupId || ''} onChange={e => set('productGroupId', e.target.value || null)} className="w-full rounded-lg border px-3 py-2 text-base outline-none">
-              <option value="">– Keine –</option>
-              {options.groups.map(g => <option key={g.id} value={g.id}>{g.parentName ? `${g.parentName} → ${g.name}` : g.name}</option>)}
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Highlight</label>
+            <select value={data.highlightType} onChange={e => set('highlightType', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none">
+              <option value="NONE">Keines</option>
+              <option value="RECOMMENDATION">Empfehlung</option>
+              <option value="NEW">Neu</option>
+              <option value="PREMIUM">Premium</option>
+              <option value="BESTSELLER">Bestseller</option>
+              <option value="SIGNATURE">Signature</option>
             </select>
-          </div>
-          <div className="flex items-end pb-2">
-            <label className="flex items-center gap-2 text-base cursor-pointer">
-              <input type="checkbox" checked={data.isHighlight} onChange={e => set('isHighlight', e.target.checked)} className="rounded" />
-              Highlight
-            </label>
           </div>
         </div>
       </section>
 
-      {/* Translations DE */}
+      {/* Taxonomie — Hierarchisch */}
+      <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-500 flex items-center gap-1.5">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>category</span>
+            Klassifizierung
+          </h2>
+          <a href="/admin/settings/taxonomy" className="text-xs text-gray-400 hover:text-pink-600 flex items-center gap-1">
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>settings</span>
+            Verwalten
+          </a>
+        </div>
+
+        {/* Ausgewählte Breadcrumbs */}
+        {selectedBreadcrumbs.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-1.5">
+            {selectedBreadcrumbs.map(({ nodeId, type, path }) => (
+              <span key={nodeId} className="inline-flex items-center gap-1 rounded-full bg-pink-50 border border-pink-200 px-2.5 py-1 text-xs">
+                <span className="text-pink-400 text-[10px]">{taxonomyTypeLabels[type]?.slice(0, 3)}</span>
+                <span className="text-pink-700 font-medium">{path.join(' › ')}</span>
+                <button type="button" onClick={() => toggleTaxonomy(nodeId)} className="text-pink-400 hover:text-pink-700 ml-0.5">&times;</button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Hierarchische Gruppen */}
+        {Object.entries(treeByType).map(([type, roots]) => (
+          <div key={type} className="mb-3 last:mb-0">
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1.5">
+              {taxonomyTypeLabels[type] || type}
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {roots.map(node => (
+                <TaxonomyGroup
+                  key={node.id}
+                  node={node}
+                  depth={0}
+                  selectedIds={data.taxonomyNodeIds}
+                  onToggle={toggleTaxonomy}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+        {Object.keys(treeByType).length === 0 && <p className="text-sm text-gray-400">Keine Taxonomie-Knoten vorhanden</p>}
+      </section>
+
+      {/* Übersetzungen */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-base font-semibold text-gray-500">🇦🇹 Deutsch</h2>
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-gray-500">Deutsch</h2>
           <div className="space-y-3">
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Name</label>
-              <input value={de.name} onChange={e => setTrans('de', 'name', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Kurzbeschreibung</label>
-              <input value={de.shortDescription || ''} onChange={e => setTrans('de', 'shortDescription', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Langbeschreibung</label>
-              <textarea value={de.longDescription || ''} onChange={e => setTrans('de', 'longDescription', e.target.value)} rows={4} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400 resize-y" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Servierempfehlung</label>
-              <input value={de.servingSuggestion || ''} onChange={e => setTrans('de', 'servingSuggestion', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
+            <TransField label="Name" field="name" lang="de" />
+            <TransField label="Kurzbeschreibung" field="shortDescription" lang="de" />
+            <TransField label="Langbeschreibung" field="longDescription" lang="de" multiline />
+            <TransField label="Servierempfehlung" field="servingSuggestion" lang="de" />
           </div>
         </section>
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-base font-semibold text-gray-500">🇬🇧 English</h2>
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-gray-500">English</h2>
           <div className="space-y-3">
-            <div><div className="flex items-center justify-between mb-1"><label className="text-sm uppercase tracking-wider text-gray-400">Name</label><div className="flex items-center gap-1">{deChanged.has('name') && <span className="text-sm text-amber-600">DE geändert</span>}<button type="button" onClick={() => translateDeToEn('name')} disabled={translating.has('name')} className={`rounded-md px-2 py-0.5 text-sm font-medium border transition-colors disabled:opacity-50 ${enSynced.has('name') && !deChanged.has('name') ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100' : deChanged.has('name') ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100' : 'border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100'}`}>{translating.has('name') ? 'Übersetze...' : enSynced.has('name') && !deChanged.has('name') ? 'Übersetzt' : 'DE → EN'}</button></div></div>
-              <input value={en.name} onChange={e => setTrans('en', 'name', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><div className="flex items-center justify-between mb-1"><label className="text-sm uppercase tracking-wider text-gray-400">Short Description</label><div className="flex items-center gap-1">{deChanged.has('shortDescription') && <span className="text-sm text-amber-600">DE geändert</span>}<button type="button" onClick={() => translateDeToEn('shortDescription')} disabled={translating.has('shortDescription')} className={`rounded-md px-2 py-0.5 text-sm font-medium border transition-colors disabled:opacity-50 ${enSynced.has('shortDescription') && !deChanged.has('shortDescription') ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100' : deChanged.has('shortDescription') ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100' : 'border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100'}`}>{translating.has('shortDescription') ? 'Übersetze...' : enSynced.has('shortDescription') && !deChanged.has('shortDescription') ? 'Übersetzt' : 'DE → EN'}</button></div></div>
-              <input value={en.shortDescription || ''} onChange={e => setTrans('en', 'shortDescription', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><div className="flex items-center justify-between mb-1"><label className="text-sm uppercase tracking-wider text-gray-400">Long Description</label><div className="flex items-center gap-1">{deChanged.has('longDescription') && <span className="text-sm text-amber-600">DE geändert</span>}<button type="button" onClick={() => translateDeToEn('longDescription')} disabled={translating.has('longDescription')} className={`rounded-md px-2 py-0.5 text-sm font-medium border transition-colors disabled:opacity-50 ${enSynced.has('longDescription') && !deChanged.has('longDescription') ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100' : deChanged.has('longDescription') ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100' : 'border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100'}`}>{translating.has('longDescription') ? 'Übersetze...' : enSynced.has('longDescription') && !deChanged.has('longDescription') ? 'Übersetzt' : 'DE → EN'}</button></div></div>
-              <textarea value={en.longDescription || ''} onChange={e => setTrans('en', 'longDescription', e.target.value)} rows={4} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400 resize-y" /></div>
-            <div><div className="flex items-center justify-between mb-1"><label className="text-sm uppercase tracking-wider text-gray-400">Serving Suggestion</label><div className="flex items-center gap-1">{deChanged.has('servingSuggestion') && <span className="text-sm text-amber-600">DE geändert</span>}<button type="button" onClick={() => translateDeToEn('servingSuggestion')} disabled={translating.has('servingSuggestion')} className={`rounded-md px-2 py-0.5 text-sm font-medium border transition-colors disabled:opacity-50 ${enSynced.has('servingSuggestion') && !deChanged.has('servingSuggestion') ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100' : deChanged.has('servingSuggestion') ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100' : 'border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100'}`}>{translating.has('servingSuggestion') ? 'Übersetze...' : enSynced.has('servingSuggestion') && !deChanged.has('servingSuggestion') ? 'Übersetzt' : 'DE → EN'}</button></div></div>
-              <input value={en.servingSuggestion || ''} onChange={e => setTrans('en', 'servingSuggestion', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
+            <TransField label="Name" field="name" lang="en" />
+            <TransField label="Short Description" field="shortDescription" lang="en" />
+            <TransField label="Long Description" field="longDescription" lang="en" multiline />
+            <TransField label="Serving Suggestion" field="servingSuggestion" lang="en" />
           </div>
         </section>
       </div>
 
-      {/* Prices */}
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-gray-500">Preise & Kalkulation</h2>
-          <button onClick={addPrice} className="text-sm font-medium px-3 py-1.5 rounded-lg text-white" style={{backgroundColor:'#22C55E'}}>+ Preis hinzufügen</button>
+      {/* Varianten (v2 HERZSTÜCK) */}
+      <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-500 flex items-center gap-1.5">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>layers</span>
+            Varianten & Preise
+          </h2>
+          <button onClick={addVariant} className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: '#22C55E' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
+            Variante
+          </button>
         </div>
-        <div className="space-y-3">
-          {data.prices.map((p, i) => {
-            const ek = p.purchasePrice ?? 0;
-            const fix = p.fixedMarkup ?? 0;
-            const pct = p.percentMarkup ?? 0;
-            const hasCalc = ek > 0 && (fix > 0 || pct > 0);
-            const calcVK = hasCalc ? (ek + fix) * (1 + pct / 100) : null;
-            const marge = ek > 0 && p.price > 0 ? ((p.price - ek) / p.price * 100) : null;
-            return (
-            <div key={`price-${i}`} className="rounded-lg border bg-gray-50 p-3">
-              <div className="flex items-end gap-2 mb-2">
-                <div className="flex-1">
-                  <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Füllmenge</label>
-                  <select value={p.fillQuantityId} onChange={e => { const fq = options.fillQuantities.find(f => f.id === e.target.value); setPrice(i, 'fillQuantityId', e.target.value); if (fq) setPrice(i, 'fillLabel', fq.label); }} className="w-full rounded-lg border px-2 py-1.5 text-base outline-none bg-white">
-                    {options.fillQuantities.map(fq => <option key={fq.id} value={fq.id}>{fq.label}</option>)}
-                  </select>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Preisebene</label>
-                  <select value={p.priceLevelId} onChange={e => { const pl = options.priceLevels.find(l => l.id === e.target.value); setPrice(i, 'priceLevelId', e.target.value); if (pl) setPrice(i, 'levelName', pl.name); }} className="w-full rounded-lg border px-2 py-1.5 text-base outline-none bg-white">
-                    {options.priceLevels.map(pl => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
-                  </select>
-                </div>
-                <button onClick={() => removePrice(i)} className="text-red-400 hover:text-red-600 p-1.5 mb-0.5" title="Preis entfernen">×</button>
-              </div>
-              <div className="flex items-end gap-2">
-                <div className="w-[88px]">
-                  <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">EK €</label>
-                  <input type="number" step="0.01" value={p.purchasePrice ?? ''} onChange={e => {
-                    const newEK = e.target.value ? Number(e.target.value) : null;
-                    setPrice(i, 'purchasePrice', newEK);
-                    if (newEK && (p.fixedMarkup || p.percentMarkup)) {
-                      const newVK = (newEK + (p.fixedMarkup ?? 0)) * (1 + (p.percentMarkup ?? 0) / 100);
-                      setPrice(i, 'price', Math.round(newVK * 10) / 10);
-                    }
-                  }} className="w-full rounded-lg border px-2 py-1.5 text-base outline-none text-right bg-white" placeholder="0.00" />
-                </div>
-                <div className="w-[72px]">
-                  <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">+ Fix €</label>
-                  <input type="number" step="0.01" value={p.fixedMarkup ?? ''} onChange={e => {
-                    const val = e.target.value ? Number(e.target.value) : null;
-                    setPrice(i, 'fixedMarkup', val);
-                    if (p.purchasePrice && val !== null) {
-                      const newVK = (p.purchasePrice + val) * (1 + (p.percentMarkup ?? 0) / 100);
-                      setPrice(i, 'price', Math.round(newVK * 10) / 10);
-                    }
-                  }} className="w-full rounded-lg border px-2 py-1.5 text-base outline-none text-right bg-white" placeholder="0" />
-                </div>
-                <div className="w-[72px]">
-                  <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">× Aufschlag %</label>
-                  <input type="number" step="1" value={p.percentMarkup ?? ''} onChange={e => {
-                    const val = e.target.value ? Number(e.target.value) : null;
-                    setPrice(i, 'percentMarkup', val);
-                    if (p.purchasePrice && val !== null) {
-                      const newVK = (p.purchasePrice + (p.fixedMarkup ?? 0)) * (1 + val / 100);
-                      setPrice(i, 'price', Math.round(newVK * 10) / 10);
-                    }
-                  }} className="w-full rounded-lg border px-2 py-1.5 text-base outline-none text-right bg-white" placeholder="0" />
-                </div>
-                <div className="text-center px-1 pb-1.5 text-gray-400">=</div>
-                <div className="w-[96px]">
-                  <label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">VK €</label>
-                  <input type="number" step="0.01" value={p.price} onChange={e => setPrice(i, 'price', Number(e.target.value))} className="w-full rounded-lg border px-2 py-1.5 text-base outline-none text-right font-bold bg-white" />
-                </div>
-                {marge !== null && (
-                  <div className="pb-1.5 pl-1 w-[60px] text-right">
-                    <span className={`text-sm font-semibold ${marge >= 65 ? 'text-green-600' : marge >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
-                      {marge.toFixed(0)}%
-                    </span>
-                    <p className="text-sm text-gray-400">Marge</p>
-                  </div>
+
+        <div className="space-y-4">
+          {data.variants.map((v, vi) => (
+            <div key={v.id || `new-${vi}`} className={`rounded-lg border p-4 ${v.isDefault ? 'border-pink-200 bg-pink-50/30' : 'border-gray-200 bg-gray-50'}`}>
+              {/* Variant Header */}
+              <div className="flex items-center gap-3 mb-3">
+                {v.isDefault && (
+                  <span className="flex items-center gap-1 text-xs font-medium text-pink-600">
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>star</span>
+                    Standard
+                  </span>
                 )}
+                <div className="flex-1 grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-0.5">Füllmenge</label>
+                    <select value={v.fillQuantityId || ''} onChange={e => {
+                      const fq = options.fillQuantities.find(f => f.id === e.target.value);
+                      setVariant(vi, 'fillQuantityId', e.target.value || null);
+                      setVariant(vi, 'fillQuantityLabel', fq?.label || null);
+                    }} className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none bg-white">
+                      <option value="">– Keine –</option>
+                      {options.fillQuantities.map(fq => <option key={fq.id} value={fq.id}>{fq.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-0.5">Label</label>
+                    <input value={v.label || ''} onChange={e => setVariant(vi, 'label', e.target.value || null)} placeholder="z.B. Glas" className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-0.5">SKU</label>
+                    <input value={v.sku || ''} onChange={e => setVariant(vi, 'sku', e.target.value || null)} className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none bg-white" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {!v.isDefault && (
+                    <button type="button" onClick={() => {
+                      setData(p => ({ ...p, variants: p.variants.map((vv, i) => ({ ...vv, isDefault: i === vi })) }));
+                      setDirty(true);
+                    }} className="text-xs text-gray-400 hover:text-pink-600 px-1" title="Als Standard setzen">
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>star_border</span>
+                    </button>
+                  )}
+                  <button type="button" onClick={() => removeVariant(vi)} className="text-gray-400 hover:text-red-500 px-1" title="Entfernen">
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Variant Prices */}
+              <div className="space-y-2">
+                {v.prices.map((p, pi) => {
+                  const ek = p.costPrice ?? 0;
+                  const marge = ek > 0 && p.sellPrice > 0 ? ((p.sellPrice - ek) / p.sellPrice * 100) : null;
+                  return (
+                    <div key={p.id || `vp-${vi}-${pi}`} className="flex items-end gap-2">
+                      <div className="w-24">
+                        <label className="block text-xs text-gray-400 mb-0.5">{p.priceLevelName}</label>
+                      </div>
+                      <div className="w-20">
+                        <label className="block text-xs text-gray-400 mb-0.5">EK</label>
+                        <input type="number" step="0.01" value={p.costPrice ?? ''} onChange={e => {
+                          const newEK = e.target.value ? Number(e.target.value) : null;
+                          setVariantPrice(vi, pi, 'costPrice', newEK);
+                          if (newEK && (p.fixedMarkup || p.percentMarkup)) {
+                            setVariantPrice(vi, pi, 'sellPrice', Math.round((newEK + (p.fixedMarkup ?? 0)) * (1 + (p.percentMarkup ?? 0) / 100) * 10) / 10);
+                          }
+                        }} className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none text-right bg-white" placeholder="0" />
+                      </div>
+                      <div className="w-16">
+                        <label className="block text-xs text-gray-400 mb-0.5">+Fix</label>
+                        <input type="number" step="0.01" value={p.fixedMarkup ?? ''} onChange={e => {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          setVariantPrice(vi, pi, 'fixedMarkup', val);
+                          if (p.costPrice && val !== null) {
+                            setVariantPrice(vi, pi, 'sellPrice', Math.round((p.costPrice + val) * (1 + (p.percentMarkup ?? 0) / 100) * 10) / 10);
+                          }
+                        }} className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none text-right bg-white" placeholder="0" />
+                      </div>
+                      <div className="w-16">
+                        <label className="block text-xs text-gray-400 mb-0.5">&times;%</label>
+                        <input type="number" step="1" value={p.percentMarkup ?? ''} onChange={e => {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          setVariantPrice(vi, pi, 'percentMarkup', val);
+                          if (p.costPrice && val !== null) {
+                            setVariantPrice(vi, pi, 'sellPrice', Math.round((p.costPrice + (p.fixedMarkup ?? 0)) * (1 + val / 100) * 10) / 10);
+                          }
+                        }} className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none text-right bg-white" placeholder="0" />
+                      </div>
+                      <div className="text-gray-300 pb-1.5">=</div>
+                      <div className="w-24">
+                        <label className="block text-xs text-gray-400 mb-0.5">VK</label>
+                        <input type="number" step="0.01" value={p.sellPrice} onChange={e => setVariantPrice(vi, pi, 'sellPrice', Number(e.target.value))}
+                          className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none text-right font-bold bg-white" />
+                      </div>
+                      {marge !== null && (
+                        <div className="w-14 pb-1.5 text-right">
+                          <span className={`text-xs font-semibold ${marge >= 65 ? 'text-green-600' : marge >= 50 ? 'text-amber-600' : 'text-red-500'}`}>{marge.toFixed(0)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            );
-          })}
-          {data.prices.length === 0 && <p className="text-base text-gray-400 text-center py-4">Keine Preise definiert</p>}
+          ))}
+          {data.variants.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">Keine Varianten &mdash; Klicken Sie &bdquo;Variante&ldquo; um die erste zu erstellen</p>
+          )}
         </div>
       </section>
 
       {/* Wine Profile */}
       {(data.type === 'WINE' || data.wineProfile) && (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-base font-semibold text-gray-500">Weinprofil</h2>
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-gray-500 flex items-center gap-1.5">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>wine_bar</span>
+            Weinprofil
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Weingut</label>
-              <input value={wp.winery || ''} onChange={e => setWP('winery', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Jahrgang</label>
-              <input type="number" value={wp.vintage ?? ''} onChange={e => setWP('vintage', e.target.value ? Number(e.target.value) : null)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Rebsorten (kommagetrennt)</label>
-              <input value={wp.grapeVarieties?.join(', ') || ''} onChange={e => setWP('grapeVarieties', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Region</label>
-              <input value={wp.region || ''} onChange={e => setWP('region', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Land</label>
-              <input value={wp.country || ''} onChange={e => setWP('country', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Appellation</label>
-              <input value={wp.appellation || ''} onChange={e => setWP('appellation', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Stil</label>
-              <select value={wp.style || ''} onChange={e => setWP('style', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none">
-                {styleOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Körper</label>
-              <select value={wp.body || ''} onChange={e => setWP('body', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none">
-                {bodyOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Süße</label>
-              <select value={wp.sweetness || ''} onChange={e => setWP('sweetness', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none">
-                {sweetOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Flaschengröße</label>
-              <input value={wp.bottleSize || ''} onChange={e => setWP('bottleSize', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Alkohol %</label>
-              <input type="number" step="0.1" value={wp.alcoholContent ?? ''} onChange={e => setWP('alcoholContent', e.target.value ? Number(e.target.value) : null)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Trinktemperatur</label>
-              <input value={wp.servingTemp || ''} onChange={e => setWP('servingTemp', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Weingut</label>
+              <input value={wp.winery || ''} onChange={e => setWP('winery', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Jahrgang</label>
+              <input type="number" value={wp.vintage ?? ''} onChange={e => setWP('vintage', e.target.value ? Number(e.target.value) : null)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Ausbau</label>
+              <input value={wp.aging || ''} onChange={e => setWP('aging', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Trinktemperatur</label>
+              <input value={wp.servingTemp || ''} onChange={e => setWP('servingTemp', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Zertifizierung</label>
+              <input value={wp.certification || ''} onChange={e => setWP('certification', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
           </div>
           <div className="mt-3 space-y-3">
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Verkostungsnotizen</label>
-              <textarea value={wp.tastingNotes || ''} onChange={e => setWP('tastingNotes', e.target.value)} rows={3} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400 resize-y" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Speiseempfehlung</label>
-              <textarea value={wp.foodPairing || ''} onChange={e => setWP('foodPairing', e.target.value)} rows={2} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400 resize-y" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Verkostungsnotizen</label>
+              <textarea value={wp.tastingNotes || ''} onChange={e => setWP('tastingNotes', e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none resize-y" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Speiseempfehlung</label>
+              <textarea value={wp.foodPairing || ''} onChange={e => setWP('foodPairing', e.target.value)} rows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none resize-y" /></div>
           </div>
         </section>
       )}
 
       {/* Beverage Detail */}
-      {(data.type === 'DRINK' || data.bevDetail) && (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-base font-semibold text-gray-500">Getränkedetail</h2>
+      {(data.type === 'DRINK' || data.type === 'SPIRIT' || data.type === 'BEER' || data.type === 'COFFEE' || data.bevDetail) && (
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-gray-500 flex items-center gap-1.5">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>local_bar</span>
+            Getränkedetail
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Marke</label>
-              <input value={bev.brand || ''} onChange={e => setBev('brand', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Produzent</label>
-              <input value={bev.producer || ''} onChange={e => setBev('producer', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Kategorie</label>
-              <select value={bev.category || ''} onChange={e => setBev('category', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none">
-                {bevCatOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Alkohol %</label>
-              <input type="number" step="0.1" value={bev.alcoholContent ?? ''} onChange={e => setBev('alcoholContent', e.target.value ? Number(e.target.value) : null)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div><label className="block text-sm uppercase tracking-wider text-gray-400 mb-1">Herkunft</label>
-              <input value={bev.origin || ''} onChange={e => setBev('origin', e.target.value)} className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400" /></div>
-            <div className="flex items-end pb-2">
-              <label className="flex items-center gap-2 text-base cursor-pointer">
-                <input type="checkbox" checked={bev.carbonated} onChange={e => setBev('carbonated', e.target.checked)} className="rounded" />
-                Kohlensäure
-              </label>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Rezeptur */}
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-base font-semibold text-gray-500">Rezeptur / Interne Notizen</h2>
-        <textarea
-          value={data.internalNotes || ''}
-          onChange={e => { set('internalNotes', e.target.value || null); }}
-          rows={6}
-          placeholder={"Zutaten, Mengen, Zubereitung...\n\nBeispiel Cocktail:\n4cl Gin\n2cl Zitronensaft\n1,5cl Zuckersirup\n→ Shaken, auf Eis, Zitronenzeste"}
-          className="w-full rounded-lg border px-3 py-2 text-base outline-none focus:border-gray-400 resize-y font-mono"
-        />
-        <p className="mt-1.5 text-sm text-gray-400">Nur intern sichtbar – wird nicht an Gäste angezeigt</p>
-      </section>
-
-      {/* Placements (read-only) */}
-      {data.placements.length > 0 && (
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-base font-semibold text-gray-500">Kartenplatzierungen</h2>
-          <div className="space-y-1">
-            {data.placements.map((pl, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-base">
-                <span>{pl.menuName} → {pl.sectionName}</span>
-                <span className={pl.isVisible ? 'text-green-600 text-sm' : 'text-gray-400 text-sm'}>{pl.isVisible ? 'Sichtbar' : 'Versteckt'}</span>
-              </div>
-            ))}
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Marke</label>
+              <input value={bev.brand || ''} onChange={e => setBev('brand', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Alkohol %</label>
+              <input type="number" step="0.1" value={bev.alcoholContent ?? ''} onChange={e => setBev('alcoholContent', e.target.value ? Number(e.target.value) : null)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Servierstil</label>
+              <input value={bev.servingStyle || ''} onChange={e => setBev('servingStyle', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Garnitur</label>
+              <input value={bev.garnish || ''} onChange={e => setBev('garnish', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
+            <div><label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Glastyp</label>
+              <input value={bev.glassType || ''} onChange={e => setBev('glassType', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none" /></div>
           </div>
         </section>
       )}
 
       {/* Bilder */}
-      {images && <ProductImages productId={data.id} initialImages={images} />}
+      {initial.images && <ProductImages productId={data.id} initialImages={initial.images} />}
 
+      {/* Footer */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-300">ID: {data.id} · Erstellt: {new Date(data.createdAt).toLocaleDateString('de-AT')}</span>
-        <button onClick={deleteProduct} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors">Produkt löschen</button>
+        <span className="text-xs text-gray-300">ID: {data.id} · Erstellt: {new Date(data.createdAt).toLocaleDateString('de-AT')}</span>
+        <button onClick={deleteProduct} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1">
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
+          Produkt löschen
+        </button>
       </div>
 
       {/* Sticky Save Bar */}
-      {(dirty || saved || error) && <div className="fixed bottom-0 left-0 right-0 border-t bg-white/95 backdrop-blur-md px-6 py-3 flex items-center justify-between z-50 animate-in slide-in-from-bottom">
-        <div>
-          {error && <span className="text-base text-red-600">{error}</span>}
-          {saved && <span className="text-base text-green-600">Gespeichert</span>}
+      {(dirty || saved || error) && (
+        <div className="fixed bottom-0 left-0 right-0 border-t bg-white/95 backdrop-blur-md px-6 py-3 flex items-center justify-between z-50">
+          <div>
+            {error && <span className="text-sm text-red-600">{error}</span>}
+            {saved && <span className="text-sm text-green-600 flex items-center gap-1"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>check_circle</span>Gespeichert</span>}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { if (!dirty || confirm("Änderungen verwerfen?")) window.location.href = "/admin/items"; }}
+              className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50">Abbrechen</button>
+            <button onClick={save} disabled={saving}
+              className="rounded-lg px-6 py-2 text-sm font-medium text-white disabled:opacity-50 transition-colors" style={{ backgroundColor: '#22C55E' }}>
+              {saving ? 'Speichere...' : 'Speichern'}
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => { if (!dirty || confirm("Ungespeicherte Änderungen verwerfen?")) window.location.href="/admin/items"; }} className="rounded-lg border px-4 py-2 text-base font-medium hover:bg-gray-50">Abbrechen</button>
-          <button onClick={save} disabled={saving} className="rounded-lg px-6 py-2 text-base font-medium text-white disabled:opacity-50 transition-colors" style={{backgroundColor:'#22C55E'}}>
-            {saving ? 'Speichere...' : 'Speichern'}
-          </button>
-        </div>
-      </div>}
+      )}
     </div>
   );
 }

@@ -2,6 +2,10 @@
 
 Digitale Speise-, Getränke- und Weinkarten für das Hotel Sonnblick, Saalbach (Österreich).
 
+## Verbindliches Referenzdokument
+
+**`MenuCard-Pro-Strategie-v3.md`** ist die konsolidierte Gesamtstrategie (Stand 17.04.2026). Dieses Dokument ist die Grundlage für alle Entscheidungen zu Architektur, Design, Features und Roadmap. Bei Widersprüchen zwischen Einzeldokumenten gilt die Gesamtstrategie.
+
 ## Stack
 
 Next.js 14.2 (App Router) · TypeScript 5.7 · Tailwind CSS 3.4 · Prisma 5.22 · PostgreSQL · NextAuth 4.24 · @react-pdf/renderer 4 · Sharp 0.33 · PM2 · Nginx
@@ -105,14 +109,14 @@ Die gesamte Codebasis wurde am 16.04.2026 auf die v2-Architektur migriert. Alle 
 | v1 | v2 | Hinweis |
 |---|---|---|
 | `ProductPrice` | `ProductVariant` → `VariantPrice` | Varianten mit sellPrice/costPrice/pricingType |
-| `ProductGroup` | `TaxonomyNode` | type: CATEGORY, REGION, GRAPE, STYLE |
+| `ProductGroup` | `TaxonomyNode` | type: CATEGORY, REGION, GRAPE, STYLE, CUISINE, DIET, OCCASION, CUSTOM |
 | `isHighlight` (boolean) | `highlightType` (enum) | RECOMMENDATION, NEW, BESTSELLER, PREMIUM, SIGNATURE, NONE |
 | `SOLD_OUT` (Status) | entfernt | nur ACTIVE, DRAFT, ARCHIVED |
 | `languageCode` | `language` | Beide Felder via DB-Trigger, Code nutzt `tr.language \|\| tr.languageCode` |
 | `product.prices` | `product.variants[].prices[]` | Verschachtelte Struktur |
 | `MenuPlacement(productId)` | `MenuPlacement(variantId, sectionId)` | Varianten einzeln platzierbar |
 
-### Aktueller Datenstand (16.04.2026)
+### Aktueller Datenstand (17.04.2026)
 
 | Entität | Anzahl |
 |---|---|
@@ -122,13 +126,50 @@ Die gesamte Codebasis wurde am 16.04.2026 auf die v2-Architektur migriert. Alle 
 | VariantPrices | ~298 |
 | ProductWineProfiles | 91 |
 | ProductBeverageDetails | 137 |
-| TaxonomyNodes | ~27 (CATEGORY, REGION, GRAPE, STYLE) |
+| TaxonomyNodes | ~92 (CATEGORY 31, REGION 30, GRAPE 16, STYLE 7, CUISINE 4, DIET 4) |
 | Menus | 9 (7 Gourmet EVENT, 1 WINE, 1 BAR) |
 | MenuPlacements | 337 |
 | MenuSections | 65 |
 | DesignTemplates | 5 (4 SYSTEM, 1 CUSTOM) |
 | QRCodes | 10 |
 | Locations | 2 · Tenants | 1 · Users | 1 |
+
+## Taxonomie-Hierarchie (Stand 17.04.2026)
+
+Komplette Überarbeitung der Klassifizierung mit hierarchischer Baumstruktur.
+
+### Kategorie-Hierarchie (3 Ebenen)
+
+- **Lebensmittel** (taxRate: 10%) → Speisen → Vorspeisen, Suppen, Hauptgerichte, Desserts, Käse & Obst
+- **Alkoholische Getränke** (taxRate: 20%) → Wein (Weisswein, Rotwein, Rosewein, Schaumwein), Cocktails (Klassiker, Signature), Spirituosen (Gin, Whisky, Rum, Edelbrände), Bier (Fassbier, Flaschenbier)
+- **Sonstiges** → Alkoholfrei (Softdrinks, Säfte), Heiße Getränke (Kaffee, Tee)
+
+### Region-Hierarchie (3 Ebenen: Land → Region → Lage)
+
+- Österreich → Niederösterreich (Wachau, Kamptal, Kremstal, Traisental), Burgenland (Mittelburgenland, Neusiedlersee, Leithaberg), Steiermark (Südsteiermark, Vulkanland), Südtirol
+- Deutschland → Mosel, Rheingau, Pfalz
+- Frankreich, Italien, Portugal (Douro)
+
+### Rebsorten-Hierarchie
+
+- Weissweinreben → Grüner Veltliner, Riesling, Sauvignon Blanc, Chardonnay, Muskateller, Welschriesling
+- Rotweinreben → Blaufränkisch, Zweigelt, Pinot Noir, St. Laurent, Merlot, Cabernet Sauvignon
+- Cuvée/Verschnitt
+
+### API & Admin
+
+- **Taxonomy-API:** `/api/v1/taxonomy` (GET mit `?tree=true&type=CATEGORY`, POST)
+- **Taxonomy-Detail:** `/api/v1/taxonomy/[id]` (GET, PATCH mit parentId-Kaskade, DELETE)
+- **Admin-Seite:** `/admin/settings/taxonomy` (Baumansicht, Tabs, CRUD)
+- **Sidebar:** Klassifizierung unter Einstellungen (icon: category)
+- **Produkt-Editor:** Hierarchische Breadcrumb-Pills, Baum-Navigation
+
+### Jahrgangs-Duplikation (Stand 17.04.2026)
+
+- **DB-Feld:** `Product.lineageId` (String, optional) — verknüpft alle Jahrgänge desselben Weins
+- **API:** `POST /api/v1/products/[id]/duplicate` — kopiert Übersetzungen, Taxonomie, Varianten+Preise, Weinprofil, Tags
+- **UI:** Grüner Button "Neuen Jahrgang anlegen" im Produkt-Editor (nur bei Typ WINE sichtbar)
+- **Verhalten:** Erstellt Kopie als DRAFT, ersetzt Jahrgang im Namen + SKU, setzt lineageId auf beiden Produkten
 
 ## Action-Button-Farben (verbindlich)
 

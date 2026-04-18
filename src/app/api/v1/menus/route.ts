@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const menus = await prisma.menu.findMany({
-      where: { isArchived: false },
+      where: { status: { not: 'ARCHIVED' } },
       include: {
         translations: { where: { languageCode: 'de' }, take: 1 },
         template: { select: { id: true, name: true, baseType: true } },

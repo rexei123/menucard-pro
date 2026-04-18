@@ -24,6 +24,7 @@ const navGroups: NavGroup[] = [
     { href: '/admin/pdf-creator', icon: 'picture_as_pdf', label: 'PDF-Creator', match: /^\/admin\/pdf-creator/ },
   ]},
   { title: 'Einstellungen', items: [
+    { href: '/admin/settings/taxonomy', icon: 'category', label: 'Klassifizierung', match: /^\/admin\/settings\/taxonomy/ },
     { href: '/admin/settings/users', icon: 'person', label: 'Benutzer', match: /^\/admin\/settings\/users/ },
     { href: '/admin/settings', icon: 'settings', label: 'Einstellungen', match: /^\/admin\/settings$/ },
   ]},

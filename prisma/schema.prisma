@@ -267,6 +267,7 @@ model Product {
   status        ProductStatus @default(ACTIVE)
   sku           String?
   highlightType HighlightType @default(NONE)
+  lineageId     String?
   supplierId    String?
   supplier      Supplier?     @relation(fields: [supplierId], references: [id])
   createdAt     DateTime      @default(now())
@@ -373,6 +374,8 @@ model TaxonomyNode {
   depth     Int          @default(0)
   sortOrder Int          @default(0)
   icon      String?
+  taxRate   Float?
+  taxLabel  String?
 
   products     ProductTaxonomy[]
   translations TaxonomyNodeTranslation[]
@@ -641,6 +644,7 @@ model FillQuantity {
 model TaxRate {
   id         String  @id @default(cuid())
   tenantId   String
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name       String
   percentage Decimal
 
