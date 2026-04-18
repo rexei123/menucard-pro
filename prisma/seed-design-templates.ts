@@ -8,18 +8,18 @@ const prisma = new PrismaClient();
 
 async function main() {
   const items = [
-    { name: 'Elegant',   baseType: 'elegant', config: elegantTemplate },
-    { name: 'Modern',    baseType: 'modern',  config: modernTemplate },
-    { name: 'Klassisch', baseType: 'classic', config: classicTemplate },
-    { name: 'Minimal',   baseType: 'minimal', config: minimalTemplate },
+    { key: 'elegant', name: 'Elegant',   baseType: 'elegant', config: elegantTemplate },
+    { key: 'modern',  name: 'Modern',    baseType: 'modern',  config: modernTemplate },
+    { key: 'classic', name: 'Klassisch', baseType: 'classic', config: classicTemplate },
+    { key: 'minimal', name: 'Minimal',   baseType: 'minimal', config: minimalTemplate },
   ];
   for (const t of items) {
     await prisma.designTemplate.upsert({
-      where: { name: t.name },
-      update: { type: 'SYSTEM', baseType: t.baseType, config: t.config as any, isArchived: false },
-      create: { name: t.name, type: 'SYSTEM', baseType: t.baseType, config: t.config as any },
+      where: { key: t.key },
+      update: { name: t.name, type: 'SYSTEM', baseType: t.baseType, config: t.config as any, isArchived: false },
+      create: { key: t.key, name: t.name, type: 'SYSTEM', baseType: t.baseType, config: t.config as any },
     });
-    console.log('  Seeded:', t.name);
+    console.log('  Seeded:', t.name, '(' + t.key + ')');
   }
 }
 
