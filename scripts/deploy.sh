@@ -64,12 +64,13 @@ done
 # ----------------------------------------------------------------------
 mkdir -p "$(dirname "$DEPLOY_LOG")"
 log() {
-    local msg="$1"
+    local msg="${1:-}"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $msg" >> "$DEPLOY_LOG"
 }
 say() {
-    echo -e "$1"
-    log "$(echo -e "$1" | sed 's/\x1b\[[0-9;]*m//g')"
+    local msg="${1:-}"
+    echo -e "$msg"
+    log "$(echo -e "$msg" | sed 's/\x1b\[[0-9;]*m//g')"
 }
 
 # ----------------------------------------------------------------------
