@@ -28,7 +28,7 @@ export default function MediaPickerModal({
   onClose,
   onSelect,
   categoryFilter,
-  title = 'Aus Bildarchiv waehlen',
+  title = 'Aus Bildarchiv wählen',
 }: MediaPickerModalProps) {
   const [activeTab, setActiveTab] = useState<'browse' | 'upload' | 'web'>('browse');
   const [media, setMedia] = useState<MediaItem[]>([]);

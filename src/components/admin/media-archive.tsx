@@ -125,9 +125,9 @@ function MediaGrid({ category }: { category: 'PHOTO' | 'LOGO' }) {
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
           className="px-3 py-2 border rounded-lg text-sm bg-white">
           <option value="newest">Neueste zuerst</option>
-          <option value="oldest">Aelteste zuerst</option>
+          <option value="oldest">Älteste zuerst</option>
           <option value="name">Name A-Z</option>
-          <option value="size">Groesse</option>
+          <option value="size">Größe</option>
         </select>
       </div>
 
@@ -287,7 +287,7 @@ function UploadTab({ onUploaded }: { onUploaded: () => void }) {
       >
         <div className="text-4xl mb-3">&#x1F4F8;</div>
         <p className="text-[#565D6D] font-medium">Bilder hierher ziehen</p>
-        <p className="text-[#999] text-sm mt-1">oder klicken zum Auswaehlen</p>
+        <p className="text-[#999] text-sm mt-1">oder klicken zum Auswählen</p>
         <p className="text-[#999] text-xs mt-2">JPEG, PNG, WebP - Max 4MB pro Bild</p>
       </div>
 

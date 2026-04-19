@@ -183,7 +183,7 @@ export default function ProductImages({ productId, initialImages }: { productId:
                   className="text-sm rounded px-2 py-1 bg-white/90 text-gray-800 outline-none">
                   {typeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <button onClick={() => remove(img.id)} className="text-sm text-white bg-red-500 rounded px-2 py-1 hover:bg-red-600">Loeschen</button>
+                <button onClick={() => remove(img.id)} className="text-sm text-white bg-red-500 rounded px-2 py-1 hover:bg-red-600">Löschen</button>
               </div>
               <div className="px-2 py-1 bg-gray-50 text-[10px] text-gray-500 text-center">
                 {typeLabels[img.mediaType] || img.mediaType}
@@ -216,7 +216,7 @@ export default function ProductImages({ productId, initialImages }: { productId:
             setShowMediaPicker(false);
           }}
           categoryFilter="PHOTO"
-          title="Bild aus Bildarchiv waehlen"
+          title="Bild aus Bildarchiv wählen"
         />
       )}
     </section>

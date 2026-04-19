@@ -139,14 +139,14 @@ export default function UsersAdmin({ currentUserId, currentUserRole }: Props) {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Benutzer "${name}" wirklich loeschen?`)) return;
+    if (!confirm(`Benutzer "${name}" wirklich löschen?`)) return;
     setBusy(true);
     setError(null);
     try {
       const res = await fetch(`/api/v1/users/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Fehler' }));
-        throw new Error(err.error || 'Fehler beim Loeschen');
+        throw new Error(err.error || 'Fehler beim Löschen');
       }
       await load();
     } catch (e: any) {
@@ -292,7 +292,7 @@ export default function UsersAdmin({ currentUserId, currentUserRole }: Props) {
                             className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
-                            Loeschen
+                            Löschen
                           </button>
                         )}
                       </div>

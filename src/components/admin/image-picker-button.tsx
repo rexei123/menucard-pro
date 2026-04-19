@@ -37,7 +37,7 @@ export default function ImagePickerButton({
         ) : null}
         <button type="button" onClick={() => setShowPicker(true)}
           className="px-3 py-1.5 border border-dashed border-amber-300 rounded text-xs text-amber-700 hover:bg-amber-50">
-          {currentUrl ? 'Aendern' : label + ' waehlen'}
+          {currentUrl ? 'Ändern' : label + ' wählen'}
         </button>
       </div>
       {showPicker && (
@@ -51,7 +51,7 @@ export default function ImagePickerButton({
             setShowPicker(false);
           }}
           categoryFilter={categoryFilter}
-          title={label + ' aus Bildarchiv waehlen'}
+          title={label + ' aus Bildarchiv wählen'}
         />
       )}
     </div>

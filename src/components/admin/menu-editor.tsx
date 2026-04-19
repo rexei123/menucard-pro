@@ -240,12 +240,23 @@ export default function MenuEditor({
 
   const apiDeleteSection = async (id: string, force = false) => {
     const url = `/api/v1/sections/${id}${force ? '?force=true' : ''}`;
-    const res = await fetch(url, { method: 'DELETE', credentials: 'include' });
-    if (!res.ok) {
-      const b = await res.json().catch(() => null);
-      return { ok: false, error: b?.error, requiresForce: b?.requiresForce, count: b?.placementCount };
+    try {
+      const res = await fetch(url, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) {
+        const b = await res.json().catch(() => null);
+        return {
+          ok: false,
+          status: res.status,
+          error: b?.error || `HTTP ${res.status}`,
+          requiresForce: !!b?.requiresForce,
+          placementCount: b?.placementCount ?? 0,
+          childCount: b?.childCount ?? 0,
+        };
+      }
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, status: 0, error: `Netzwerkfehler: ${e?.message || 'unbekannt'}` };
     }
-    return { ok: true };
   };
 
   const apiReorderSections = async (order: string[]) => {
@@ -307,13 +318,18 @@ export default function MenuEditor({
     const res = await apiDeleteSection(id, force);
     if (!res.ok) {
       if (res.requiresForce) {
-        const ok = window.confirm(
-          `Diese Sektion enthält ${res.count ?? ''} Produkt(e). Wirklich löschen? Alle Platzierungen werden entfernt.`,
-        );
-        if (ok) return deleteSection(id, true);
+        const pc = res.placementCount ?? 0;
+        const cc = res.childCount ?? 0;
+        const msg =
+          pc > 0 && cc > 0 ? `Diese Sektion enthält ${pc} Produkt(e) und ${cc} Unter-Sektion(en). Wirklich vollständig löschen?`
+          : cc > 0 ? `Diese Sektion enthält ${cc} Unter-Sektion(en). Wirklich mit allen Inhalten löschen?`
+          : `Diese Sektion enthält ${pc} Produkt(e). Wirklich löschen? Alle Platzierungen werden entfernt.`;
+        if (window.confirm(msg)) return deleteSection(id, true);
+        setDeleteConfirmFor(null);
         return;
       }
       setError(res.error || 'Löschung fehlgeschlagen');
+      setDeleteConfirmFor(null);
       return;
     }
     setSections(p => p.filter(s => s.id !== id));
