@@ -1,6 +1,11 @@
 # ============================================================================
 # MenuCard Pro - Deploy-Launcher (lokal, PowerShell)
 # ============================================================================
+# HINWEIS: Ab 19.04.2026 ist .\ship.ps1 der empfohlene Deploy-Weg.
+# ship.ps1 deployed erst nach Staging, laesst die Playwright-Suite laufen
+# (Test-Gate) und geht nur bei gruen weiter auf Production.
+# deploy.ps1 bleibt als direkter Hotfix-Weg fuer main-Deploys ohne Gate.
+#
 # Aufruf:
 #   .\deploy.ps1                  # interaktiv (fragt am Server nach y/n)
 #   .\deploy.ps1 -Yes             # automatisch bestaetigen
