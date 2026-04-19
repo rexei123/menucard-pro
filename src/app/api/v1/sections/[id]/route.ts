@@ -110,8 +110,41 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const hasPlacements = section._count.placements > 0;
     const hasChildren = section._count.children > 0;
 
-    // Ohne force: Bei nicht-leer nachfragen (UI zeigt dann Confirm mit Zählern)
+    // Ohne force: Bei nicht-leer nachfragen (UI zeigt dann Confirm mit Zählern).
+    // Zusätzlich: Liste der betroffenen Unter-Sektionen (Namen) + Gesamt-Descendant-Zahl
+    // + summierte Placement-Anzahl aller Descendants, damit UI eine saubere Cascade-Warnung zeigen kann.
     if (!force && (hasPlacements || hasChildren)) {
+      let childNames: string[] = [];
+      let descendantCount = 0;
+      let descendantPlacementCount = 0;
+
+      if (hasChildren) {
+        // Alle direkten Kinder inkl. DE-Name laden
+        const directChildren = await prisma.menuSection.findMany({
+          where: { parentId: section.id },
+          select: {
+            id: true,
+            translations: {
+              where: { language: 'de' },
+              select: { name: true },
+            },
+          },
+          orderBy: { sortOrder: 'asc' },
+        });
+        childNames = directChildren.map((c) => c.translations[0]?.name || '(ohne Name)');
+
+        // Tiefe rekursiv zählen (alle Descendants, nicht nur direkte)
+        const allDescendants = await collectDescendants(section.id);
+        descendantCount = allDescendants.length;
+
+        // Placements aller Descendants summieren
+        if (allDescendants.length > 0) {
+          descendantPlacementCount = await prisma.menuPlacement.count({
+            where: { sectionId: { in: allDescendants } },
+          });
+        }
+      }
+
       return NextResponse.json(
         {
           error: hasChildren && hasPlacements
@@ -122,6 +155,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
           requiresForce: true,
           placementCount: section._count.placements,
           childCount: section._count.children,
+          childNames,
+          descendantCount,
+          descendantPlacementCount,
         },
         { status: 409 },
       );

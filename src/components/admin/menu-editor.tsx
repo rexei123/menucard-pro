@@ -251,6 +251,9 @@ export default function MenuEditor({
           requiresForce: !!b?.requiresForce,
           placementCount: b?.placementCount ?? 0,
           childCount: b?.childCount ?? 0,
+          childNames: Array.isArray(b?.childNames) ? (b.childNames as string[]) : [],
+          descendantCount: b?.descendantCount ?? 0,
+          descendantPlacementCount: b?.descendantPlacementCount ?? 0,
         };
       }
       return { ok: true };
@@ -320,10 +323,47 @@ export default function MenuEditor({
       if (res.requiresForce) {
         const pc = res.placementCount ?? 0;
         const cc = res.childCount ?? 0;
-        const msg =
-          pc > 0 && cc > 0 ? `Diese Sektion enthält ${pc} Produkt(e) und ${cc} Unter-Sektion(en). Wirklich vollständig löschen?`
-          : cc > 0 ? `Diese Sektion enthält ${cc} Unter-Sektion(en). Wirklich mit allen Inhalten löschen?`
-          : `Diese Sektion enthält ${pc} Produkt(e). Wirklich löschen? Alle Platzierungen werden entfernt.`;
+        const names: string[] = res.childNames ?? [];
+        const dc = res.descendantCount ?? cc;
+        const dpc = res.descendantPlacementCount ?? 0;
+
+        // Name der zu löschenden Sektion ermitteln (für klarere Warnung)
+        const sec = sections.find((s) => s.id === id);
+        const secName = sec?.name || 'diese Sektion';
+
+        if (cc > 0) {
+          // STUFE 1: Cascade-Warnung mit expliziter Liste der Unter-Sektionen
+          const listPreview = names.slice(0, 10).map((n) => `  • ${n}`).join('\n');
+          const moreHint = names.length > 10 ? `\n  … und ${names.length - 10} weitere` : '';
+          const totalSections = 1 + dc; // self + all descendants
+          const totalPlacements = pc + dpc;
+
+          const stage1Msg =
+            `ACHTUNG: "${secName}" enthält ${cc} direkte Unter-Sektion(en):\n\n${listPreview}${moreHint}\n\n` +
+            `Beim Löschen werden insgesamt entfernt:\n` +
+            `  • ${totalSections} Sektion(en) (inkl. aller Unter-Sektionen)\n` +
+            `  • ${totalPlacements} Produkt-Zuordnung(en)\n\n` +
+            `Diese Aktion kann NICHT rückgängig gemacht werden.\n\n` +
+            `Trotzdem fortfahren?`;
+          if (!window.confirm(stage1Msg)) {
+            setDeleteConfirmFor(null);
+            return;
+          }
+
+          // STUFE 2: Zweite Bestätigung mit Sektions-Namen zur expliziten Freigabe
+          const stage2Msg =
+            `Bestätigen Sie die Löschung von "${secName}" und ${dc} Unter-Sektion(en)?\n\n` +
+            `Klicken Sie OK nur, wenn Sie sicher sind.`;
+          if (!window.confirm(stage2Msg)) {
+            setDeleteConfirmFor(null);
+            return;
+          }
+
+          return deleteSection(id, true);
+        }
+
+        // Nur Produkte (keine Kinder) → einfache Bestätigung reicht
+        const msg = `"${secName}" enthält ${pc} Produkt-Zuordnung(en). Löschung entfernt die Zuordnungen, die Produkte selbst bleiben erhalten.\n\nFortfahren?`;
         if (window.confirm(msg)) return deleteSection(id, true);
         setDeleteConfirmFor(null);
         return;
