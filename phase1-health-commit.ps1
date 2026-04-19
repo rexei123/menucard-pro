@@ -12,6 +12,9 @@
 #      pm2 restart --update-env, damit der Effekt sofort da ist
 #      (ohne auf den naechsten Deploy warten zu muessen).
 #   4. Extern verifizieren, dass /api/health jetzt die echte SHA zeigt.
+#
+# Das Remote-Script wird base64-codiert an die SSH-Session uebergeben, um
+# Quoting-/Newline-Probleme zwischen PowerShell und Bash auszuschliessen.
 # ============================================================================
 
 param(
@@ -69,14 +72,15 @@ Ok "Lokal fertig"
 # ----------------------------------------------------------------------
 Step "2/4" "Server: pull + GIT_COMMIT in .env + pm2 restart --update-env"
 
-$remoteCmd = @'
+# Bash-Script als Raw-String (keine PowerShell-Interpolation hier drin).
+$remoteScript = @'
 set -e
 
 apply() {
     local DIR="$1"
     local NAME="$2"
     cd "$DIR"
-    echo "--- $NAME ($DIR) ---"
+    echo "--- $NAME [$DIR] ---"
     echo "HEAD vorher:  $(git rev-parse --short HEAD)"
     git pull --ff-only origin main
     local SHA
@@ -97,18 +101,22 @@ apply /var/www/menucard-pro         menucard-pro
 apply /var/www/menucard-pro-staging menucard-pro-staging
 
 echo "--- pm2 status ---"
-pm2 list | sed -n "1,30p"
+pm2 list
 '@
 
-ssh -t "$ServerUser@$ServerIP" $remoteCmd
+# Auf LF normalisieren und als base64 kodieren -> keine Quoting-Probleme.
+$normalized = $remoteScript -replace "`r`n", "`n"
+$b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($normalized))
+
+ssh "$ServerUser@$ServerIP" "echo $b64 | base64 -d | bash"
 if ($LASTEXITCODE -ne 0) {
-    ErrLine "Server-Update fehlgeschlagen."
+    ErrLine "Server-Update fehlgeschlagen (Exit $LASTEXITCODE)."
     exit 1
 }
 Ok "Server-Instanzen neu gestartet"
 
 # ----------------------------------------------------------------------
-# 3. Kurz warten, dann externer Health-Check Prod
+# 3. Externer Health-Check Prod
 # ----------------------------------------------------------------------
 Step "3/4" "Externer Health-Check Prod"
 Start-Sleep -Seconds 3
@@ -141,6 +149,6 @@ Step "4/4" "Fertig"
 Write-Host ""
 Ok "/api/health liefert ab jetzt die echte Commit-SHA."
 Write-Host ""
-Write-Host "Check manuell:" -ForegroundColor Gray
-Write-Host "  curl -s https://menu.hotel-sonnblick.at/api/health | ConvertFrom-Json" -ForegroundColor Gray
+Write-Host "Manueller Re-Check:" -ForegroundColor Gray
+Write-Host "  (Invoke-WebRequest 'https://menu.hotel-sonnblick.at/api/health' -UseBasicParsing).Content" -ForegroundColor Gray
 Write-Host ""
