@@ -1,6 +1,6 @@
 # MenuCard Pro — Arbeitsanweisungen für Claude
 
-Digitale Speise-, Getränke- und Weinkarten für das Hotel Sonnblick, Saalbach (Österreich).
+Digitale Speise-, Getränke- und Weinkarten für das Hotel Sonnblick, Kaprun (Österreich).
 
 ## Verbindliches Referenzdokument
 

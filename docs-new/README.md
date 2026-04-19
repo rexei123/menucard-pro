@@ -1,6 +1,6 @@
 # MenuCard Pro
 
-Digitale Speise-, Getränke- und Weinkarten für das Hotel Sonnblick, Saalbach (Österreich).
+Digitale Speise-, Getränke- und Weinkarten für das Hotel Sonnblick, Kaprun (Österreich).
 
 Eine mandantenfähige Plattform, die Speise-, Getränke- und Weinkarten per QR-Code und Direktlink bereitstellt — ohne App-Download, in Echtzeit aktualisierbar, mehrsprachig (Deutsch/Englisch).
 
@@ -146,4 +146,4 @@ pm2 restart menucard-pro
 
 ## Lizenz & Kontakt
 
-Proprietäre Software für Hotel Sonnblick, Saalbach. Kontakt: `hotelsonnblick@gmail.com`.
+Proprietäre Software für Hotel Sonnblick, Kaprun. Kontakt: `hotelsonnblick@gmail.com`.

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 
 /* ──────────────────────────────────────────
    Types
@@ -65,20 +66,83 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
+function InlineMessage({ kind, children }: { kind: 'success' | 'error'; children: React.ReactNode }) {
+  const isOk = kind === 'success';
+  return (
+    <div
+      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm mt-3"
+      style={{
+        backgroundColor: isOk ? '#F0FDF4' : '#FEF2F2',
+        color: isOk ? '#166534' : '#991B1B',
+        border: `1px solid ${isOk ? '#BBF7D0' : '#FECACA'}`,
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+        {isOk ? 'check_circle' : 'error'}
+      </span>
+      {children}
+    </div>
+  );
+}
+
 /* ──────────────────────────────────────────
    Tab-Inhalte
    ────────────────────────────────────────── */
 function GeneralSettings() {
-  const [hotelName, setHotelName] = useState('Hotel Sonnblick');
-  const [location, setLocation] = useState('Saalbach, Österreich');
+  const [hotelName, setHotelName] = useState('');
+  const [location, setLocation] = useState('');
   const [showSoldOut, setShowSoldOut] = useState(true);
   const [showAllergens, setShowAllergens] = useState(true);
   const [showDescriptions, setShowDescriptions] = useState(true);
-  const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/tenants/me');
+        if (!res.ok) throw new Error('Tenant konnte nicht geladen werden');
+        const data = await res.json();
+        if (cancelled) return;
+        setHotelName(data.name ?? '');
+        setLocation(data.location ?? '');
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message ?? 'Fehler beim Laden');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const res = await fetch('/api/v1/tenants/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: hotelName, location }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Speichern fehlgeschlagen');
+      }
+      const data = await res.json();
+      setHotelName(data.name ?? '');
+      setLocation(data.location ?? '');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e: any) {
+      setError(e?.message ?? 'Speichern fehlgeschlagen');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -91,6 +155,7 @@ function GeneralSettings() {
               type="text"
               value={hotelName}
               onChange={e => setHotelName(e.target.value)}
+              disabled={loading}
               className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors"
               style={{ border: '1px solid #DEE1E6', color: '#171A1F', fontFamily: "'Inter', sans-serif" }}
               onFocus={e => (e.currentTarget.style.borderColor = '#DD3C71')}
@@ -103,6 +168,8 @@ function GeneralSettings() {
               type="text"
               value={location}
               onChange={e => setLocation(e.target.value)}
+              disabled={loading}
+              placeholder="z.B. Kaprun, Österreich"
               className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors"
               style={{ border: '1px solid #DEE1E6', color: '#171A1F', fontFamily: "'Inter', sans-serif" }}
               onFocus={e => (e.currentTarget.style.borderColor = '#DD3C71')}
@@ -110,6 +177,7 @@ function GeneralSettings() {
             />
           </div>
         </div>
+        {error && <InlineMessage kind="error">{error}</InlineMessage>}
       </SectionCard>
 
       <SectionCard title="Anzeige-Optionen" description="Steuern Sie, was Ihren Gästen angezeigt wird">
@@ -127,15 +195,16 @@ function GeneralSettings() {
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+          disabled={loading || saving}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
           style={{ backgroundColor: saved ? '#22C55E' : '#DD3C71', color: '#FFF' }}
-          onMouseEnter={e => { if (!saved) e.currentTarget.style.backgroundColor = '#C42D60'; }}
-          onMouseLeave={e => { if (!saved) e.currentTarget.style.backgroundColor = '#DD3C71'; }}
+          onMouseEnter={e => { if (!saved && !saving) e.currentTarget.style.backgroundColor = '#C42D60'; }}
+          onMouseLeave={e => { if (!saved && !saving) e.currentTarget.style.backgroundColor = '#DD3C71'; }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-            {saved ? 'check_circle' : 'save'}
+            {saved ? 'check_circle' : saving ? 'progress_activity' : 'save'}
           </span>
-          {saved ? 'Gespeichert!' : 'Speichern'}
+          {saved ? 'Gespeichert!' : saving ? 'Speichere…' : 'Speichern'}
         </button>
       </div>
     </>
@@ -188,6 +257,68 @@ function LanguageSettings() {
 }
 
 function AccountSettings() {
+  const { data: session } = useSession();
+  const email = session?.user?.email ?? '';
+  const userId = (session?.user as any)?.id as string | undefined;
+  const role = (session?.user as any)?.role as string | undefined;
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changing, setChanging] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const roleLabel =
+    role === 'OWNER' ? 'Eigentümer' :
+    role === 'ADMIN' ? 'Administrator' :
+    role === 'MANAGER' ? 'Manager' :
+    role === 'EDITOR' ? 'Editor' : 'Benutzer';
+
+  const handleChangePassword = async () => {
+    setError(null);
+    setSuccess(false);
+
+    if (!userId) {
+      setError('Sitzung nicht geladen — bitte Seite neu laden');
+      return;
+    }
+    if (!currentPassword) {
+      setError('Bitte aktuelles Passwort eingeben');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Neues Passwort muss mindestens 8 Zeichen lang sein');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Die beiden neuen Passwörter stimmen nicht überein');
+      return;
+    }
+
+    setChanging(true);
+    try {
+      const res = await fetch(`/api/v1/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, password: newPassword }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Passwort konnte nicht geändert werden');
+      }
+      setSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setSuccess(false), 3500);
+    } catch (e: any) {
+      setError(e?.message ?? 'Passwort konnte nicht geändert werden');
+    } finally {
+      setChanging(false);
+    }
+  };
+
   return (
     <>
       <SectionCard title="Konto" description="Ihr Admin-Konto verwalten">
@@ -196,7 +327,7 @@ function AccountSettings() {
             <label className="block text-sm font-medium mb-1.5" style={{ color: '#565D6D' }}>E-Mail</label>
             <input
               type="email"
-              value="admin@hotel-sonnblick.at"
+              value={email}
               readOnly
               className="w-full px-3 py-2 rounded-lg text-sm"
               style={{ border: '1px solid #DEE1E6', color: '#999', backgroundColor: '#F9FAFB', fontFamily: "'Inter', sans-serif" }}
@@ -210,20 +341,23 @@ function AccountSettings() {
                 style={{ backgroundColor: '#FDF2F5', color: '#DD3C71' }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 14 }}>shield</span>
-                Administrator
+                {roleLabel}
               </span>
             </div>
           </div>
         </div>
       </SectionCard>
 
-      <SectionCard title="Passwort ändern">
+      <SectionCard title="Passwort ändern" description="Mindestens 8 Zeichen, zur Bestätigung zweimal eingeben">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: '#565D6D' }}>Aktuelles Passwort</label>
             <input
               type="password"
+              value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
+              autoComplete="current-password"
               className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors"
               style={{ border: '1px solid #DEE1E6', color: '#171A1F', fontFamily: "'Inter', sans-serif" }}
               onFocus={e => (e.currentTarget.style.borderColor = '#DD3C71')}
@@ -234,7 +368,24 @@ function AccountSettings() {
             <label className="block text-sm font-medium mb-1.5" style={{ color: '#565D6D' }}>Neues Passwort</label>
             <input
               type="password"
-              placeholder="••••••••"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Mindestens 8 Zeichen"
+              autoComplete="new-password"
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors"
+              style={{ border: '1px solid #DEE1E6', color: '#171A1F', fontFamily: "'Inter', sans-serif" }}
+              onFocus={e => (e.currentTarget.style.borderColor = '#DD3C71')}
+              onBlur={e => (e.currentTarget.style.borderColor = '#DEE1E6')}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: '#565D6D' }}>Neues Passwort bestätigen</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="Neues Passwort wiederholen"
+              autoComplete="new-password"
               className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors"
               style={{ border: '1px solid #DEE1E6', color: '#171A1F', fontFamily: "'Inter', sans-serif" }}
               onFocus={e => (e.currentTarget.style.borderColor = '#DD3C71')}
@@ -242,15 +393,23 @@ function AccountSettings() {
             />
           </div>
         </div>
+
+        {error && <InlineMessage kind="error">{error}</InlineMessage>}
+        {success && <InlineMessage kind="success">Passwort erfolgreich geändert</InlineMessage>}
+
         <div className="flex justify-end mt-4">
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+            onClick={handleChangePassword}
+            disabled={changing}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
             style={{ backgroundColor: '#DD3C71', color: '#FFF' }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#C42D60')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#DD3C71')}
+            onMouseEnter={e => { if (!changing) e.currentTarget.style.backgroundColor = '#C42D60'; }}
+            onMouseLeave={e => { if (!changing) e.currentTarget.style.backgroundColor = '#DD3C71'; }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>lock</span>
-            Passwort ändern
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              {changing ? 'progress_activity' : 'lock'}
+            </span>
+            {changing ? 'Speichere…' : 'Passwort ändern'}
           </button>
         </div>
       </SectionCard>
@@ -259,6 +418,22 @@ function AccountSettings() {
 }
 
 function AboutSection() {
+  const [hotelName, setHotelName] = useState('Hotel Sonnblick');
+  const [location, setLocation] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/v1/tenants/me')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (cancelled || !data) return;
+        if (data.name) setHotelName(data.name);
+        if (data.location) setLocation(data.location);
+      })
+      .catch(() => { /* stille Fehler — Block zeigt Defaults */ });
+    return () => { cancelled = true; };
+  }, []);
+
   const stats = [
     { label: 'Version', value: '1.0.0', icon: 'tag' },
     { label: 'Framework', value: 'Next.js 14', icon: 'code' },
@@ -291,8 +466,10 @@ function AboutSection() {
         >
           <span className="material-symbols-outlined" style={{ fontSize: 24, color: '#DD3C71' }}>hotel</span>
           <div>
-            <div className="text-sm font-bold" style={{ color: '#171A1F' }}>Hotel Sonnblick</div>
-            <div className="text-xs" style={{ color: '#565D6D' }}>Saalbach, Österreich</div>
+            <div className="text-sm font-bold" style={{ color: '#171A1F' }}>{hotelName}</div>
+            {location && (
+              <div className="text-xs" style={{ color: '#565D6D' }}>{location}</div>
+            )}
           </div>
         </div>
       </SectionCard>

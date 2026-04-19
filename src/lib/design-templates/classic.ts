@@ -43,7 +43,7 @@ export const classicTemplate: DesignConfig = {
     },
     navigation: { showToc: true, tocPosition: 'top', tocStyle: 'list', stickyNav: false, smoothScroll: true, highlightActive: false, showBackToTop: true, hideEmptySections: true },
     header: { logo: null, logoPosition: 'center', logoSize: 100, title: null, subtitle: null, backgroundImage: null, overlayOpacity: 0.5, height: 'normal' },
-    footer: { show: true, text: 'Hotel Sonnblick · Saalbach', showAllergenNote: true, showPriceNote: true },
+    footer: { show: true, text: 'Hotel Sonnblick · Kaprun', showAllergenNote: true, showPriceNote: true },
   },
   analog: {
     template: 'classic',
