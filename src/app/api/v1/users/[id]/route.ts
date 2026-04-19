@@ -78,6 +78,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.password.length < 8) {
       return NextResponse.json({ error: 'Passwort muss mindestens 8 Zeichen lang sein' }, { status: 400 });
     }
+    // Self-Update: aktuelles Passwort muss verifiziert werden
+    if (target.id === session.user.id) {
+      if (typeof body.currentPassword !== 'string' || body.currentPassword.length === 0) {
+        return NextResponse.json({ error: 'Aktuelles Passwort erforderlich' }, { status: 400 });
+      }
+      const full = await prisma.user.findUnique({
+        where: { id: target.id },
+        select: { passwordHash: true },
+      });
+      const isValid = full?.passwordHash
+        ? await bcrypt.compare(body.currentPassword, full.passwordHash)
+        : false;
+      if (!isValid) {
+        return NextResponse.json({ error: 'Aktuelles Passwort ist falsch' }, { status: 400 });
+      }
+    }
     data.passwordHash = await bcrypt.hash(body.password, 10);
   }
 

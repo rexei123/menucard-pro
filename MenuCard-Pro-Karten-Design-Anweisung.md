@@ -389,7 +389,7 @@ Manuelle Umbrüche:
     },
     "navigation": { "showToc": true, "tocPosition": "sticky", "tocStyle": "pills", "stickyNav": true, "smoothScroll": true, "highlightActive": true, "showBackToTop": true, "hideEmptySections": true },
     "header": { "logo": null, "logoPosition": "center", "logoSize": 120, "title": null, "subtitle": null, "backgroundImage": null, "overlayOpacity": 0.6, "height": "normal" },
-    "footer": { "show": true, "text": "Hotel Sonnblick · Saalbach", "showAllergenNote": true, "showPriceNote": true }
+    "footer": { "show": true, "text": "Hotel Sonnblick · Kaprun", "showAllergenNote": true, "showPriceNote": true }
   },
 
   "analog": {

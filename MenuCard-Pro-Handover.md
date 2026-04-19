@@ -5,7 +5,7 @@
 
 ## PROJEKT
 - **Name:** MenuCard Pro
-- **Zweck:** Digitale Speise-, Getränke- und Weinkarten für Hotel Sonnblick, Saalbach
+- **Zweck:** Digitale Speise-, Getränke- und Weinkarten für Hotel Sonnblick, Kaprun
 - **Stack:** Next.js 14, TypeScript, Tailwind CSS, Prisma, PostgreSQL, NextAuth, PM2, Nginx
 - **GitHub:** https://github.com/rexei123/menucard-pro (public)
 

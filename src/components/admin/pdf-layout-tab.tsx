@@ -565,12 +565,12 @@ export function TabPdfLayout({ analogConfig, update, previewPdfUrl }: Props) {
               <div>
                 <Label>Fußzeilen-Text (Deutsch)</Label>
                 <TextInput value={footer.text || ''} onChange={v => update('headerFooter.footer.text', v)}
-                  placeholder="z.B. Hotel Sonnblick · Saalbach" />
+                  placeholder="z.B. Hotel Sonnblick · Kaprun" />
               </div>
               <div>
                 <Label>Fußzeilen-Text (Englisch)</Label>
                 <TextInput value={footer.textEN || ''} onChange={v => update('headerFooter.footer.textEN', v)}
-                  placeholder="e.g. Hotel Sonnblick · Saalbach" />
+                  placeholder="e.g. Hotel Sonnblick · Kaprun" />
               </div>
               <Toggle label="Allergen-Hinweis" checked={footer.showAllergenNote ?? true}
                 onChange={v => update('headerFooter.footer.showAllergenNote', v)} />
