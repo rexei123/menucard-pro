@@ -42,9 +42,10 @@ Section "Staging Nginx Basic-Auth Rotation"
 # ----------------------------------------------------------------------
 Step "1" "Always-Sync: Lokales Script mit Server abgleichen"
 
-& git update-index --chmod=+x $LocalScript 2>$null
+# Reihenfolge wichtig: erst add (damit Datei im Index), dann chmod-Bit setzen
 & git add $LocalScript $LocalLauncher
 if ($LASTEXITCODE -ne 0) { ErrLine "git add fehlgeschlagen."; exit 1 }
+& git update-index --chmod=+x $LocalScript 2>$null
 
 $staged = & git diff --cached --name-only
 if (-not $staged) {
@@ -69,8 +70,14 @@ Phase 1 Priority-2C: Staging Basic-Auth-Rotation (Server-Script + Launcher)
     Ok "Lokal committed + gepusht"
 }
 
-Step "1b" "Server: pull + chmod +x"
-ssh "$ServerUser@$ServerIP" "cd /var/www/menucard-pro && git pull --ff-only origin main && chmod +x $LocalScript && ls -l $LocalScript"
+Step "1b" "Server: cleanup + pull + chmod +x"
+# git checkout -- wirft lokale Script-Mode-Aenderungen weg (chmod-Diff vom
+# vorherigen Lauf), macht damit pull --ff-only idempotent.
+$syncCmd = "cd /var/www/menucard-pro && " + `
+           "git checkout -- $LocalScript 2>/dev/null || true; " + `
+           "git pull --ff-only origin main && " + `
+           "chmod +x $LocalScript && ls -l $LocalScript"
+ssh "$ServerUser@$ServerIP" $syncCmd
 if ($LASTEXITCODE -ne 0) { ErrLine "Server-Sync fehlgeschlagen."; exit 1 }
 Ok "Server hat aktuelle Version"
 
