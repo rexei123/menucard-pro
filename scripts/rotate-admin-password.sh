@@ -59,15 +59,27 @@ say "Modus: $([ $DRY_RUN -eq 1 ] && echo 'DRY-RUN' || echo 'LIVE')"
 say
 
 # ---- DATABASE_URL aus .env lesen ------------------------------------------
-# awk holt den Wert; Anfuehrungszeichen per Bash-Substring entfernt.
+# sed schneidet den Key "DATABASE_URL=" weg; Anfuehrungszeichen + CR danach
+# per Bash-Substring entfernt. awk-Rebuild-Falle (OFS) wird so vermieden.
 read_db_url() {
     local file="$1"
     local v
-    v=$(awk -F= '/^DATABASE_URL=/ { $1=""; sub(/^=/,""); print; exit }' "$file")
-    # outer double or single quotes strippen
+    v=$(sed -n 's/^DATABASE_URL=//p' "$file" | head -n1)
+    # Windows CR am Zeilenende
+    v="${v%$'\r'}"
+    # Outer double or single quotes strippen
     v="${v%\"}"; v="${v#\"}"
     v="${v%\'}"; v="${v#\'}"
     printf '%s' "$v"
+}
+
+validate_db_url() {
+    local label="$1"
+    local u="$2"
+    case "$u" in
+        postgresql://*|postgres://*) : ;;
+        *) say "${C_R}FAIL: $label DATABASE_URL hat falsches Format: '${u:0:40}...'${C_N}"; exit 1 ;;
+    esac
 }
 
 [ -f "$PROD_ENV" ] || { say "${C_R}FAIL: $PROD_ENV fehlt${C_N}"; exit 1; }
@@ -78,6 +90,8 @@ STAG_DB_URL=$(read_db_url "$STAG_ENV")
 
 [ -n "$PROD_DB_URL" ] || { say "${C_R}FAIL: DATABASE_URL leer in $PROD_ENV${C_N}"; exit 1; }
 [ -n "$STAG_DB_URL" ] || { say "${C_R}FAIL: DATABASE_URL leer in $STAG_ENV${C_N}"; exit 1; }
+validate_db_url "PROD"    "$PROD_DB_URL"
+validate_db_url "STAGING" "$STAG_DB_URL"
 
 # ---- 1. Discovery ----------------------------------------------------------
 say "${C_Y}[1/5] Discovery${C_N}"
