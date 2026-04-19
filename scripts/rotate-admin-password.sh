@@ -61,6 +61,8 @@ say
 # ---- DATABASE_URL aus .env lesen ------------------------------------------
 # sed schneidet den Key "DATABASE_URL=" weg; Anfuehrungszeichen + CR danach
 # per Bash-Substring entfernt. awk-Rebuild-Falle (OFS) wird so vermieden.
+# Prisma-spezifische Query-Params (?schema=public, ?pgbouncer=true) werden
+# abgeschnitten, weil libpq sie nicht kennt ("invalid URI query parameter").
 read_db_url() {
     local file="$1"
     local v
@@ -70,6 +72,8 @@ read_db_url() {
     # Outer double or single quotes strippen
     v="${v%\"}"; v="${v#\"}"
     v="${v%\'}"; v="${v#\'}"
+    # Query-String abschneiden (Prisma: ?schema=public etc.)
+    v="${v%%\?*}"
     printf '%s' "$v"
 }
 
