@@ -7,28 +7,22 @@
 #   - Staging-DB  menucard_pro_staging.User.passwordHash
 #   - /root/.secrets/staging-admin-creds.txt  (Klartext fuer Playwright/ship.ps1)
 #
-# Ablauf:
-#   1. Discovery: DB-URLs aus beiden .env, Admin-User in beiden DBs pruefen
-#   2. Backup: alte passwordHashes + Creds-File nach
-#              /var/backups/menucard-pro/admin-pw-pre-rotation-<ts>/
-#   3. Neues Passwort generieren (20 Zeichen alphanumerisch)
-#   4. bcrypt-Hash (10 Rounds, kompatibel zu bcryptjs in src/lib/auth.ts)
-#   5. UPDATE beide DBs + neues Creds-File schreiben
-#   6. Rollback bei Fehler (ERR-Trap)
+# Verbindet sich mit psql ueber die vollstaendige DATABASE_URL aus der .env
+# (kein eigenes Passwort-Parsing noetig). Das umgeht URL-Encoding-Edgecases.
 #
 # Aufruf:
-#   bash scripts/rotate-admin-password.sh --dry-run   # Plan zeigen
-#   bash scripts/rotate-admin-password.sh --yes       # Rotation durchfuehren
+#   bash scripts/rotate-admin-password.sh --dry-run
+#   bash scripts/rotate-admin-password.sh --yes
 # ============================================================================
 set -Eeuo pipefail
 
 # ---- Konstanten ------------------------------------------------------------
 PROD_DIR="/var/www/menucard-pro"
 STAG_DIR="/var/www/menucard-pro-staging"
-PROD_DB="menucard_pro"
-STAG_DB="menucard_pro_staging"
-DB_HOST="127.0.0.1"
-DB_USER="menucard"
+PROD_ENV="$PROD_DIR/.env"
+STAG_ENV="$STAG_DIR/.env"
+PROD_DB_NAME="menucard_pro"
+STAG_DB_NAME="menucard_pro_staging"
 ADMIN_EMAIL="admin@hotel-sonnblick.at"
 CREDS_FILE="/root/.secrets/staging-admin-creds.txt"
 BACKUP_BASE="/var/backups/menucard-pro"
@@ -46,9 +40,9 @@ DRY_RUN=0
 AUTO_YES=0
 for arg in "$@"; do
     case "$arg" in
-        --dry-run)   DRY_RUN=1 ;;
-        --yes|-y)    AUTO_YES=1 ;;
-        -h|--help)   sed -n '1,30p' "$0"; exit 0 ;;
+        --dry-run)  DRY_RUN=1 ;;
+        --yes|-y)   AUTO_YES=1 ;;
+        -h|--help)  sed -n '1,30p' "$0"; exit 0 ;;
         *) echo "${C_R}Unbekanntes Flag: $arg${C_N}" >&2; exit 2 ;;
     esac
 done
@@ -64,33 +58,46 @@ say "Start: $(date '+%F %T')"
 say "Modus: $([ $DRY_RUN -eq 1 ] && echo 'DRY-RUN' || echo 'LIVE')"
 say
 
-# ---- 1. Discovery ----------------------------------------------------------
-[ -f "$PROD_DIR/.env" ] || { say "${C_R}FAIL: $PROD_DIR/.env fehlt${C_N}"; exit 1; }
-[ -f "$STAG_DIR/.env" ] || { say "${C_R}FAIL: $STAG_DIR/.env fehlt${C_N}"; exit 1; }
-
-extract_db_pw() {
-    # Format: DATABASE_URL=postgresql://user:PASSWORD@host:port/db
-    grep -E '^DATABASE_URL=' "$1" | head -n1 \
-        | sed -E 's/^DATABASE_URL=//; s/^"//; s/"$//' \
-        | sed -E 's|^[^:]+://[^:]+:([^@]+)@.*|\1|'
+# ---- DATABASE_URL aus .env lesen ------------------------------------------
+# awk holt den Wert; Anfuehrungszeichen per Bash-Substring entfernt.
+read_db_url() {
+    local file="$1"
+    local v
+    v=$(awk -F= '/^DATABASE_URL=/ { $1=""; sub(/^=/,""); print; exit }' "$file")
+    # outer double or single quotes strippen
+    v="${v%\"}"; v="${v#\"}"
+    v="${v%\'}"; v="${v#\'}"
+    printf '%s' "$v"
 }
-PROD_DB_PW=$(extract_db_pw "$PROD_DIR/.env")
-STAG_DB_PW=$(extract_db_pw "$STAG_DIR/.env")
-[ -n "$PROD_DB_PW" ] || { say "${C_R}FAIL: kein DB-Passwort in Prod .env${C_N}"; exit 1; }
-[ -n "$STAG_DB_PW" ] || { say "${C_R}FAIL: kein DB-Passwort in Staging .env${C_N}"; exit 1; }
 
+[ -f "$PROD_ENV" ] || { say "${C_R}FAIL: $PROD_ENV fehlt${C_N}"; exit 1; }
+[ -f "$STAG_ENV" ] || { say "${C_R}FAIL: $STAG_ENV fehlt${C_N}"; exit 1; }
+
+PROD_DB_URL=$(read_db_url "$PROD_ENV")
+STAG_DB_URL=$(read_db_url "$STAG_ENV")
+
+[ -n "$PROD_DB_URL" ] || { say "${C_R}FAIL: DATABASE_URL leer in $PROD_ENV${C_N}"; exit 1; }
+[ -n "$STAG_DB_URL" ] || { say "${C_R}FAIL: DATABASE_URL leer in $STAG_ENV${C_N}"; exit 1; }
+
+# ---- 1. Discovery ----------------------------------------------------------
 say "${C_Y}[1/5] Discovery${C_N}"
-say "  Prod-DB:      $PROD_DB  (user: $DB_USER @ $DB_HOST)"
-say "  Staging-DB:   $STAG_DB  (user: $DB_USER @ $DB_HOST)"
+say "  Prod-DB:      $PROD_DB_NAME"
+say "  Staging-DB:   $STAG_DB_NAME"
 say "  Admin:        $ADMIN_EMAIL"
 say "  Creds-File:   $CREDS_FILE"
 
-count_admin() {
-    PGPASSWORD="$1" psql -h "$DB_HOST" -U "$DB_USER" -d "$2" -t -A -v ON_ERROR_STOP=1 \
+# psql direkt gegen DATABASE_URL (kein eigenes Passwort-Parsing)
+count_admin_prod() {
+    psql "$PROD_DB_URL" -t -A -v ON_ERROR_STOP=1 \
         -c "SELECT COUNT(*) FROM \"User\" WHERE email='$ADMIN_EMAIL';"
 }
-PROD_CNT=$(count_admin "$PROD_DB_PW" "$PROD_DB")
-STAG_CNT=$(count_admin "$STAG_DB_PW" "$STAG_DB")
+count_admin_stag() {
+    psql "$STAG_DB_URL" -t -A -v ON_ERROR_STOP=1 \
+        -c "SELECT COUNT(*) FROM \"User\" WHERE email='$ADMIN_EMAIL';"
+}
+
+PROD_CNT=$(count_admin_prod)
+STAG_CNT=$(count_admin_stag)
 say "  Admin in Prod:    $PROD_CNT"
 say "  Admin in Staging: $STAG_CNT"
 if [ "$PROD_CNT" != "1" ] || [ "$STAG_CNT" != "1" ]; then
@@ -105,8 +112,8 @@ if [ $DRY_RUN -eq 1 ]; then
     say "  - neues Passwort generieren (alphanumerisch, $PW_LENGTH Zeichen)"
     say "  - bcryptjs-Hash erzeugen (Rounds=$BCRYPT_ROUNDS)"
     say "  - UPDATE \"User\" SET \"passwordHash\"=... WHERE email='$ADMIN_EMAIL'"
-    say "    * in DB $PROD_DB"
-    say "    * in DB $STAG_DB"
+    say "    * in DB $PROD_DB_NAME"
+    say "    * in DB $STAG_DB_NAME"
     say "  - $CREDS_FILE neu schreiben (chmod 600)"
     say "  - Backup nach $BACKUP_DIR/"
     say
@@ -127,10 +134,10 @@ say "${C_Y}[2/5] Backup alter Hashes + Creds-File${C_N}"
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
 
-PGPASSWORD="$PROD_DB_PW" psql -h "$DB_HOST" -U "$DB_USER" -d "$PROD_DB" -t -A -v ON_ERROR_STOP=1 \
+psql "$PROD_DB_URL" -t -A -v ON_ERROR_STOP=1 \
     -c "SELECT \"passwordHash\" FROM \"User\" WHERE email='$ADMIN_EMAIL';" \
     > "$BACKUP_DIR/prod-admin.hash"
-PGPASSWORD="$STAG_DB_PW" psql -h "$DB_HOST" -U "$DB_USER" -d "$STAG_DB" -t -A -v ON_ERROR_STOP=1 \
+psql "$STAG_DB_URL" -t -A -v ON_ERROR_STOP=1 \
     -c "SELECT \"passwordHash\" FROM \"User\" WHERE email='$ADMIN_EMAIL';" \
     > "$BACKUP_DIR/staging-admin.hash"
 
@@ -148,7 +155,6 @@ OLD_STAG_HASH=$(tr -d '\n' < "$BACKUP_DIR/staging-admin.hash")
 # ---- 4. Neues Passwort + bcrypt-Hash --------------------------------------
 say
 say "${C_Y}[3/5] Neues Passwort + bcryptjs-Hash erzeugen${C_N}"
-# 30 Byte -> base64 -> nur [A-Za-z0-9], erste 20 Zeichen
 NEW_PW=$(openssl rand -base64 30 | tr -d '/+=' | tr -d '\n' | head -c "$PW_LENGTH")
 if [ "${#NEW_PW}" -lt "$PW_LENGTH" ]; then
     say "${C_R}FAIL: konnte kein Passwort mit $PW_LENGTH Zeichen erzeugen${C_N}"
@@ -162,16 +168,16 @@ if [ -z "$NEW_HASH" ] || [[ ! "$NEW_HASH" =~ ^\$2[aby]\$ ]]; then
     say "${C_R}FAIL: bcryptjs-Hash ungueltig: $NEW_HASH${C_N}"
     exit 1
 fi
-say "${C_G}  Hash erzeugt (\$2..\$ Prefix, ${#NEW_HASH} Zeichen)${C_N}"
+say "${C_G}  Hash erzeugt (\$2..\$-Prefix, ${#NEW_HASH} Zeichen)${C_N}"
 
 # ---- 5. Rollback-Definition + Updates --------------------------------------
 rollback() {
     say
     say "${C_R}=== ROLLBACK ===${C_N}"
-    PGPASSWORD="$PROD_DB_PW" psql -h "$DB_HOST" -U "$DB_USER" -d "$PROD_DB" \
+    psql "$PROD_DB_URL" -v ON_ERROR_STOP=1 \
         -c "UPDATE \"User\" SET \"passwordHash\"='$OLD_PROD_HASH' WHERE email='$ADMIN_EMAIL';" \
         >> "$LOG_FILE" 2>&1 || true
-    PGPASSWORD="$STAG_DB_PW" psql -h "$DB_HOST" -U "$DB_USER" -d "$STAG_DB" \
+    psql "$STAG_DB_URL" -v ON_ERROR_STOP=1 \
         -c "UPDATE \"User\" SET \"passwordHash\"='$OLD_STAG_HASH' WHERE email='$ADMIN_EMAIL';" \
         >> "$LOG_FILE" 2>&1 || true
     if [ -f "$BACKUP_DIR/staging-admin-creds.old.txt" ]; then
@@ -184,12 +190,12 @@ trap rollback ERR
 
 say
 say "${C_Y}[4/5] DB-Updates${C_N}"
-PGPASSWORD="$PROD_DB_PW" psql -h "$DB_HOST" -U "$DB_USER" -d "$PROD_DB" -v ON_ERROR_STOP=1 \
+psql "$PROD_DB_URL" -v ON_ERROR_STOP=1 \
     -c "UPDATE \"User\" SET \"passwordHash\"='$NEW_HASH', \"updatedAt\"=NOW() WHERE email='$ADMIN_EMAIL';" \
     >> "$LOG_FILE" 2>&1
 say "${C_G}  Prod    aktualisiert${C_N}"
 
-PGPASSWORD="$STAG_DB_PW" psql -h "$DB_HOST" -U "$DB_USER" -d "$STAG_DB" -v ON_ERROR_STOP=1 \
+psql "$STAG_DB_URL" -v ON_ERROR_STOP=1 \
     -c "UPDATE \"User\" SET \"passwordHash\"='$NEW_HASH', \"updatedAt\"=NOW() WHERE email='$ADMIN_EMAIL';" \
     >> "$LOG_FILE" 2>&1
 say "${C_G}  Staging aktualisiert${C_N}"
@@ -216,10 +222,6 @@ say "Admin:    $ADMIN_EMAIL"
 say "Passwort: ${C_G}$NEW_PW${C_N}"
 say
 say "${C_Y}Bitte SOFORT in den Password-Manager uebernehmen.${C_N}"
-say "Dieses Passwort wird nirgends sonst gespeichert (ausser verschluesselt in"
-say "den bcrypt-Hashes in der DB). Das Staging-Creds-File enthaelt den Klartext,"
-say "ist aber chmod 600 + liegt unter /root/.secrets/."
-say
 say "Backup (alte Hashes + altes Creds-File): $BACKUP_DIR"
 say "Log: $LOG_FILE"
 say

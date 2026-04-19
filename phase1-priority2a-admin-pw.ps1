@@ -6,9 +6,10 @@
 #   - Staging-DB  menucard_pro_staging
 #   - /root/.secrets/staging-admin-creds.txt (Klartext fuer Playwright)
 #
-# Ruft scripts/rotate-admin-password.sh auf dem Server auf. Falls das Script
-# dort noch nicht liegt, wird es vorher automatisch committed + gepusht +
-# auf dem Server gepullt (Auto-Bootstrap).
+# Ruft scripts/rotate-admin-password.sh auf dem Server auf. Vor jedem Lauf
+# werden lokale Aenderungen am Script+Launcher automatisch committed, gepusht
+# und auf dem Server gepullt (Always-Sync), damit nie eine veraltete Version
+# auf dem Server liegt.
 #
 # Aufruf:
 #   .\phase1-priority2a-admin-pw.ps1 -DryRun     # Plan zeigen
@@ -38,52 +39,44 @@ $LocalLauncher = "phase1-priority2a-admin-pw.ps1"
 Section "Admin-Passwort Rotation"
 
 # ----------------------------------------------------------------------
-# 1. Pruefen, ob das Server-Script schon existiert; falls nicht: Auto-Bootstrap
+# 1. Immer synchronisieren: commit (falls noetig) + push + server pull
 # ----------------------------------------------------------------------
-Step "1" "Server-Script vorhanden?"
-$check = ssh "$ServerUser@$ServerIP" "test -x $RemoteScript && echo YES || echo MISSING"
-if ($LASTEXITCODE -ne 0) { ErrLine "SSH zum Server fehlgeschlagen."; exit 1 }
-$check = ($check | Out-String).Trim()
+Step "1" "Always-Sync: Lokales Script mit Server abgleichen"
 
-if ($check -ne "YES") {
-    Warn "$RemoteScript fehlt - Auto-Bootstrap laeuft."
+# 1a. Script als executable markieren (Windows kennt kein chmod -> git update-index)
+& git update-index --chmod=+x $LocalScript 2>$null
+& git add $LocalScript $LocalLauncher
+if ($LASTEXITCODE -ne 0) { ErrLine "git add fehlgeschlagen."; exit 1 }
 
-    Step "1a" "Lokal committen + pushen"
-    & git add --chmod=+x $LocalScript
-    if ($LASTEXITCODE -ne 0) { ErrLine "git add --chmod=+x fehlgeschlagen."; exit 1 }
-    & git add $LocalLauncher
-    if ($LASTEXITCODE -ne 0) { ErrLine "git add Launcher fehlgeschlagen."; exit 1 }
+$staged = & git diff --cached --name-only
+if (-not $staged) {
+    Ok "Keine Aenderungen zu committen - Script im Repo aktuell."
+} else {
+    Write-Host "  Zu committen:" -ForegroundColor Gray
+    $staged | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
 
-    $staged = & git diff --cached --name-only
-    if (-not $staged) {
-        Warn "Nichts zu committen (Dateien bereits im Repo) - gehe davon aus, dass nur Server-Pull noetig ist."
-    } else {
-        Write-Host "  Zu committen:" -ForegroundColor Gray
-        $staged | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-
-        $msg = @"
+    $msg = @"
 Phase 1 Priority-2A: Admin-Passwort-Rotation (Server-Script + Launcher)
 
 - scripts/rotate-admin-password.sh: bcryptjs-basierte Rotation
   des admin@hotel-sonnblick.at Passworts in beiden DBs + Creds-File.
+  Nutzt psql direkt gegen DATABASE_URL (kein manuelles Passwort-Parsing).
   Backup, DB-Updates mit Rollback bei Fehler, Dry-Run-Modus.
 - phase1-priority2a-admin-pw.ps1: lokaler SSH-Launcher mit
-  Auto-Bootstrap und -DryRun / -Yes Flags.
+  Always-Sync und -DryRun / -Yes Flags.
 "@
-        & git commit -m $msg
-        if ($LASTEXITCODE -ne 0) { ErrLine "git commit fehlgeschlagen."; exit 1 }
-        & git push origin main
-        if ($LASTEXITCODE -ne 0) { ErrLine "git push fehlgeschlagen."; exit 1 }
-    }
+    & git commit -m $msg
+    if ($LASTEXITCODE -ne 0) { ErrLine "git commit fehlgeschlagen."; exit 1 }
+    & git push origin main
+    if ($LASTEXITCODE -ne 0) { ErrLine "git push fehlgeschlagen."; exit 1 }
     Ok "Lokal committed + gepusht"
-
-    Step "1b" "Server: pull + chmod +x"
-    ssh "$ServerUser@$ServerIP" "cd /var/www/menucard-pro && git pull --ff-only origin main && chmod +x $LocalScript && ls -l $LocalScript"
-    if ($LASTEXITCODE -ne 0) { ErrLine "Server-Bootstrap fehlgeschlagen."; exit 1 }
-    Ok "Server hat Script bezogen"
-} else {
-    Ok "Script auf dem Server vorhanden"
 }
+
+# 1b. Server immer pullen + executable setzen (auch wenn nichts neu gepusht wurde)
+Step "1b" "Server: pull + chmod +x"
+ssh "$ServerUser@$ServerIP" "cd /var/www/menucard-pro && git pull --ff-only origin main && chmod +x $LocalScript && ls -l $LocalScript"
+if ($LASTEXITCODE -ne 0) { ErrLine "Server-Sync fehlgeschlagen."; exit 1 }
+Ok "Server hat aktuelle Version"
 
 # ----------------------------------------------------------------------
 # 2. Dry-Run oder Live
