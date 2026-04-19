@@ -255,11 +255,17 @@ else
 fi
 
 # ----------------------------------------------------------------------
-# 11. PM2 RESTART
+# 11. PM2 RESTART (GIT_COMMIT in .env einpflegen, dann restart --update-env)
 # ----------------------------------------------------------------------
 say
-say "${C_Y}[7/8] pm2 restart $APP_NAME ...${C_N}"
-if ! pm2 restart "$APP_NAME" 2>&1 | tee -a "$DEPLOY_LOG"; then
+GIT_COMMIT_SHA=$(git rev-parse HEAD)
+if grep -q '^GIT_COMMIT=' .env; then
+    sed -i "s|^GIT_COMMIT=.*|GIT_COMMIT=${GIT_COMMIT_SHA}|" .env
+else
+    echo "GIT_COMMIT=${GIT_COMMIT_SHA}" >> .env
+fi
+say "${C_Y}[7/8] pm2 restart $APP_NAME (GIT_COMMIT=${TARGET_SHORT}) ...${C_N}"
+if ! pm2 restart "$APP_NAME" --update-env 2>&1 | tee -a "$DEPLOY_LOG"; then
     rollback "pm2 restart fehlgeschlagen"
 fi
 say "${C_G}[7/8] OK${C_N}"
