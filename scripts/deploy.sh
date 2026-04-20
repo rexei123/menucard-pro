@@ -161,11 +161,15 @@ fi
 # Conditional-Flags fuer spaetere Schritte bestimmen
 NEEDS_NPM_CI=0
 NEEDS_PRISMA=0
+NEEDS_TEMPLATE_SEED=0
 if echo "$CHANGED_FILES" | grep -qE '^(package\.json|package-lock\.json)$'; then
     NEEDS_NPM_CI=1
 fi
 if echo "$CHANGED_FILES" | grep -qE '^prisma/schema\.prisma$'; then
     NEEDS_PRISMA=1
+fi
+if echo "$CHANGED_FILES" | grep -qE '^(src/lib/design-templates/.*\.ts|prisma/seed-design-templates\.ts)$'; then
+    NEEDS_TEMPLATE_SEED=1
 fi
 
 say
@@ -175,6 +179,7 @@ say "  Nach:      ${TARGET_SHORT}"
 say "  npm ci:    $([ $NEEDS_NPM_CI -eq 1 ] && echo 'JA' || echo 'nein')"
 say "  prisma:    $([ $NEEDS_PRISMA -eq 1 ] && echo 'JA (db push)' || echo 'nein')"
 say "  build:     $([ $NO_BUILD -eq 1 ] && echo 'uebersprungen (--no-build)' || echo 'JA')"
+say "  templates: $([ $NEEDS_TEMPLATE_SEED -eq 1 ] && echo 'JA (seed SYSTEM)' || echo 'nein')"
 say "  restart:   pm2 restart $APP_NAME"
 say "  smoke:     curl $SMOKE_URL"
 say
@@ -283,6 +288,27 @@ else
         rollback "npm run build fehlgeschlagen"
     fi
     say "${C_G}[7/9] OK${C_N}"
+fi
+
+# ----------------------------------------------------------------------
+# 11b. DESIGN-TEMPLATES SEED + ARCHIV-CHECK (conditional)
+# ----------------------------------------------------------------------
+if [ $NEEDS_TEMPLATE_SEED -eq 1 ]; then
+    say
+    say "${C_Y}[7b/9] SYSTEM-Template 'minimal' neu seeden (idempotent) ...${C_N}"
+    if ! npx tsx prisma/seed-design-templates.ts 2>&1 | tee -a "$DEPLOY_LOG"; then
+        rollback "Template-Seed fehlgeschlagen"
+    fi
+    # Legacy-Templates (elegant/modern/classic) archivieren. Script bricht ab,
+    # wenn ein Template noch von einer Karte genutzt wird — das waere ein Fehler
+    # beim Deploy und muss manuell geklaert werden.
+    if [ -f scripts/archive-legacy-system-templates.ts ]; then
+        say "${C_Y}       Legacy-SYSTEM-Templates pruefen/archivieren ...${C_N}"
+        if ! npx tsx scripts/archive-legacy-system-templates.ts --apply 2>&1 | tee -a "$DEPLOY_LOG"; then
+            rollback "Legacy-Template-Archivierung fehlgeschlagen (siehe Log)"
+        fi
+    fi
+    say "${C_G}[7b/9] OK${C_N}"
 fi
 
 # ----------------------------------------------------------------------

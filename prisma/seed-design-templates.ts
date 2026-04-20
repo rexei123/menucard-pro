@@ -1,30 +1,48 @@
+/**
+ * Seed der SYSTEM-Templates.
+ *
+ * Stand 20.04.2026:
+ *  • Aktives SYSTEM-Template: minimal (Never-Fail-Fallback, immer sichtbar)
+ *  • elegant/modern/classic werden nicht mehr aktiv geseeded. Sie bleiben
+ *    in der DB erhalten (fuer Legacy-Zugriffe), werden aber ueber das
+ *    Script `scripts/archive-legacy-system-templates.ts` einmalig auf
+ *    `isArchived=true` gesetzt. Der Seed fasst sie nicht an — damit kann
+ *    jemand sie bei Bedarf auch wieder reaktivieren (isArchived=false)
+ *    ohne dass der naechste Deploy das ueberschreibt.
+ *
+ * Das Script ist idempotent und kann beliebig oft ausgefuehrt werden.
+ */
 import { PrismaClient } from '@prisma/client';
-import { elegantTemplate } from '../src/lib/design-templates/elegant';
-import { modernTemplate } from '../src/lib/design-templates/modern';
-import { classicTemplate } from '../src/lib/design-templates/classic';
 import { minimalTemplate } from '../src/lib/design-templates/minimal';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const items = [
-    { key: 'elegant', name: 'Elegant',   baseType: 'elegant', config: elegantTemplate },
-    { key: 'modern',  name: 'Modern',    baseType: 'modern',  config: modernTemplate },
-    { key: 'classic', name: 'Klassisch', baseType: 'classic', config: classicTemplate },
-    { key: 'minimal', name: 'Minimal',   baseType: 'minimal', config: minimalTemplate },
-  ];
-  for (const t of items) {
-    await prisma.designTemplate.upsert({
-      where: { key: t.key },
-      update: { name: t.name, type: 'SYSTEM', baseType: t.baseType, config: t.config as any, isArchived: false },
-      create: { key: t.key, name: t.name, type: 'SYSTEM', baseType: t.baseType, config: t.config as any },
-    });
-    console.log('  Seeded:', t.name, '(' + t.key + ')');
-  }
+  await prisma.designTemplate.upsert({
+    where: { key: 'minimal' },
+    update: {
+      name: 'Minimal',
+      type: 'SYSTEM',
+      baseType: 'minimal',
+      config: minimalTemplate as any,
+      isArchived: false,
+    },
+    create: {
+      key: 'minimal',
+      name: 'Minimal',
+      type: 'SYSTEM',
+      baseType: 'minimal',
+      config: minimalTemplate as any,
+      isArchived: false,
+    },
+  });
+  console.log('  Seeded: Minimal (aktiv, Never-Fail-Fallback)');
 }
 
-main().then(() => prisma.$disconnect()).catch(async (e) => {
-  console.error(e);
-  await prisma.$disconnect();
-  process.exit(1);
-});
+main()
+  .then(() => prisma.$disconnect())
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
