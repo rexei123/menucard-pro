@@ -2,7 +2,7 @@
 
 **Branch:** `feature/minimal-only-system`
 **Start:** 20.04.2026
-**Status:** Gate 2 erledigt — Hotelier-Freigabe für Merge steht an (Gate 3)
+**Status:** ✅ ABGESCHLOSSEN 20.04.2026 — alle 5 Gates durch, Hotelier-Freigabe Prod "passt alles"
 **Verantwortlich:** Hotelier (Freigabe) · Claude (Umsetzung + Pflege dieses Dokuments)
 
 ---
@@ -33,11 +33,11 @@
 - [x] Staging-DB manuell korrigiert: alle Karten auf Minimal, Legacy archiviert (nötig, weil beim ersten Staging-Deploy `NEEDS_TEMPLATE_SEED=0` war — siehe Lessons Learned)
 - [x] **Gate 2:** Hotelier hat Staging visuell geprüft — Picker zeigt "Aktive Vorlagen (2)" mit Minimal + test 1, "Archiv (3)" mit Elegant/Klassisch/Modern · Bestätigung 20.04.2026 ("das passt")
 - [x] Working-Tree bereinigt: Branch-Dateien restored, fremde Modifikationen gestashed (`stash@{0}: secrets-rotation-wip`)
-- [ ] **Gate 3 OFFEN:** Explizite Merge-Freigabe vom Hotelier im Klartext
-- [ ] Merge `feature/minimal-only-system` → `main` via `ship.ps1`
-- [ ] **Gate 4 OFFEN:** Prod-Deploy erfolgreich (Step `[7b/9]` läuft auto: `prisma db push` + seed + archive)
-- [ ] **Gate 5 OFFEN:** Hotelier prüft Prod visuell auf `https://menu.hotel-sonnblick.at`
-- [ ] Feature geschlossen, Delivery-Artefakte aufgeräumt
+- [x] **Gate 3:** Hotelier-Klartext-Freigabe 20.04.2026 ("roadmap freigegen" + "gate 3 jetzt")
+- [x] Merge `feature/minimal-only-system` → `main` via `ship.ps1` (Merge-Commit auf Prod: `114c499`)
+- [x] **Gate 4** via Manual-Fix: Deploy grün 20.04.2026 (60s, `e89e75b` → `114c499`), aber Step `[7b/9]` war im laufenden Deploy-Script noch nicht vorhanden (siehe Lesson Learned #5). SQL-Update auf Prod gesetzt: `UPDATE "DesignTemplate" SET "isArchived"=true WHERE key IN ('classic','elegant','modern')` → Soll-Zustand erreicht (2 aktiv, 3 archiviert, alle 3 Karten auf minimal).
+- [x] **Gate 5:** Hotelier hat Prod visuell geprüft 20.04.2026 — "passt alles"
+- [x] Feature geschlossen, Delivery-Artefakte zum Aufräumen markiert
 
 ## Go/No-Go-Gates
 
@@ -45,9 +45,9 @@
 |---|---|---|
 | 1 | Playwright-Smoke-Suite grün gegen Staging | ✅ 20.04.2026 |
 | 2 | Hotelier hat Staging visuell geprüft: Picker zeigt **nur** Minimal als SYSTEM + bestehende CUSTOM-Vorlagen · alle 3 Karten (abendkarte, barkarte, weinkarte) rendern sauber in Minimal · Admin-Login OK | ✅ 20.04.2026 |
-| 3 | Hotelier gibt **im Klartext** Merge-Freigabe ("Merge", nicht nur `y` in `ship.ps1`) | ⬜ |
-| 4 | Prod-Deploy erfolgreich, Step `[7b/9]` grün, PM2-Restart ohne Crash, Smoke HTTP 200 | ⬜ |
-| 5 | Hotelier hat Prod visuell geprüft (Gäste-Ansicht + Admin-Picker) | ⬜ |
+| 3 | Hotelier gibt **im Klartext** Merge-Freigabe ("Merge", nicht nur `y` in `ship.ps1`) | ✅ 20.04.2026 |
+| 4 | Prod-Deploy erfolgreich, Step `[7b/9]` grün, PM2-Restart ohne Crash, Smoke HTTP 200 | ✅ 20.04.2026 via Manual-Fix (Step [7b] selbst lief nicht — siehe LL #5) |
+| 5 | Hotelier hat Prod visuell geprüft (Gäste-Ansicht + Admin-Picker) | ✅ 20.04.2026 ("passt alles") |
 
 **Regel:** Kein Gate darf übersprungen werden. Wenn ein Schritt das aktuelle offene Gate überspringen würde, zuerst explizit beim Hotelier zurückfragen.
 
@@ -80,8 +80,12 @@ Der Staging-Deploy vergleicht `git diff PRE_DEPLOY_HEAD..TARGET_HEAD`. Wenn Stag
 **2. `prisma db push` lief auf Staging nie für diesen Branch**
 Gleicher Grund (`NEEDS_PRISMA=0`). Deshalb fehlt der `TemplateType`-Enum in der Staging-DB. Der Seed wirft `type "public.TemplateType" does not exist`. Auf Prod irrelevant, weil Prod den Enum seit früheren Deploys hat.
 
-**3. Prod-Stand ist glücklich**
-Alle 3 Prod-Karten zeigen bereits auf `minimal` (Hotelier hatte sie vor Beginn dieser Arbeit manuell umgestellt). Deshalb greift der Safety-Check des Archive-Scripts auf Prod nicht, und Step `[7b/9]` läuft beim Prod-Deploy sauber durch.
+**3. Prod-Stand schützt vor Safety-Check-Abbruch**
+Alle 3 Prod-Karten zeigen bereits auf `minimal` (Hotelier hatte sie vor Beginn dieser Arbeit manuell umgestellt). Deshalb **hätte** der Safety-Check des Archive-Scripts auf Prod nicht abgebrochen. (Ursprüngliche Annahme "Step `[7b/9]` läuft beim Prod-Deploy sauber durch" war falsch — siehe Lesson Learned #5.)
 
 **4. `docker exec -i` frisst Stdin beim gepipten Bash-Script**
-Klassischer Fallstrick: `ssh host "echo $b64 | base64 -d | bash"` mit `docker exec -i` im Script → erste `docker exec`-Zeile frisst den Rest des Scripts auf. Fix: `</dev/null` an jede `docker exec`-Zeile anhängen, oder Script via `/tmp/run.sh` ausführen.
+Klassischer Fallstrick: `ssh host "echo $b64 | base64 -d | bash"` mit `docker exec -i` im Script → erste `docker exec`-Zeile frisst den Rest des Scripts auf. Fix: `</dev/null` hinter jeden `docker exec -i`-Aufruf hängen, damit der Stdin-Strom des äußeren Bash nicht durchreicht.
+
+**5. Self-updating Deploy-Script: neue Steps greifen erst beim NÄCHSTEN Deploy**
+Beim Prod-Deploy 20.04.2026 war der Diff `e89e75b..114c499` **vollständig korrekt** (enthielt `prisma/seed-design-templates.ts` und `src/lib/design-templates/minimal.ts`), aber das Deploy-Log zeigt **keine `[7b/9]`-Zeile**. Grund: Der neue `[7b]`-Step wurde durch `git pull` frisch auf den Server gezogen — aber der bereits laufende Deploy-Prozess nutzte noch den alten `scripts/deploy.sh`-Stand (aus dem Vor-Deploy). Bash liest Scripts zeilenweise, aber die Control-Flow-Struktur wird beim Start fixiert; neue `if`-Zweige greifen nicht rückwirkend im selben Run. Fix: Manual-SQL-Archivierung (UPDATE 3 Zeilen). **Präventiv:** Bei Deploys, die `scripts/deploy.sh` selbst verändern, nach dem Deploy einen Verifikations-Check auf DB-Soll-Zustand einbauen; oder `scripts/deploy.sh` via `exec bash -c` mit dem aktuellen Stand neu starten, wenn sich die Datei geändert hat. Alternative: nach Deploy mit `deploy.sh`-Änderung IMMER einen Dry-Run-Deploy hinterherschicken ("Re-Apply der neuen Steps"). Für zukünftige Deploys heute schon relevant: Wenn im Deploy-Diff `scripts/deploy*.sh` auftaucht, den konditionalen Content-Step manuell einmalig nachziehen.
+Klassischer Fallstrick: `ssh host "echo $b64 | base64 -d | bash"` mit `docker exec -i` im Script → erste `docker exec`-Zeile frisst den Rest des Scripts auf. Fix: `</dev/n
