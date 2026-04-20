@@ -146,11 +146,15 @@ fi
 CHANGED_FILES=$(git diff --name-only "${PRE_DEPLOY_HEAD}..${TARGET_HEAD}" 2>/dev/null || echo "")
 NEEDS_NPM_CI=0
 NEEDS_PRISMA=0
+NEEDS_TEMPLATE_SEED=0
 if echo "$CHANGED_FILES" | grep -qE '^(package\.json|package-lock\.json)$'; then
     NEEDS_NPM_CI=1
 fi
 if echo "$CHANGED_FILES" | grep -qE '^prisma/schema\.prisma$'; then
     NEEDS_PRISMA=1
+fi
+if echo "$CHANGED_FILES" | grep -qE '^(src/lib/design-templates/.*\.ts|prisma/seed-design-templates\.ts)$'; then
+    NEEDS_TEMPLATE_SEED=1
 fi
 
 say
@@ -160,6 +164,7 @@ say "  Nach:      ${TARGET_SHORT} (origin/${BRANCH})"
 say "  npm ci:    $([ $NEEDS_NPM_CI -eq 1 ] && echo 'JA' || echo 'nein')"
 say "  prisma:    $([ $NEEDS_PRISMA -eq 1 ] && echo 'JA (db push)' || echo 'nein')"
 say "  build:     $([ $NO_BUILD -eq 1 ] && echo 'uebersprungen' || echo 'JA')"
+say "  templates: $([ $NEEDS_TEMPLATE_SEED -eq 1 ] && echo 'JA (seed SYSTEM)' || echo 'nein')"
 say "  restart:   pm2 restart $APP_NAME"
 say "  smoke:     curl $SMOKE_URL (nicht-blockierend)"
 say
@@ -252,6 +257,24 @@ else
         rollback "npm run build fehlgeschlagen"
     fi
     say "${C_G}[6/8] OK${C_N}"
+fi
+
+# ----------------------------------------------------------------------
+# 10b. DESIGN-TEMPLATES SEED + ARCHIV-CHECK (conditional)
+# ----------------------------------------------------------------------
+if [ $NEEDS_TEMPLATE_SEED -eq 1 ]; then
+    say
+    say "${C_Y}[6b/8] SYSTEM-Template 'minimal' neu seeden (idempotent) ...${C_N}"
+    if ! npx tsx prisma/seed-design-templates.ts 2>&1 | tee -a "$DEPLOY_LOG"; then
+        rollback "Template-Seed fehlgeschlagen"
+    fi
+    if [ -f scripts/archive-legacy-system-templates.ts ]; then
+        say "${C_Y}       Legacy-SYSTEM-Templates pruefen/archivieren ...${C_N}"
+        if ! npx tsx scripts/archive-legacy-system-templates.ts --apply 2>&1 | tee -a "$DEPLOY_LOG"; then
+            rollback "Legacy-Template-Archivierung fehlgeschlagen (siehe Log)"
+        fi
+    fi
+    say "${C_G}[6b/8] OK${C_N}"
 fi
 
 # ----------------------------------------------------------------------
