@@ -2,7 +2,7 @@
 
 **Branch:** `feature/minimal-only-system`
 **Start:** 20.04.2026
-**Status:** In Staging-Verifikation — Gate 2 offen
+**Status:** Gate 2 erledigt — Hotelier-Freigabe für Merge steht an (Gate 3)
 **Verantwortlich:** Hotelier (Freigabe) · Claude (Umsetzung + Pflege dieses Dokuments)
 
 ---
@@ -31,7 +31,8 @@
 - [x] Staging via `ship.ps1 -StagingOnly` deployed
 - [x] Test-Gate grün (Playwright-Smoke-Suite)
 - [x] Staging-DB manuell korrigiert: alle Karten auf Minimal, Legacy archiviert (nötig, weil beim ersten Staging-Deploy `NEEDS_TEMPLATE_SEED=0` war — siehe Lessons Learned)
-- [ ] **Gate 2 OFFEN:** Hotelier prüft Staging visuell (Picker, Gäste-Karten, Admin-Login)
+- [x] **Gate 2:** Hotelier hat Staging visuell geprüft — Picker zeigt "Aktive Vorlagen (2)" mit Minimal + test 1, "Archiv (3)" mit Elegant/Klassisch/Modern · Bestätigung 20.04.2026 ("das passt")
+- [x] Working-Tree bereinigt: Branch-Dateien restored, fremde Modifikationen gestashed (`stash@{0}: secrets-rotation-wip`)
 - [ ] **Gate 3 OFFEN:** Explizite Merge-Freigabe vom Hotelier im Klartext
 - [ ] Merge `feature/minimal-only-system` → `main` via `ship.ps1`
 - [ ] **Gate 4 OFFEN:** Prod-Deploy erfolgreich (Step `[7b/9]` läuft auto: `prisma db push` + seed + archive)
@@ -43,7 +44,7 @@
 | Gate | Bedingung | Status |
 |---|---|---|
 | 1 | Playwright-Smoke-Suite grün gegen Staging | ✅ 20.04.2026 |
-| 2 | Hotelier hat Staging visuell geprüft: Picker zeigt **nur** Minimal als SYSTEM + bestehende CUSTOM-Vorlagen · alle 3 Karten (abendkarte, barkarte, weinkarte) rendern sauber in Minimal · Admin-Login OK | ⬜ |
+| 2 | Hotelier hat Staging visuell geprüft: Picker zeigt **nur** Minimal als SYSTEM + bestehende CUSTOM-Vorlagen · alle 3 Karten (abendkarte, barkarte, weinkarte) rendern sauber in Minimal · Admin-Login OK | ✅ 20.04.2026 |
 | 3 | Hotelier gibt **im Klartext** Merge-Freigabe ("Merge", nicht nur `y` in `ship.ps1`) | ⬜ |
 | 4 | Prod-Deploy erfolgreich, Step `[7b/9]` grün, PM2-Restart ohne Crash, Smoke HTTP 200 | ⬜ |
 | 5 | Hotelier hat Prod visuell geprüft (Gäste-Ansicht + Admin-Picker) | ⬜ |
