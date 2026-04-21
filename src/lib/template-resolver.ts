@@ -20,8 +20,13 @@ type MenuWithTemplate = {
 
 export function resolveMenuDigitalConfig(menu: MenuWithTemplate): ReturnType<typeof resolveDigitalConfig> {
   if (menu.template?.config) {
-    const tplDigital = (menu.template.config as any).digital || {};
-    return resolveDigitalConfig(tplDigital);
+    // DesignTemplate.config hat Struktur `{ digital: {...}, analog: {...} }`.
+    // resolveDigitalConfig erwartet genau diese Root-Struktur — nicht `.digital` auspacken!
+    // baseType entscheidet, welches Hardcoded-Template als Defaults-Fallback dient.
+    const tplConfig = menu.template.config as any;
+    const baseName = menu.template.baseType || tplConfig?.digital?.template || 'minimal';
+    const base = getTemplate(baseName);
+    return mergeConfig(base.digital, tplConfig?.digital || {});
   }
   return resolveDigitalConfig(menu.designConfig);
 }
