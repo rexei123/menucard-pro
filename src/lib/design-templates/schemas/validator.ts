@@ -141,8 +141,12 @@ export function validateSchema(
 
   for (const group of schema.groups) {
     for (const [fieldKey, def] of Object.entries(group.fields)) {
-      if (config[fieldKey] === undefined) continue; // fehlende Werte werden durch Defaults aufgefüllt
-      errors.push(...validateField(config[fieldKey], def, fieldKey, pathPrefix));
+      const v = config[fieldKey];
+      // `undefined` und `null` gelten als "nicht gesetzt" — greift der Default.
+      // Wichtig: Template-Configs nutzen null seit jeher als Leer-Marker
+      // (z.B. header.title = null, header.logo = null).
+      if (v === undefined || v === null) continue;
+      errors.push(...validateField(v, def, fieldKey, pathPrefix));
     }
   }
   return { valid: errors.length === 0, errors };
@@ -150,6 +154,8 @@ export function validateSchema(
 
 /**
  * Merged Defaults mit einem Config-Objekt. Unbekannte Felder bleiben erhalten.
+ * `null` und `undefined` werden beide mit dem Default ersetzt, damit die
+ * Form-UI immer einen definierten Wert hat (z.B. '' statt null in Text-Inputs).
  */
 export function applyDefaults(
   config: Record<string, any>,
@@ -158,7 +164,7 @@ export function applyDefaults(
   const result: Record<string, any> = { ...config };
   for (const group of schema.groups) {
     for (const [fieldKey, def] of Object.entries(group.fields)) {
-      if (result[fieldKey] === undefined) {
+      if (result[fieldKey] === undefined || result[fieldKey] === null) {
         result[fieldKey] = def.default as any;
       }
     }
