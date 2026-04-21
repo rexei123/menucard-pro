@@ -2,7 +2,7 @@
 
 **Branch:** `feature/design-editor-v2`
 **Start:** 20.04.2026
-**Status:** Sprint 0 abgeschlossen (Schema-Inventar) · Sprint 1 läuft (Schema-Definitionen)
+**Status:** Sprint 0 + 1 abgeschlossen · Sprint 2 läuft (SchemaForm-Renderer)
 **Verantwortlich:** Hotelier (Freigaben pro Gate) · Claude (Umsetzung + PLAN.md-Pflege)
 **Roadmap-Grundlage:** `docs/DESIGN-EDITOR-ROADMAP-v1.md`
 **Konzept-Grundlage:** `docs/DESIGN-EDITOR-KONZEPT-v1.md`
@@ -60,10 +60,10 @@ Die Roadmap sieht Gate 0 vor (Hotelier testet Framer Free-Tier + Popmenu-Demo, d
 
 ### Phase 1
 - [x] Sprint 0: Schema-Inventar der 8 Komponenten dokumentiert (`docs/DESIGN-EDITOR-SCHEMA-INVENTAR.md`, 20.04.2026)
-- [ ] Sprint 1: TS-Schema-Definitionen für alle 8 Komponenten
-- [ ] Sprint 1: Schema-Validator (Runtime + Build-Time)
-- [ ] Sprint 2: `<SchemaForm>`-Renderer mit allen 7 Feldtypen
-- [ ] Sprint 2: Unit-Tests für SchemaForm (jeder Feldtyp)
+- [x] Sprint 1: TS-Schema-Definitionen für alle 8 Komponenten (11 Schemas: 6 Komponenten + 5 global, Commit `1e94127`, 21.04.2026)
+- [x] Sprint 1: Schema-Validator (Runtime) + Self-Test (103/103 grün, `scripts/test-design-schemas.ts`, 21.04.2026)
+- [ ] Sprint 2: `<SchemaForm>`-Renderer mit allen 8 Feldtypen (boolean, select, color, number, slider, text, font, multitoggle)
+- [ ] Sprint 2: Self-Test für SchemaForm-Feld-Rendering (Render-Snapshot pro Feldtyp)
 - [ ] Sprint 3: Editor-Shell-Umbau (3-Spalten-Layout)
 - [ ] Sprint 3: Migration der 5 Template-Configs auf Schema-Format
 - [ ] Sprint 3: Feature-Flag `USE_LEGACY_DESIGN_EDITOR=1` als Fallback
@@ -143,7 +143,7 @@ Revert-Commit auf main + `deploy.ps1`. Schema-Migrationen sind rückwärtskompat
 
 ---
 
-## Sprint-0-Plan (Schema-Inventar)
+## Sprint-0-Plan (Schema-Inventar) — abgeschlossen
 
 Claude führt Sprint 0 autonom durch:
 
@@ -154,6 +154,37 @@ Claude führt Sprint 0 autonom durch:
 5. Danach Sprint 1 starten — TS-Schema-Dateien schreiben
 
 Kein Hotelier-Eingriff bis Gate 1.
+
+---
+
+## Sprint-1-Plan (Schema-Definitionen) — abgeschlossen 21.04.2026
+
+**Lieferumfang:**
+- `src/lib/design-templates/schemas/types.ts` — 8 Feldtypen + ComponentSchema + Validation-Types
+- `src/lib/design-templates/schemas/validator.ts` — `validateField`, `validateSchema`, `applyDefaults`
+- `src/lib/design-templates/schemas/shared/fonts.ts` — 10-Schrift-Whitelist + `isKnownFont`
+- `src/lib/design-templates/schemas/shared/typography.ts` — wiederverwendbare `typoLevelFields`
+- 11 Schema-Dateien: `hero`, `section-header`, `item-card` (inkl. WineBlock+BeverageBlock als Sub-Gruppen), `allergen-legend`, `footer`, `title-page`, `base` (grundstil/typografie/farben), `navigation`, `icons-badges`
+- `scripts/test-design-schemas.ts` — 103 Checks: Schema-Struktur, Validator-Defaults, Fehleingabe-Detection, `applyDefaults`, visibleIf-Felder, Minimal-Template-Kompatibilität
+
+**Commits:**
+- `2b53a4d` — Sprint 0 + Sprint 1 Foundation (Types, Validator, Fonts, Typography)
+- `1e94127` — Sprint 1 Komponenten-Schemas + Self-Test
+
+---
+
+## Sprint-2-Plan (SchemaForm-Renderer)
+
+Claude führt Sprint 2 autonom durch, kein Hotelier-Eingriff bis Gate 1.
+
+1. `src/components/admin/schema-form/` anlegen:
+   - `SchemaForm.tsx` — Top-Level-Renderer: iteriert `ComponentSchema.groups`, rendert pro Feld die passende Field-Komponente, hält Form-State, ruft `validateSchema` bei jedem Change.
+   - `FieldRenderer.tsx` — Switch pro `FieldDef.type` → delegiert an Field-Komponenten.
+   - Einzelne Field-Komponenten: `BooleanField.tsx`, `SelectField.tsx`, `ColorField.tsx`, `NumberField.tsx`, `SliderField.tsx`, `TextField.tsx`, `FontField.tsx`, `MultiToggleField.tsx` — jede akzeptiert `{ def, value, onChange, error }`-Props, rendert im Admin-Roboto-Stil.
+   - `FieldGroup.tsx` — klappbare Gruppe mit Label, wertet `visibleIf` pro Feld aus.
+2. Wiederverwendung bestehender UI-Primitives aus `src/components/ui/` (badge, button, input-field) wo möglich, keine neuen Design-Tokens.
+3. Integration-Harness in `scripts/test-schema-form.tsx` — rendert alle 11 Schemas mit ihren Defaults in einer einfachen HTML-Datei + Visual-Check-Hinweise.
+4. Nach Sprint 2 → Sprint 3 (Editor-Shell-Umbau + Migration der Template-Configs).
 
 ---
 
