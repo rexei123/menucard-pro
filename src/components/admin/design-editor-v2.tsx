@@ -35,6 +35,14 @@ type MenuModeProps = {
   locationSlug: string;
   menuSlug: string;
 };
+export type PreviewMenu = {
+  id: string;
+  slug: string;
+  title: string;
+  locationName: string;
+  url: string;
+  pdfUrl: string;
+};
 type TemplateModeProps = {
   mode: 'template';
   templateId: string;
@@ -42,8 +50,11 @@ type TemplateModeProps = {
   initialBaseType: string;
   previewUrl: string | null;
   previewPdfUrl?: string | null;
+  /** Alle aktiven Karten, die dieses Template verwenden (Auswahl in der Topbar). */
+  previewMenus?: PreviewMenu[];
 };
 export type Props = MenuModeProps | TemplateModeProps;
+export type ViewportMode = 'desktop' | 'mobile' | 'pdf';
 
 // ─── API-Adapter — identisch zum Legacy-Editor ───────────────
 
@@ -107,7 +118,11 @@ export default function DesignEditorV2(props: Props) {
   const router = useRouter();
   const api = useApi(props);
   const isTemplateMode = api.mode === 'template';
-  const previewUrl = isTemplateMode ? (props as TemplateModeProps).previewUrl : null;
+  const tplProps = isTemplateMode ? (props as TemplateModeProps) : null;
+  const previewMenus = useMemo<PreviewMenu[]>(
+    () => (tplProps?.previewMenus && tplProps.previewMenus.length > 0 ? tplProps.previewMenus : []),
+    [tplProps?.previewMenus],
+  );
 
   const [fullConfig, setFullConfig] = useState<any | null>(null);
   const [activeSchemaId, setActiveSchemaId] = useState<string>(ALL_SCHEMAS[0].id);
@@ -116,6 +131,15 @@ export default function DesignEditorV2(props: Props) {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState(isTemplateMode ? (props as TemplateModeProps).initialName : '');
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(previewMenus[0]?.id ?? null);
+  const [viewport, setViewport] = useState<ViewportMode>('desktop');
+
+  const activeMenu = useMemo(
+    () => previewMenus.find((m) => m.id === activeMenuId) ?? previewMenus[0] ?? null,
+    [previewMenus, activeMenuId],
+  );
+  const previewUrl = activeMenu?.url ?? (tplProps?.previewUrl ?? null);
+  const previewPdfUrl = activeMenu?.pdfUrl ?? tplProps?.previewPdfUrl ?? null;
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,6 +260,51 @@ export default function DesignEditorV2(props: Props) {
           </h1>
         </div>
         <div className="flex items-center gap-3 text-xs">
+          {/* Karten-Auswahl (nur bei >1 aktiven Karten) */}
+          {previewMenus.length > 1 && (
+            <label className="flex items-center gap-1.5 text-gray-500">
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>menu_book</span>
+              <select
+                value={activeMenu?.id ?? ''}
+                onChange={(e) => setActiveMenuId(e.target.value)}
+                className="rounded-lg border border-gray-200 px-2 py-1 text-[11px] bg-white"
+                title="Welche Karte soll in der Vorschau erscheinen?"
+              >
+                {previewMenus.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.title} · {m.locationName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {/* Viewport-Umschalter */}
+          {previewUrl && (
+            <div className="flex items-center rounded-lg border border-gray-200 bg-white overflow-hidden">
+              <ViewportButton
+                active={viewport === 'desktop'}
+                onClick={() => setViewport('desktop')}
+                icon="desktop_windows"
+                label="Desktop"
+              />
+              <ViewportButton
+                active={viewport === 'mobile'}
+                onClick={() => setViewport('mobile')}
+                icon="smartphone"
+                label="Mobile"
+              />
+              {previewPdfUrl && (
+                <ViewportButton
+                  active={viewport === 'pdf'}
+                  onClick={() => setViewport('pdf')}
+                  icon="picture_as_pdf"
+                  label="PDF"
+                />
+              )}
+            </div>
+          )}
+
           {saving && (
             <span className="text-gray-500 flex items-center gap-1">
               <span className="material-symbols-outlined animate-spin" style={{ fontSize: 14 }}>
@@ -301,12 +370,11 @@ export default function DesignEditorV2(props: Props) {
         {/* Mitte: Preview */}
         <section className="flex-1 min-w-0 bg-gray-100 flex flex-col overflow-hidden">
           {previewUrl ? (
-            <iframe
-              ref={iframeRef}
-              src={previewUrl}
-              className="flex-1 w-full bg-white"
-              style={{ border: 'none' }}
-              title="Live-Vorschau"
+            <PreviewPane
+              iframeRef={iframeRef}
+              viewport={viewport}
+              url={viewport === 'pdf' ? (previewPdfUrl ?? previewUrl) : previewUrl}
+              isPdf={viewport === 'pdf'}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
@@ -382,5 +450,92 @@ function SchemaTab({
       )}
       <span className="truncate">{schema.label}</span>
     </button>
+  );
+}
+
+function ViewportButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: string;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className="flex items-center gap-1 px-2 py-1 text-[11px] transition-colors"
+      style={{
+        backgroundColor: active ? 'rgba(221,60,113,0.08)' : 'transparent',
+        color: active ? 'var(--color-primary)' : '#6b7280',
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+        {icon}
+      </span>
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+}
+
+function PreviewPane({
+  iframeRef,
+  viewport,
+  url,
+  isPdf,
+}: {
+  iframeRef: React.RefObject<HTMLIFrameElement>;
+  viewport: ViewportMode;
+  url: string;
+  isPdf: boolean;
+}) {
+  // Mobile-Viewport: iPhone 14 Viewport (390×844) zentriert darstellen.
+  if (viewport === 'mobile') {
+    return (
+      <div className="flex-1 flex items-center justify-center overflow-auto p-6 bg-gray-200">
+        <div
+          className="shadow-xl rounded-[32px] overflow-hidden bg-white border-[10px] border-gray-900"
+          style={{ width: 390, height: 780 }}
+        >
+          <iframe
+            ref={iframeRef}
+            src={url}
+            className="w-full h-full bg-white"
+            style={{ border: 'none' }}
+            title="Mobile-Vorschau"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // PDF-Viewport: gleicher iframe, Browser rendert PDF inline.
+  if (isPdf) {
+    return (
+      <iframe
+        ref={iframeRef}
+        src={url}
+        className="flex-1 w-full bg-gray-200"
+        style={{ border: 'none' }}
+        title="PDF-Vorschau"
+      />
+    );
+  }
+
+  // Desktop-Standard
+  return (
+    <iframe
+      ref={iframeRef}
+      src={url}
+      className="flex-1 w-full bg-white"
+      style={{ border: 'none' }}
+      title="Live-Vorschau"
+    />
   );
 }

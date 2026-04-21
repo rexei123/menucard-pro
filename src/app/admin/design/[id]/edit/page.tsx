@@ -28,8 +28,8 @@ export default async function TemplateEditPage({
     where: { id: params.id },
     include: {
       menus: {
-        take: 1,
         where: { status: 'ACTIVE' },
+        orderBy: { updatedAt: 'desc' },
         include: { location: { include: { tenant: true } } },
       },
     },
@@ -38,14 +38,19 @@ export default async function TemplateEditPage({
   if (!template) return notFound();
   if (template.type === 'SYSTEM') redirect('/admin/design');
 
-  // Vorschau: erste aktive Karte, die diese Vorlage nutzt
-  let previewUrl: string | null = null;
-  let previewPdfUrl: string | null = null;
-  const firstMenu = template.menus[0];
-  if (firstMenu) {
-    previewUrl = `/${firstMenu.location.tenant.slug}/${firstMenu.location.slug}/${firstMenu.slug}`;
-    previewPdfUrl = `/api/v1/menus/${firstMenu.id}/pdf`;
-  }
+  // Vorschau: ALLE aktiven Karten, die diese Vorlage nutzen.
+  // Der Editor entscheidet, welche als Default angezeigt wird (erste).
+  const previewMenus = template.menus.map((m) => ({
+    id: m.id,
+    slug: m.slug,
+    title: m.title,
+    locationName: m.location.name,
+    url: `/${m.location.tenant.slug}/${m.location.slug}/${m.slug}`,
+    pdfUrl: `/api/v1/menus/${m.id}/pdf`,
+  }));
+  const firstMenu = previewMenus[0];
+  const previewUrl = firstMenu?.url ?? null;
+  const previewPdfUrl = firstMenu?.pdfUrl ?? null;
 
   const useLegacy = searchParams?.v === 'legacy';
 
@@ -70,6 +75,7 @@ export default async function TemplateEditPage({
       initialBaseType={template.baseType}
       previewUrl={previewUrl}
       previewPdfUrl={previewPdfUrl}
+      previewMenus={previewMenus}
     />
   );
 }
