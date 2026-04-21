@@ -2,7 +2,7 @@
 
 **Branch:** `feature/design-editor-v2`
 **Start:** 20.04.2026
-**Status:** Sprint 0 wird gestartet (Schema-Inventar)
+**Status:** Sprint 0 abgeschlossen (Schema-Inventar) · Sprint 1 läuft (Schema-Definitionen)
 **Verantwortlich:** Hotelier (Freigaben pro Gate) · Claude (Umsetzung + PLAN.md-Pflege)
 **Roadmap-Grundlage:** `docs/DESIGN-EDITOR-ROADMAP-v1.md`
 **Konzept-Grundlage:** `docs/DESIGN-EDITOR-KONZEPT-v1.md`
@@ -59,7 +59,7 @@ Die Roadmap sieht Gate 0 vor (Hotelier testet Framer Free-Tier + Popmenu-Demo, d
 ## Checklist
 
 ### Phase 1
-- [ ] Sprint 0: Schema-Inventar der 8 Komponenten dokumentiert
+- [x] Sprint 0: Schema-Inventar der 8 Komponenten dokumentiert (`docs/DESIGN-EDITOR-SCHEMA-INVENTAR.md`, 20.04.2026)
 - [ ] Sprint 1: TS-Schema-Definitionen für alle 8 Komponenten
 - [ ] Sprint 1: Schema-Validator (Runtime + Build-Time)
 - [ ] Sprint 2: `<SchemaForm>`-Renderer mit allen 7 Feldtypen
@@ -139,6 +139,7 @@ Revert-Commit auf main + `deploy.ps1`. Schema-Migrationen sind rückwärtskompat
 - `docs/FEATURE-DESIGN-EDITOR-V2-PLAN.md` — dieses Dokument, aktive Pflege während Feature
 - `docs/DESIGN-EDITOR-ROADMAP-v1.md` — Roadmap-Referenz (bleibt)
 - `docs/DESIGN-EDITOR-KONZEPT-v1.md` — ursprüngliche 5-Optionen-Analyse (bleibt)
+- `docs/DESIGN-EDITOR-SCHEMA-INVENTAR.md` — Sprint-0-Ergebnis (Komponenten-Inventar, Drift-Befund, Schema-Feldtypen)
 
 ---
 
