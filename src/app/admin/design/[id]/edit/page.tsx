@@ -30,7 +30,10 @@ export default async function TemplateEditPage({
       menus: {
         where: { status: 'ACTIVE' },
         orderBy: { updatedAt: 'desc' },
-        include: { location: { include: { tenant: true } } },
+        include: {
+          location: { include: { tenant: true } },
+          translations: { where: { language: 'de' }, take: 1 },
+        },
       },
     },
   });
@@ -39,11 +42,11 @@ export default async function TemplateEditPage({
   if (template.type === 'SYSTEM') redirect('/admin/design');
 
   // Vorschau: ALLE aktiven Karten, die diese Vorlage nutzen.
-  // Der Editor entscheidet, welche als Default angezeigt wird (erste).
+  // Titel kommt aus MenuTranslation (DE bevorzugt, sonst Slug als Fallback).
   const previewMenus = template.menus.map((m) => ({
     id: m.id,
     slug: m.slug,
-    title: m.title,
+    title: m.translations[0]?.name || m.slug,
     locationName: m.location.name,
     url: `/${m.location.tenant.slug}/${m.location.slug}/${m.slug}`,
     pdfUrl: `/api/v1/menus/${m.id}/pdf`,
