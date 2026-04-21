@@ -2,7 +2,7 @@
 
 **Branch:** `feature/design-editor-v2`
 **Start:** 20.04.2026
-**Status:** Sprint 0 + 1 abgeschlossen · Sprint 2 läuft (SchemaForm-Renderer)
+**Status:** Sprint 0 + 1 + 2 + 3 abgeschlossen · Gate 1 steht an (Hotelier-Staging-Visual-Check)
 **Verantwortlich:** Hotelier (Freigaben pro Gate) · Claude (Umsetzung + PLAN.md-Pflege)
 **Roadmap-Grundlage:** `docs/DESIGN-EDITOR-ROADMAP-v1.md`
 **Konzept-Grundlage:** `docs/DESIGN-EDITOR-KONZEPT-v1.md`
@@ -62,11 +62,11 @@ Die Roadmap sieht Gate 0 vor (Hotelier testet Framer Free-Tier + Popmenu-Demo, d
 - [x] Sprint 0: Schema-Inventar der 8 Komponenten dokumentiert (`docs/DESIGN-EDITOR-SCHEMA-INVENTAR.md`, 20.04.2026)
 - [x] Sprint 1: TS-Schema-Definitionen für alle 8 Komponenten (11 Schemas: 6 Komponenten + 5 global, Commit `1e94127`, 21.04.2026)
 - [x] Sprint 1: Schema-Validator (Runtime) + Self-Test (103/103 grün, `scripts/test-design-schemas.ts`, 21.04.2026)
-- [ ] Sprint 2: `<SchemaForm>`-Renderer mit allen 8 Feldtypen (boolean, select, color, number, slider, text, font, multitoggle)
-- [ ] Sprint 2: Self-Test für SchemaForm-Feld-Rendering (Render-Snapshot pro Feldtyp)
-- [ ] Sprint 3: Editor-Shell-Umbau (3-Spalten-Layout)
-- [ ] Sprint 3: Migration der 5 Template-Configs auf Schema-Format
-- [ ] Sprint 3: Feature-Flag `USE_LEGACY_DESIGN_EDITOR=1` als Fallback
+- [x] Sprint 2: `<SchemaForm>`-Renderer mit allen 8 Feldtypen (boolean, select, color, number, slider, text, font, multitoggle) — Commit geplant 21.04.2026
+- [x] Sprint 2: Self-Test für SchemaForm-Feld-Rendering (27/27 grün, `scripts/test-schema-form.tsx`, 21.04.2026)
+- [x] Sprint 3: Config-Adapter (`extract/mergeSchemaConfig`) + Self-Test (`scripts/test-config-adapter.ts`, 21.04.2026)
+- [x] Sprint 3: Editor-Shell-Umbau — `src/components/admin/design-editor-v2.tsx` (3-Spalten-Layout), 21.04.2026
+- [x] Sprint 3: Feature-Flag `?v=legacy` / `?v=new` — v2 ist Default, Umschalt-Link in beiden Topbars, 21.04.2026
 - [ ] Playwright-Smoke-Test: Schema-Editor lädt, ItemCard-Feld ändern, Preview aktualisiert
 - [ ] **Gate 1:** Hotelier prüft Staging — ItemCard-Inspector rendert aus Schema
 - [ ] **Gate 2:** Hotelier prüft Staging — alle 8 Komponenten auf Schema migriert
@@ -185,6 +185,38 @@ Claude führt Sprint 2 autonom durch, kein Hotelier-Eingriff bis Gate 1.
 2. Wiederverwendung bestehender UI-Primitives aus `src/components/ui/` (badge, button, input-field) wo möglich, keine neuen Design-Tokens.
 3. Integration-Harness in `scripts/test-schema-form.tsx` — rendert alle 11 Schemas mit ihren Defaults in einer einfachen HTML-Datei + Visual-Check-Hinweise.
 4. Nach Sprint 2 → Sprint 3 (Editor-Shell-Umbau + Migration der Template-Configs).
+
+---
+
+## Sprint-3-Plan — abgeschlossen (21.04.2026)
+
+Autonom durchgeführt, keine Hotelier-Interaktion notwendig. Abschluss-Commit siehe Git-Log.
+
+**Lieferung:**
+
+1. **Config-Adapter** (`src/lib/design-templates/schemas/config-adapter.ts`)
+   - `getByPath` / `setByPath` — immutable deep-access auf verschachtelten Objekten.
+   - `splitFieldKey` — zerlegt Dot-Keys wie `icons.style` in Pfad-Segmente.
+   - `extractSchemaConfig(fullConfig, schema)` — liefert flaches Feld-Objekt für `<SchemaForm>`.
+   - `mergeSchemaConfig(fullConfig, schema, flatConfig)` — schreibt Schema-bekannte Felder zurück, Unbekanntes bleibt unberührt.
+2. **Editor-Shell v2** (`src/components/admin/design-editor-v2.tsx`)
+   - 3-Spalten-Layout: Tab-Nav (w-56) · Preview-iframe · SchemaForm-Inspector (w-[380px]).
+   - Hält `fullConfig` als State, extrahiert pro Schema-Tab den flachen Slice (mit `applyDefaults`), schreibt via `mergeSchemaConfig` zurück.
+   - Debounced Save (800 ms) + iframe-Refresh (150 ms nach Save).
+   - Tab-Liste aus `GLOBAL_SCHEMAS` + `COMPONENT_SCHEMAS`, aktiver Tab links hervorgehoben (PRIMARY-border).
+   - API-Adapter `useApi(props)` identisch zum Legacy-Editor — template- und menu-Mode.
+3. **Feature-Flag via URL-Query**
+   - Route-Handler `src/app/admin/design/[id]/edit/page.tsx` rendert `DesignEditorV2` als Default, `DesignEditor` (Legacy) bei `?v=legacy`.
+   - Topbars beider Editoren bieten Umschalt-Link (`?v=legacy` bzw. `?v=new`).
+4. **Self-Test** (`scripts/test-config-adapter.ts`)
+   - 5 Sektionen: Path-Helpers, `extractSchemaConfig` gegen Minimal-Template, Round-Trip-Identität, Merge-Preserve-Unknown, Merge-auf-leerer-Basis.
+   - Zielwert: alle Checks grün.
+
+**Noch nicht Teil von Sprint 3, bewusst verschoben:**
+- Migration der 5 Template-Configs auf ein Schema-only-Format — obsolet, da `extract/mergeSchemaConfig` beliebige Legacy-Configs transparent behandeln.
+- Playwright-Smoke-Test des neuen Editors — wird vor Gate 1 nachgezogen.
+
+**Nach Sprint 3 → Gate 1** (Hotelier-Staging-Visual-Check des ItemCard-Inspectors).
 
 ---
 

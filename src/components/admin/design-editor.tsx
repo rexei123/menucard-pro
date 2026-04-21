@@ -577,6 +577,13 @@ export default function DesignEditor(props: Props) {
                 <span className={statusTone === 'error' ? 'text-red-600' : 'text-gray-500'}>{statusText}</span>
               </div>
             </div>
+            <a
+              href="?v=new"
+              className="rounded-lg border border-gray-200 px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50"
+              title="Neuen schema-basierten Editor (v2) öffnen"
+            >
+              Editor v2
+            </a>
             <button
               onClick={() => setShowResetDialog(true)}
               className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"

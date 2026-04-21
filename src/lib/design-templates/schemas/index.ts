@@ -96,3 +96,10 @@ export type {
 export { validateSchema, applyDefaults, validateField } from './validator';
 export { FONTS, FONT_OPTIONS, isKnownFont } from './shared/fonts';
 export { TYPO_LEVELS, typoLevelFields } from './shared/typography';
+export {
+  extractSchemaConfig,
+  mergeSchemaConfig,
+  getByPath,
+  setByPath,
+  splitFieldKey,
+} from './config-adapter';
